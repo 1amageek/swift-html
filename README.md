@@ -386,7 +386,13 @@ node scripts/generate-swift-html-css-properties.mjs
 
 ## Documentation
 
-The design notes live in [docs/SwiftHTML.md](docs/SwiftHTML.md).
+The DocC catalog lives in [Sources/SwiftHTML/SwiftHTML.docc](Sources/SwiftHTML/SwiftHTML.docc). Build it with:
+
+```bash
+xcodebuild docbuild -scheme swift-html -destination 'generic/platform=macOS'
+```
+
+The longer design notes live in [docs/SwiftHTML.md](docs/SwiftHTML.md).
 
 ## License
 
