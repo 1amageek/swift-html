@@ -28,7 +28,7 @@ SwiftHTML is an early `0.1.x` package extracted from SwiftWeb. The public API is
 
 ## Requirements
 
-SwiftHTML currently requires Swift 6.4 and Apple platform SDKs that provide `Synchronization.Mutex`.
+SwiftHTML currently requires Swift 6.3 and Apple platform SDKs that provide `Synchronization.Mutex`.
 
 | Platform | Minimum |
 |---|---:|
@@ -43,7 +43,7 @@ SwiftHTML currently requires Swift 6.4 and Apple platform SDKs that provide `Syn
 Add SwiftHTML to a Swift Package:
 
 ```swift
-// swift-tools-version: 6.4
+// swift-tools-version: 6.3
 import PackageDescription
 
 let package = Package(
