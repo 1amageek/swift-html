@@ -80,6 +80,26 @@ struct SwiftHTMLDiffTests {
     }
 
     @Test
+    func replacesRawHTMLInsideStyleElementWhenContentChanges() {
+        let oldArtifact = HTMLRenderer().render(style { rawHTML("a{color:red}") })
+        let newArtifact = HTMLRenderer().render(style { rawHTML("a{color:blue}") })
+
+        let patches = HTMLDiffer().diff(from: oldArtifact, to: newArtifact)
+
+        // The <style> element is unchanged; only its rawHTML child differs, so the
+        // diff targets the rawHTML node with a single subtree replacement carrying
+        // the new, unescaped CSS. The browser runtime resolves this rawHTML target
+        // through its sole-child <style> parent.
+        #expect(patches.count == 1)
+        #expect(patches.contains { patch in
+            if case .replaceSubtree(node: _, html: let html) = patch.operation {
+                return html == "a{color:blue}"
+            }
+            return false
+        })
+    }
+
+    @Test
     func updatesCommentNodesWhenValueChanges() {
         let oldArtifact = HTMLRenderer().render(comment("old"))
         let newArtifact = HTMLRenderer().render(comment("new"))

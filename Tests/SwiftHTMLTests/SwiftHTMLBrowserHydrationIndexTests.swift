@@ -45,8 +45,36 @@ private struct IndexInnerClient: ClientComponent {
     }
 }
 
+private struct IndexRawStyleClient: ClientComponent, Sendable {
+    @HTMLBuilder
+    var body: some HTML {
+        style {
+            rawHTML("a{color:red}")
+        }
+    }
+}
+
 @Suite
 struct SwiftHTMLBrowserHydrationIndexTests {
+    @Test
+    func rawHTMLInsideStyleIsAddressableThroughSoleChildParent() throws {
+        let artifact = IndexRawStyleClient().renderArtifact()
+        let index = artifact.browserHydrationIndex()
+
+        // A rawHTML node carries no `data-swift-node` marker and may expand to any
+        // number of DOM nodes, so it cannot be resolved directly. The browser
+        // runtime instead resolves it through its parent: the parent must be an
+        // addressable element and the rawHTML must be its sole child for an
+        // in-place content replacement to be unambiguous. This guards that contract.
+        let rawNode = try #require(index.nodes.first { $0.role == .rawHTML })
+        let parentID = try #require(rawNode.parentID)
+        let parent = try #require(index.node(parentID))
+
+        #expect(parent.role == .element)
+        #expect(parent.name == "style")
+        #expect(parent.childIDs == [rawNode.id])
+    }
+
     @Test
     func indexRecordsNodesHandlersAndComponents() throws {
         let artifact = IndexCounterComponent().renderArtifact()
