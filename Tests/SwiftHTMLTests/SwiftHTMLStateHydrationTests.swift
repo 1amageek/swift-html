@@ -96,6 +96,37 @@ private struct TextareaComponent: ClientComponent, Sendable {
     }
 }
 
+// A plain (non-client) child that renders the mutating handler for a binding it
+// receives from its owner. Nested inside a ClientComponent it is client-owned but
+// still gets its own componentID, so it reproduces the cross-component case where
+// the handler is rendered by a different component than the @State owner.
+private struct BindingChildComponent: Component {
+    let value: Binding<Int>
+
+    @HTMLBuilder
+    var body: some HTML {
+        button(.type(ButtonType.button), .onClick {
+            value.wrappedValue += 1
+        }) {
+            "Child \(value.wrappedValue)"
+        }
+    }
+}
+
+private struct BindingOwnerComponent: ClientComponent, Sendable {
+    @State private var count = 0
+
+    @HTMLBuilder
+    var body: some HTML {
+        div {
+            span(.class("owner-readout")) {
+                "Owner \(count)"
+            }
+            BindingChildComponent(value: $count)
+        }
+    }
+}
+
 @Suite
 struct SwiftHTMLStateHydrationTests {
     @Test
@@ -176,6 +207,35 @@ struct SwiftHTMLStateHydrationTests {
         #expect(reorderedRowTwo.id == rowTwo.id)
         #expect(second.html.contains("Row 1: 1"))
         #expect(second.html.contains("Row 2: 0"))
+    }
+
+    @Test
+    func bindingPassedToChildMutatesOwnerStateNotChildPhantomSlot() throws {
+        let store = StateStore()
+        let first = BindingOwnerComponent().renderArtifact(stateStore: store)
+        let owner = try #require(first.hydration.components.first { component in
+            component.typeName.hasSuffix(".BindingOwnerComponent")
+        })
+        let handler = try #require(first.clientHandlers.handlers.first)
+
+        #expect(first.html.contains("Owner 0"))
+        #expect(first.html.contains("Child 0"))
+        #expect(store.dirtyComponents().isEmpty)
+
+        handler.invoke()
+
+        // The child rendered the handler, but the binding was projected by the
+        // owner. The write must land in the owner's slot and mark the OWNER dirty,
+        // not a per-child phantom slot. Re-rendering then reflects the new value in
+        // both the owner's own readout and the child reading through the binding.
+        #expect(store.dirtyComponents() == [owner.id])
+
+        let second = BindingOwnerComponent().renderArtifact(stateStore: store)
+        #expect(second.hydration.components.first { component in
+            component.typeName.hasSuffix(".BindingOwnerComponent")
+        }?.id == owner.id)
+        #expect(second.html.contains("Owner 1"))
+        #expect(second.html.contains("Child 1"))
     }
 
     @Test

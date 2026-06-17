@@ -187,9 +187,35 @@ public struct State<Value: Sendable>: Sendable {
     }
 
     public var projectedValue: Binding<Value> {
-        Binding(
-            get: { wrappedValue },
-            set: { wrappedValue = $0 }
+        // Capture the owning render context at projection time. `$state` is read
+        // during the owner's body render, where `StateContext.current` is the
+        // owner. The binding's get/set must target the owner's slot regardless of
+        // which component later reads or writes through it, so we bind to the
+        // captured context instead of re-resolving `StateContext.current` lazily.
+        // Re-resolving would key the slot by whichever component is currently
+        // rendering — passing `$state` to a child would then read and write a
+        // different, phantom slot owned by the child, never updating the owner.
+        let source = self.source
+        let initialValue = self.initialValue
+        let local = self.local
+        let valueType = String(reflecting: Value.self)
+        let ownerContext = StateContext.current
+        return Binding(
+            get: {
+                guard let context = ownerContext else {
+                    return local.value()
+                }
+                let slot = context.register(source: source, valueType: valueType)
+                return context.store.value(for: slot.id, default: initialValue)
+            },
+            set: { newValue in
+                guard let context = ownerContext else {
+                    local.set(newValue)
+                    return
+                }
+                let slot = context.register(source: source, valueType: valueType)
+                context.store.set(newValue, for: slot.id, componentID: context.componentID)
+            }
         )
     }
 }
