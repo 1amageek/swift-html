@@ -11,7 +11,7 @@ let renderer = HTMLRenderer()
 let artifact = renderer.render(
     document {
         html {
-            body {
+            SwiftHTML.body {
                 main {
                     h1("Dashboard")
                 }

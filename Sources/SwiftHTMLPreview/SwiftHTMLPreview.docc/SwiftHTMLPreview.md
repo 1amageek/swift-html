@@ -20,35 +20,95 @@ flowchart LR
   Preview --> Host
 ```
 
+The preview snippet below is intentionally complete enough to copy into a preview-only Swift file:
+
 ```swift
 import SwiftHTMLPreview
 
-#HTMLPreview("Card") {
-    article(.class("card")) {
-        h2("SwiftHTML")
-        p("Rendered in Xcode Preview.")
+struct PreviewMetric: Sendable {
+    let id: String
+    let label: String
+    let value: String
+}
+
+struct PreviewMetricsPanel: Component, Sendable {
+    let title: String
+    let metrics: [PreviewMetric]
+
+    var body: some HTML {
+        section(.class("metrics-panel")) {
+            h2(title)
+            div(.class("metrics-grid")) {
+                ForEach(metrics, id: \.id) { metric in
+                    article(.class("metric")) {
+                        p(.class("metric-label"), text: metric.label)
+                        strong(metric.value)
+                    }
+                }
+            }
+        }
     }
+}
+
+#HTMLPreview(
+    "Metrics Panel",
+    traits: .fixedLayout(width: 430, height: 360),
+    configuration: HTMLPreviewConfiguration(
+        baseStyle: """
+        body {
+          margin: 0;
+          padding: 24px;
+          font: 16px -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .metrics-panel {
+          display: grid;
+          gap: 16px;
+        }
+        .metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+        .metric {
+          border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
+          border-radius: 8px;
+          padding: 12px;
+        }
+        .metric-label {
+          margin: 0 0 6px;
+          color: color-mix(in srgb, CanvasText 68%, transparent);
+        }
+        """,
+        viewport: .fixed(width: 430, height: 360)
+    )
+) {
+    PreviewMetricsPanel(
+        title: "Release Health",
+        metrics: [
+            PreviewMetric(id: "tests", label: "Tests", value: "108 passing"),
+            PreviewMetric(id: "surface", label: "Surface", value: "HTML + CSS"),
+            PreviewMetric(id: "preview", label: "Preview", value: "#HTMLPreview"),
+            PreviewMetric(id: "runtime", label: "Runtime", value: "Hydration ready"),
+        ]
+    )
 }
 ```
 
-Use preview traits exactly as you would with SwiftUI's `#Preview`:
-
-```swift
-#HTMLPreview("Mobile", traits: .fixedLayout(width: 390, height: 844)) {
-    main {
-        h1("Mobile preview")
-    }
-}
-```
-
-Use ``HTMLPreviewConfiguration`` for HTML-specific preview settings:
+Use preview traits exactly as you would with SwiftUI's `#Preview`. Use ``HTMLPreviewConfiguration`` when the HTML document needs language, base CSS, base URL, render options, or a fixed WebKit viewport:
 
 ```swift
 #HTMLPreview(
-    "Japanese",
-    configuration: HTMLPreviewConfiguration(language: "ja")
+    "Mobile",
+    traits: .fixedLayout(width: 390, height: 844),
+    configuration: HTMLPreviewConfiguration(
+        language: "ja",
+        viewport: .fixed(width: 390, height: 844)
+    )
 ) {
-    p("こんにちは")
+    main(.class("page")) {
+        h1("Mobile Preview")
+        p("This SwiftHTML document is rendered inside Xcode Preview.")
+    }
 }
 ```
 

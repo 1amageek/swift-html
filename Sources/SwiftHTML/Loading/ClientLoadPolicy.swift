@@ -24,3 +24,5 @@ public enum ClientLoadPolicy: String, Sendable, Codable, Comparable, CaseIterabl
         lhs.priority < rhs.priority
     }
 }
+
+public typealias LoadPolicy = ClientLoadPolicy

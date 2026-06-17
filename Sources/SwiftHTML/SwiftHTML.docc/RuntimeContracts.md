@@ -50,6 +50,8 @@ print(index.handlers)
 
 The index is the public runtime facade. It avoids exposing SwiftHTML's internal graph representation.
 
+Component records include state slots and environment snapshots. Runtime hosts use the derived state and environment schema hashes to decide whether a component WASM update can preserve state or must remount.
+
 ## Split Loading
 
 SwiftHTML includes split-loading contracts for runtime packages.
@@ -68,6 +70,8 @@ The planner operates on symbol and component metadata. It does not build WASM, s
 | ``ClientBundleManifest`` | Describes runtime, shared, route, and component bundles. |
 | ``ClientBundleLoadResolver`` | Resolves a load plan from a manifest and policy. |
 | ``ClientBundleLoadingRuntime`` | Tracks loading state. |
+
+``ClientComponentAsset`` carries `stateSchemaHash` and `environmentSchemaHash` so a concrete WASM runtime can safely decide whether to snapshot, restore, or remount a client boundary.
 
 ## Runtime Ownership
 

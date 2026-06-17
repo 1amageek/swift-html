@@ -17,7 +17,7 @@ flowchart LR
 
 ## Status
 
-SwiftHTML is an early `0.2.x` package extracted from SwiftWeb. The public API is intended to be small and framework-neutral, but runtime and hydration contracts may still evolve before `1.0`.
+SwiftHTML is an early `0.3.x` package extracted from SwiftWeb. The public API is intended to be small and framework-neutral, but runtime and hydration contracts may still evolve before `1.0`.
 
 | Package | Role |
 |---|---|
@@ -48,7 +48,7 @@ import PackageDescription
 
 let package = Package(
     dependencies: [
-        .package(url: "https://github.com/1amageek/swift-html.git", from: "0.2.0"),
+        .package(url: "https://github.com/1amageek/swift-html.git", from: "0.3.0"),
     ],
     targets: [
         .target(
@@ -80,7 +80,7 @@ struct HomePage: Component {
                     meta(.charset("utf-8"))
                     title("SwiftHTML")
                 }
-                body {
+                SwiftHTML.body {
                     main(.class("page")) {
                         h1("SwiftHTML")
                         p("Typed HTML rendered from Swift values.")
@@ -96,6 +96,201 @@ struct HomePage: Component {
 
 let html = HomePage().render()
 print(html)
+```
+
+## Copyable Snippets
+
+The snippets below are intentionally complete enough to paste into a Swift file. They include imports, model values, components, and the render or preview entry point. The examples use fenced Markdown code blocks so documentation surfaces can expose their normal copy action.
+
+### Server-Rendered Page
+
+```swift
+import SwiftHTML
+
+struct ArticleSummary: Sendable {
+    let id: String
+    let title: String
+    let excerpt: String
+    let href: String
+}
+
+struct ArticleListPage: Component, Sendable {
+    let articles: [ArticleSummary]
+
+    var body: some HTML {
+        document {
+            html {
+                head {
+                    meta(.charset("utf-8"))
+                    title("Latest Articles")
+                }
+                SwiftHTML.body {
+                    main(.class("article-list")) {
+                        h1("Latest Articles")
+                        p(.class("lead"), text: "Rendered on the server with typed SwiftHTML components.")
+
+                        section(.aria("label", "Articles")) {
+                            ForEach(articles, id: \.id) { summary in
+                                articleCard(summary)
+                            }
+                        }
+                    }
+                    .style {
+                        .maxWidth("720px")
+                        .margin("0 auto")
+                        .padding("32px")
+                        .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
+                    }
+                }
+            }
+        }
+    }
+
+    private func articleCard(_ summary: ArticleSummary) -> some HTML {
+        article(.class("article-card")) {
+            h2 {
+                a(.href(summary.href)) {
+                    summary.title
+                }
+            }
+            p(summary.excerpt)
+        }
+        .style {
+            .padding("16px 0")
+            .border("0 solid color-mix(in srgb, CanvasText 16%, transparent)")
+            .custom("border-bottom-width", "1px")
+        }
+    }
+}
+
+func renderArticleListPage() -> String {
+    ArticleListPage(
+        articles: [
+            ArticleSummary(
+                id: "swift-html",
+                title: "Typed HTML in Swift",
+                excerpt: "Use lowercase tags, typed attributes, and components to build HTML documents.",
+                href: "/articles/swift-html"
+            ),
+            ArticleSummary(
+                id: "hydration",
+                title: "Hydration Contracts",
+                excerpt: "Render artifacts carry state, event, and browser-neutral runtime metadata.",
+                href: "/articles/hydration"
+            ),
+        ]
+    )
+    .render()
+}
+```
+
+### Xcode Preview
+
+```swift
+import SwiftHTMLPreview
+
+struct Metric: Sendable {
+    let id: String
+    let label: String
+    let value: String
+}
+
+struct MetricsPanel: Component, Sendable {
+    let title: String
+    let metrics: [Metric]
+
+    var body: some HTML {
+        section(.class("metrics-panel")) {
+            h2(title)
+            div(.class("metrics-grid")) {
+                ForEach(metrics, id: \.id) { metric in
+                    article(.class("metric")) {
+                        p(.class("metric-label"), text: metric.label)
+                        strong(metric.value)
+                    }
+                }
+            }
+        }
+    }
+}
+
+#HTMLPreview(
+    "Metrics Panel",
+    traits: .fixedLayout(width: 430, height: 360),
+    configuration: HTMLPreviewConfiguration(
+        baseStyle: """
+        body {
+          margin: 0;
+          padding: 24px;
+          font: 16px -apple-system, BlinkMacSystemFont, sans-serif;
+          background: Canvas;
+          color: CanvasText;
+        }
+        .metrics-panel {
+          display: grid;
+          gap: 16px;
+        }
+        .metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+        .metric {
+          border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
+          border-radius: 8px;
+          padding: 12px;
+        }
+        .metric-label {
+          margin: 0 0 6px;
+          color: color-mix(in srgb, CanvasText 68%, transparent);
+        }
+        """,
+        viewport: .fixed(width: 430, height: 360)
+    )
+) {
+    MetricsPanel(
+        title: "Release Health",
+        metrics: [
+            Metric(id: "tests", label: "Tests", value: "108 passing"),
+            Metric(id: "coverage", label: "Surface", value: "HTML + CSS"),
+            Metric(id: "preview", label: "Preview", value: "#HTMLPreview"),
+            Metric(id: "runtime", label: "Runtime", value: "Hydration ready"),
+        ]
+    )
+}
+```
+
+### Stateful Runtime Check
+
+```swift
+import SwiftHTML
+
+struct InlineCounter: ClientComponent, Sendable {
+    @State private var count = 0
+
+    var body: some HTML {
+        button(.type(ButtonType.button), .onClick {
+            count += 1
+        }) {
+            "Count \(count)"
+        }
+    }
+}
+
+func renderCounterAfterOneClick() throws -> String {
+    var runtime = try BrowserHydrationRuntime(
+        root: InlineCounter(),
+        host: BrowserDOMCommandBuffer(),
+        stateStore: StateStore()
+    )
+
+    guard let handler = runtime.session.artifact.clientHandlers.handlers.first else {
+        return runtime.session.artifact.html
+    }
+
+    let update = try runtime.invoke(handlerID: handler.id)
+    return update.html
+}
 ```
 
 ## Xcode Preview
@@ -202,7 +397,7 @@ import SwiftHTMLPreview
     "Japanese",
     configuration: HTMLPreviewConfiguration(
         baseStyle: """
-        body {
+                SwiftHTML.body {
           padding: 32px;
           font: 16px -apple-system, BlinkMacSystemFont, sans-serif;
         }
@@ -247,6 +442,8 @@ let rendered = div(.id("root")) {
 | Client-owned component | `ClientComponent` | Owns `@State`, event closures, and hydration metadata. |
 | Render result | `RenderArtifact` | Public facade for HTML, diagnostics, manifests, handlers, and snapshots. |
 | Runtime state | `StateStore` | Component-scoped state slots used during render and hydration. |
+| Runtime state snapshot | `StateStoreSnapshot` | Codable state payload guarded by a state schema hash for HMR and WASM runtime swaps. |
+| Runtime schema | `StateSchema` | Stable hash derived from state slots, value types, and source locations. |
 
 SwiftHTML keeps the raw render graph internal. Public code should use `RenderArtifact`, `HTMLDOMSnapshot`, hydration indexes, diagnostics, and patch/runtime records instead of constructing graph nodes.
 
@@ -402,6 +599,18 @@ let component = artifact.hydration.components.first
 let handler = artifact.clientHandlers.handlers.first
 ```
 
+State snapshots are explicit runtime data. A host can preserve client state during HMR or a component WASM swap only when the rendered state schema matches:
+
+```swift
+let schemaHash = artifact.hydration.stateSchemaHash
+let snapshot = try store.snapshot(schemaHash: schemaHash)
+
+let nextStore = StateStore()
+nextStore.restore(snapshot)
+```
+
+Only values that can be encoded by the runtime are included in the snapshot. Non-encodable state falls back to the component initializer on restore.
+
 The in-package hydration runtime can be used by tests or host adapters:
 
 ```swift
@@ -511,7 +720,7 @@ Higher-level packages can map `ActionRepresentable` to forms, buttons, fetch req
 
 ```bash
 swift build
-xcodebuild test -scheme swift-html -destination 'platform=macOS' -only-testing:SwiftHTMLTests
+xcodebuild test -scheme swift-html-Package -destination 'platform=macOS' -only-testing:SwiftHTMLTests
 node scripts/generate-swift-html-css-properties.mjs --check
 ```
 
@@ -526,7 +735,7 @@ node scripts/generate-swift-html-css-properties.mjs
 The DocC catalog lives in [Sources/SwiftHTML/SwiftHTML.docc](Sources/SwiftHTML/SwiftHTML.docc). Build it with:
 
 ```bash
-xcodebuild docbuild -scheme swift-html -destination 'generic/platform=macOS'
+xcodebuild docbuild -scheme swift-html-Package -destination 'generic/platform=macOS'
 ```
 
 The longer design notes live in [docs/SwiftHTML.md](docs/SwiftHTML.md).

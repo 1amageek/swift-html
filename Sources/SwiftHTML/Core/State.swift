@@ -1,6 +1,7 @@
+import Foundation
 import Synchronization
 
-public struct StateSourceLocation: Sendable, Hashable {
+public struct StateSourceLocation: Sendable, Hashable, Codable {
     public let fileID: String
     public let line: UInt
     public let column: UInt
@@ -16,7 +17,7 @@ public struct StateSourceLocation: Sendable, Hashable {
     }
 }
 
-public struct StateSlotID: Sendable, Hashable {
+public struct StateSlotID: Sendable, Hashable, Codable {
     public let rawValue: String
 
     public init(_ rawValue: String) {
@@ -28,7 +29,7 @@ public struct StateSlotID: Sendable, Hashable {
     }
 }
 
-public struct StateSlotRecord: Sendable, Equatable {
+public struct StateSlotRecord: Sendable, Codable, Equatable {
     public let id: StateSlotID
     public let componentID: ComponentID
     public let valueType: String
@@ -50,6 +51,8 @@ public struct StateSlotRecord: Sendable, Equatable {
 public final class StateStore: Sendable {
     private struct Storage: Sendable {
         var values: [StateSlotID: RuntimeValueBox] = [:]
+        var valueTypes: [StateSlotID: String] = [:]
+        var restoredValues: [StateSlotID: StateSnapshotValue] = [:]
         var dirtyComponents: Set<ComponentID> = []
     }
 
@@ -61,16 +64,32 @@ public final class StateStore: Sendable {
         for id: StateSlotID,
         default defaultValue: @autoclosure () -> Value
     ) -> Value {
-        storage.withLock { storage in
+        let valueType = String(reflecting: Value.self)
+        let lookup: (existing: Value?, restored: StateSnapshotValue?) = storage.withLock { storage in
             if let existing = storage.values[id]?.value(as: Value.self) {
-                return existing
+                return (existing, nil)
             }
 
-            let initial = defaultValue()
-            let box = RuntimeValueBox(initial)
-            storage.values[id] = box
-            return initial
+            if let restored = storage.restoredValues[id] {
+                storage.restoredValues[id] = nil
+                if restored.valueType == valueType {
+                    return (nil, restored)
+                }
+            }
+
+            return (nil, nil)
         }
+
+        if let existing = lookup.existing {
+            return existing
+        }
+
+        if let restored = lookup.restored,
+           let restoredValue = Self.decodeRestoredValue(restored, as: Value.self) {
+            return install(restoredValue, for: id, valueType: valueType)
+        }
+
+        return install(defaultValue(), for: id, valueType: valueType)
     }
 
     public func set<Value: Sendable>(
@@ -78,8 +97,11 @@ public final class StateStore: Sendable {
         for id: StateSlotID,
         componentID: ComponentID
     ) {
+        let valueType = String(reflecting: Value.self)
         storage.withLock { storage in
             storage.values[id] = RuntimeValueBox(value)
+            storage.valueTypes[id] = valueType
+            storage.restoredValues[id] = nil
             storage.dirtyComponents.insert(componentID)
         }
     }
@@ -92,7 +114,7 @@ public final class StateStore: Sendable {
 
     public func contains(_ id: StateSlotID) -> Bool {
         storage.withLock { storage in
-            storage.values[id] != nil
+            storage.values[id] != nil || storage.restoredValues[id] != nil
         }
     }
 
@@ -107,6 +129,80 @@ public final class StateStore: Sendable {
             for component in components {
                 storage.dirtyComponents.remove(component)
             }
+        }
+    }
+
+    public func snapshot(schemaHash: String) throws -> StateStoreSnapshot {
+        let entries: [(id: StateSlotID, valueType: String, box: RuntimeValueBox)] = storage.withLock { storage in
+            storage.values.compactMap { id, box in
+                guard let valueType = storage.valueTypes[id] else {
+                    return nil
+                }
+                return (id, valueType, box)
+            }
+        }
+
+        var values: [String: StateSnapshotValue] = [:]
+        for entry in entries {
+            do {
+                values[entry.id.rawValue] = try entry.box.snapshotValue(valueType: entry.valueType)
+            } catch {
+                throw StateSnapshotError.encodingFailed(
+                    slotID: entry.id,
+                    valueType: entry.valueType,
+                    message: String(describing: error)
+                )
+            }
+        }
+        return StateStoreSnapshot(schemaHash: schemaHash, values: values)
+    }
+
+    public func restore(_ snapshot: StateStoreSnapshot) {
+        storage.withLock { storage in
+            storage.values.removeAll()
+            storage.valueTypes.removeAll()
+            storage.restoredValues = Dictionary(
+                uniqueKeysWithValues: snapshot.values.map { key, value in
+                    (StateSlotID(key), value)
+                }
+            )
+            storage.dirtyComponents.removeAll()
+        }
+    }
+
+    private static func decodeRestoredValue<Value: Sendable>(
+        _ snapshot: StateSnapshotValue,
+        as type: Value.Type
+    ) -> Value? {
+        guard snapshot.encoding == "json",
+              let decodableType = Value.self as? any Decodable.Type
+        else {
+            return nil
+        }
+
+        do {
+            let decoded = try JSONDecoder().decode(
+                decodableType,
+                from: Data(snapshot.encodedValue.utf8)
+            )
+            return decoded as? Value
+        } catch {
+            return nil
+        }
+    }
+
+    private func install<Value: Sendable>(
+        _ value: Value,
+        for id: StateSlotID,
+        valueType: String
+    ) -> Value {
+        storage.withLock { storage in
+            if let existing = storage.values[id]?.value(as: Value.self) {
+                return existing
+            }
+            storage.values[id] = RuntimeValueBox(value)
+            storage.valueTypes[id] = valueType
+            return value
         }
     }
 }

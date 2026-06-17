@@ -145,10 +145,30 @@ public struct ClientBundlePlanner: Sendable {
             components: components,
             runtimeSymbols: graph.runtimeSymbols
         ))
+        let hydrationComponents = Dictionary(
+            uniqueKeysWithValues: hydration.components.map { component in
+                (component.id, component)
+            }
+        )
+        let hydratedComponents = manifest.components.map { component in
+            guard let hydrationComponent = hydrationComponents[component.componentID] else {
+                return component
+            }
+            return ClientComponentAsset(
+                componentID: component.componentID,
+                typeName: component.typeName,
+                bundleID: component.bundleID,
+                loadPolicy: component.loadPolicy,
+                entrySymbols: component.entrySymbols,
+                serverSlots: component.serverSlots,
+                stateSchemaHash: hydrationComponent.stateSchemaHash,
+                environmentSchemaHash: hydrationComponent.environmentSnapshot.schemaHash
+            )
+        }
         return ClientBundleManifest(
             runtimeBundleID: manifest.runtimeBundleID,
             bundles: manifest.bundles,
-            components: manifest.components,
+            components: hydratedComponents,
             serverSlots: slotRecords
         )
     }

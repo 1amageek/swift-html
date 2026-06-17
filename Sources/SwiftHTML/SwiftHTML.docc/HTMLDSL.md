@@ -117,7 +117,7 @@ struct NavigationMenu: Component {
                     "Sign in"
                 }
             case .signedIn:
-                button(.type(.button)) {
+                button(.type(ButtonType.button)) {
                     "Sign out"
                 }
             }

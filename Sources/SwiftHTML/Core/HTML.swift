@@ -13,7 +13,23 @@ public protocol Component: HTML {
 
 public protocol ServerComponent: Component {}
 
-public protocol ClientComponent: Component {}
+public protocol ClientComponent: Component, ClientLoadPolicyProviding, ClientBundlePolicyProviding {
+    static var loadPolicy: LoadPolicy { get }
+    static var bundle: BundlePolicy { get }
+}
+
+public extension ClientComponent {
+    static var loadPolicy: LoadPolicy { .eager }
+    static var bundle: BundlePolicy { .main }
+
+    var clientLoadPolicy: LoadPolicy {
+        Self.loadPolicy
+    }
+
+    var clientBundlePolicy: BundlePolicy {
+        Self.bundle
+    }
+}
 
 struct HTMLContent {
     private let build: (inout HTMLGraphBuilder) -> HTMLNodeID

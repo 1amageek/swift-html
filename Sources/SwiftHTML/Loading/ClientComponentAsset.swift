@@ -5,6 +5,8 @@ public struct ClientComponentAsset: Sendable, Codable, Equatable {
     public let loadPolicy: ClientLoadPolicy
     public let entrySymbols: [ClientSymbolID]
     public let serverSlots: [ServerSlotID]
+    public let stateSchemaHash: String
+    public let environmentSchemaHash: String
 
     public init(
         componentID: ComponentID,
@@ -12,7 +14,9 @@ public struct ClientComponentAsset: Sendable, Codable, Equatable {
         bundleID: ClientBundleID,
         loadPolicy: ClientLoadPolicy,
         entrySymbols: [ClientSymbolID],
-        serverSlots: [ServerSlotID] = []
+        serverSlots: [ServerSlotID] = [],
+        stateSchemaHash: String = StateSchema.hash([]),
+        environmentSchemaHash: String = ClientEnvironmentSnapshot().schemaHash
     ) {
         self.componentID = componentID
         self.typeName = typeName
@@ -20,5 +24,7 @@ public struct ClientComponentAsset: Sendable, Codable, Equatable {
         self.loadPolicy = loadPolicy
         self.entrySymbols = entrySymbols.sorted()
         self.serverSlots = serverSlots.sorted()
+        self.stateSchemaHash = stateSchemaHash
+        self.environmentSchemaHash = environmentSchemaHash
     }
 }

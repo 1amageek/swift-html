@@ -85,6 +85,12 @@ struct SwiftHTMLClientBundlePlannerTests {
     @Test
     func attachesHydrationServerSlotsToPlannedComponentAssets() throws {
         let component = ComponentID("component-with-server-slot")
+        let stateSlot = StateSlotRecord(
+            id: StateSlotID("component-with-server-slot:state:Counter.swift:7:5"),
+            componentID: component,
+            valueType: "Swift.Int",
+            source: StateSourceLocation(fileID: "Counter.swift", line: 7, column: 5)
+        )
         let slot = ServerSlotRecord(
             id: ServerSlotID("slot-profile"),
             ownerComponentID: component,
@@ -92,14 +98,24 @@ struct SwiftHTMLClientBundlePlannerTests {
             path: "root/child:0",
             nodeID: HTMLNodeID(42)
         )
+        let environmentSnapshot = ClientEnvironmentSnapshot(values: [
+            ClientEnvironmentSnapshotValue(
+                key: "theme",
+                valueType: "Swift.String",
+                encoding: "json",
+                encodedValue: #""dark""#
+            ),
+        ])
         let hydration = HydrationManifest(components: [
             HydrationComponentRecord(
                 id: component,
                 typeName: "ProfileIsland",
                 path: "root",
                 nodeID: HTMLNodeID(1),
+                stateSlots: [stateSlot],
                 loadPolicy: .interaction,
-                serverSlots: [slot]
+                serverSlots: [slot],
+                environmentSnapshot: environmentSnapshot
             ),
         ])
         let graph = ClientSymbolGraph(
@@ -122,6 +138,8 @@ struct SwiftHTMLClientBundlePlannerTests {
         #expect(manifest.serverSlots == [slot])
         #expect(componentAsset.serverSlots == [ServerSlotID("slot-profile")])
         #expect(componentAsset.loadPolicy == .interaction)
+        #expect(componentAsset.stateSchemaHash == StateSchema.hash([stateSlot]))
+        #expect(componentAsset.environmentSchemaHash == environmentSnapshot.schemaHash)
         #expect(try #require(manifest.bundle(componentAsset.bundleID)).kind == .component)
     }
 

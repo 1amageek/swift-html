@@ -226,6 +226,7 @@ public enum RenderDiagnosticCode: String, Sendable, Equatable {
     case invalidElementName = "swift-html.security.invalid-element-name"
     case invalidAttributeName = "swift-html.security.invalid-attribute-name"
     case unsafeURLAttribute = "swift-html.security.unsafe-url-attribute"
+    case nestedClientComponentLoadingContractIgnored = "swift-html.loading.nested-client-component-contract-ignored"
 }
 
 public struct RenderDiagnostic: Sendable, Equatable {
@@ -376,6 +377,10 @@ public struct RenderArtifact {
         !errors.isEmpty
     }
 
+    public func renderSubtree(_ id: HTMLNodeID) -> String {
+        HTMLRenderer().renderSubtree(id, graph: graph)
+    }
+
     public var formattedDiagnostics: String {
         diagnostics.map(\.formattedMessage).joined(separator: "\n")
     }
@@ -441,6 +446,13 @@ extension HTMLGraph {
     }
 }
 
+private struct ClientIslandContract: Sendable, Equatable {
+    let ownerComponentID: ComponentID
+    let bundleID: ClientBundleID?
+    let bundlePolicy: BundlePolicy
+    let loadPolicy: LoadPolicy
+}
+
 struct HTMLGraphBuilder {
     private(set) var graph: HTMLGraph
     var environment: EnvironmentValues
@@ -455,6 +467,8 @@ struct HTMLGraphBuilder {
     private var pathSegments: [String] = []
     private var clientOwnershipDepth = 0
     private var clientComponentStack: [ComponentID] = []
+    private var clientIslandContractStack: [ClientIslandContract] = []
+    private var clientLoadingOverrideStack: [ClientLoadingContractOverride] = []
     private var serverSlotsByOwner: [ComponentID: [ServerSlotRecord]] = [:]
 
     init(
@@ -497,6 +511,16 @@ struct HTMLGraphBuilder {
         currentPath()
     }
 
+    mutating func withClientLoadingOverride<Result>(
+        _ override: ClientLoadingContractOverride,
+        operation: (inout HTMLGraphBuilder) -> Result
+    ) -> Result {
+        clientLoadingOverrideStack.append(override)
+        let result = operation(&self)
+        clientLoadingOverrideStack.removeLast()
+        return result
+    }
+
     mutating func appendAny(_ html: any HTML) -> HTMLNodeID {
         if let primitive = html as? any HTMLPrimitive {
             return primitive.buildNode(in: &self)
@@ -514,7 +538,40 @@ struct HTMLGraphBuilder {
             let isServerComponent = component is any ServerComponent
             let isClientOwned = isExplicitClientComponent || (clientOwnershipDepth > 0 && !isServerComponent)
             let serverSlotOwner = isServerComponent && clientOwnershipDepth > 0 ? clientComponentStack.last : nil
-            let loadPolicy = (component as? any ClientLoadPolicyProviding)?.clientLoadPolicy ?? ClientLoadPolicy.eager
+            let componentLoadPolicy = (component as? any ClientLoadPolicyProviding)?.clientLoadPolicy ?? LoadPolicy.eager
+            let componentBundlePolicy = (component as? any ClientBundlePolicyProviding)?.clientBundlePolicy ?? BundlePolicy.main
+            let loadingOverride = currentClientLoadingOverride()
+            let isOutermostClientIsland = isExplicitClientComponent && clientOwnershipDepth == 0
+            let islandContract: ClientIslandContract?
+            if isOutermostClientIsland {
+                let resolvedLoadPolicy = loadingOverride.loadPolicy ?? componentLoadPolicy
+                let resolvedBundlePolicy = loadingOverride.bundle ?? componentBundlePolicy
+                let resolvedBundleID = clientBundleID(
+                    for: resolvedBundlePolicy,
+                    loadPolicy: resolvedLoadPolicy,
+                    componentID: componentID,
+                    typeName: typeName,
+                    path: path
+                )
+                islandContract = ClientIslandContract(
+                    ownerComponentID: componentID,
+                    bundleID: resolvedBundleID,
+                    bundlePolicy: resolvedBundlePolicy,
+                    loadPolicy: resolvedLoadPolicy
+                )
+            } else {
+                islandContract = clientIslandContractStack.last
+                if isExplicitClientComponent && clientOwnershipDepth > 0 {
+                    reportNestedClientLoadingContractIfNeeded(
+                        typeName: typeName,
+                        componentID: componentID,
+                        path: path,
+                        loadPolicy: componentLoadPolicy,
+                        bundlePolicy: componentBundlePolicy,
+                        override: loadingOverride
+                    )
+                }
+            }
             let componentEnvironment = options.componentEnvironmentOverrides[path] ?? environment
             let store = stateStore
             let stateContext = StateRenderContext(
@@ -528,11 +585,16 @@ struct HTMLGraphBuilder {
             let serverCapabilityRecorder = isClientOwned ? ServerCapabilityReadRecorder() : nil
             let previousClientOwnershipDepth = clientOwnershipDepth
             let previousClientComponentStack = clientComponentStack
+            let previousClientIslandContractStack = clientIslandContractStack
             if isClientOwned {
                 clientOwnershipDepth += 1
                 clientComponentStack.append(componentID)
+                if let islandContract, isOutermostClientIsland {
+                    clientIslandContractStack.append(islandContract)
+                }
             } else if isServerComponent {
                 clientOwnershipDepth = 0
+                clientIslandContractStack.removeAll()
             }
             let previousEnvironment = environment
             environment = componentEnvironment
@@ -553,6 +615,7 @@ struct HTMLGraphBuilder {
             }
             clientOwnershipDepth = previousClientOwnershipDepth
             clientComponentStack = previousClientComponentStack
+            clientIslandContractStack = previousClientIslandContractStack
             environment = previousEnvironment
 
             let stateSlots = stateContext.stateSlots()
@@ -637,8 +700,8 @@ struct HTMLGraphBuilder {
                 stateSlots: stateSlots,
                 environmentReads: reads,
                 serverCapabilityReads: serverCapabilityReads,
-                bundleID: nil,
-                loadPolicy: loadPolicy,
+                bundleID: islandContract?.bundleID,
+                loadPolicy: islandContract?.loadPolicy ?? componentLoadPolicy,
                 serverSlots: serverSlotsByOwner[componentID, default: []],
                 environmentSnapshot: environmentRecorder?.snapshot() ?? ClientEnvironmentSnapshot()
             ))
@@ -948,6 +1011,75 @@ struct HTMLGraphBuilder {
         }
 
         return pathSegments.joined(separator: "/")
+    }
+
+    private func currentClientLoadingOverride() -> ClientLoadingContractOverride {
+        clientLoadingOverrideStack.reduce(.empty) { result, override in
+            result.merged(with: override)
+        }
+    }
+
+    private mutating func reportNestedClientLoadingContractIfNeeded(
+        typeName: String,
+        componentID: ComponentID,
+        path: String,
+        loadPolicy: LoadPolicy,
+        bundlePolicy: BundlePolicy,
+        override: ClientLoadingContractOverride
+    ) {
+        let hasStaticContract = loadPolicy != .eager || bundlePolicy != .main
+        guard hasStaticContract || !override.isEmpty else {
+            return
+        }
+
+        report(RenderDiagnostic(
+            code: .nestedClientComponentLoadingContractIgnored,
+            severity: .warning,
+            message: "\(typeName) declares a client loading contract inside an existing ClientComponent island",
+            componentID: componentID,
+            componentType: typeName,
+            path: path,
+            hint: "Move .loadPolicy(...) or .bundle(...) to the outermost ClientComponent. Nested ClientComponent values share the outer island bundle."
+        ))
+    }
+
+    private func clientBundleID(
+        for policy: BundlePolicy,
+        loadPolicy: LoadPolicy,
+        componentID: ComponentID,
+        typeName: String,
+        path: String
+    ) -> ClientBundleID? {
+        switch policy {
+        case .main:
+            if loadPolicy == .eager {
+                return nil
+            }
+            return ClientBundleID("component-\(stableHashHex(typeName))")
+        case .component:
+            return ClientBundleID("component-\(stableHashHex(typeName))")
+        case .named(let name):
+            return ClientBundleID("named-\(stableBundleName(name))")
+        case .shared(let name):
+            return ClientBundleID("shared-\(stableBundleName(name))")
+        }
+    }
+
+    private func stableBundleName(_ value: String) -> String {
+        let allowed = value.unicodeScalars.map { scalar -> Character in
+            if CharacterSet.alphanumerics.contains(scalar) || scalar == "-" || scalar == "_" {
+                return Character(scalar)
+            }
+            return "-"
+        }
+        let rawName = String(allowed)
+            .split(separator: "-")
+            .joined(separator: "-")
+            .lowercased()
+        guard !rawName.isEmpty else {
+            return stableHashHex(value)
+        }
+        return rawName
     }
 
     private func makeComponentID(typeName: String, path: String) -> ComponentID {

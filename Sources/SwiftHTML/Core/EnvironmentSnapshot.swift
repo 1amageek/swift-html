@@ -27,6 +27,28 @@ public struct ClientEnvironmentSnapshot: Sendable, Codable, Equatable {
     public init(values: [ClientEnvironmentSnapshotValue] = []) {
         self.values = values
     }
+
+    public var schemaHash: String {
+        stableSchemaHash(values.sorted { left, right in
+            if left.key == right.key {
+                return left.valueType < right.valueType
+            }
+            return left.key < right.key
+        }
+        .map { value in
+            "\(value.key)|\(value.valueType)|\(value.encoding)"
+        }
+        .joined(separator: "\n"))
+    }
+
+    private func stableSchemaHash(_ value: String) -> String {
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in value.utf8 {
+            hash ^= UInt64(byte)
+            hash &*= 0x100000001b3
+        }
+        return String(format: "%016llx", hash)
+    }
 }
 
 public enum ClientEnvironmentSnapshotError: Error, Sendable, CustomStringConvertible, Equatable {

@@ -2,26 +2,77 @@
 
 Create typed HTML from Swift values and render it as an HTML string or a render artifact.
 
-## Declare A Component
+## Copyable Page Example
 
-A component is a value that conforms to ``Component`` and returns `body`.
+This example is a complete copyable starting point. It defines input data, a ``Component``, and a render function.
 
 ```swift
 import SwiftHTML
 
-struct ProductSummary: Component {
+struct ProductSummary: Sendable {
+    let id: String
     let title: String
     let price: String
+    let href: String
+}
+
+struct ProductGridPage: Component, Sendable {
+    let products: [ProductSummary]
 
     var body: some HTML {
-        article(.class("product-summary")) {
-            h2(title)
-            p(.class("price"), text: price)
-            a(.href("/checkout")) {
-                "Checkout"
+        document {
+            html {
+                head {
+                    meta(.charset("utf-8"))
+                    title("Products")
+                }
+                SwiftHTML.body {
+                    main(.class("product-grid")) {
+                        h1("Products")
+                        p(.class("lead"), text: "A typed SwiftHTML page rendered on the server.")
+
+                        section(.aria("label", "Products")) {
+                            ForEach(products, id: \.id) { product in
+                                productCard(product)
+                            }
+                        }
+                    }
+                    .style {
+                        .maxWidth("840px")
+                        .margin("0 auto")
+                        .padding("32px")
+                        .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
+                    }
+                }
             }
         }
     }
+
+    private func productCard(_ product: ProductSummary) -> some HTML {
+        article(.class("product-card")) {
+            h2 {
+                a(.href(product.href)) {
+                    product.title
+                }
+            }
+            p(.class("price"), text: product.price)
+        }
+        .style {
+            .padding("16px")
+            .border("1px solid color-mix(in srgb, CanvasText 16%, transparent)")
+            .borderRadius("8px")
+        }
+    }
+}
+
+func renderProductGridPage() -> String {
+    ProductGridPage(
+        products: [
+            ProductSummary(id: "keyboard", title: "Keyboard", price: "$129", href: "/products/keyboard"),
+            ProductSummary(id: "trackpad", title: "Trackpad", price: "$149", href: "/products/trackpad"),
+        ]
+    )
+    .render()
 }
 ```
 
@@ -32,10 +83,7 @@ struct ProductSummary: Component {
 Use ``HTML/render()`` when you only need server-side HTML output:
 
 ```swift
-let html = ProductSummary(
-    title: "Keyboard",
-    price: "$129"
-).render()
+let html = renderProductGridPage()
 ```
 
 SwiftHTML escapes text nodes and normal attribute values:
@@ -58,10 +106,12 @@ The output contains escaped text:
 Use ``HTML/renderArtifact(environment:stateStore:options:)`` when a higher-level package needs metadata in addition to the HTML string.
 
 ```swift
-let artifact = ProductSummary(
-    title: "Keyboard",
-    price: "$129"
-).renderArtifact()
+let artifact = ProductGridPage(
+    products: [
+        ProductSummary(id: "keyboard", title: "Keyboard", price: "$129", href: "/products/keyboard"),
+    ]
+)
+.renderArtifact()
 
 print(artifact.html)
 print(artifact.diagnostics)

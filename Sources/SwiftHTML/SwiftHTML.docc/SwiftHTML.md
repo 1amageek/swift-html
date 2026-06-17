@@ -28,7 +28,7 @@ struct HomePage: Component {
                     meta(.charset("utf-8"))
                     title("SwiftHTML")
                 }
-                body {
+                SwiftHTML.body {
                     main(.class("page")) {
                         h1("SwiftHTML")
                         p("Typed HTML rendered from Swift values.")
@@ -105,6 +105,10 @@ print(artifact.html)
 - ``State``
 - ``Binding``
 - ``StateStore``
+- ``StateStoreSnapshot``
+- ``StateSnapshotValue``
+- ``StateSnapshotError``
+- ``StateSchema``
 - ``StateSlotID``
 - ``StateSlotRecord``
 - ``HydrationManifest``

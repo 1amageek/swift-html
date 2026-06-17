@@ -11,7 +11,7 @@ struct Counter: ClientComponent, Sendable {
     @State private var count = 0
 
     var body: some HTML {
-        button(.type(.button), .onClick {
+        button(.type(ButtonType.button), .onClick {
             count += 1
         }) {
             "Count \(count)"
@@ -63,6 +63,23 @@ let handlers = artifact.clientHandlers.handlers
 ```
 
 The manifest includes component IDs, state slots, server slots, load policy, and client-safe environment snapshots.
+
+## State Snapshots
+
+``StateStore`` can export a ``StateStoreSnapshot`` for a runtime host. The snapshot is guarded by the rendered ``StateSchema`` hash, so a host can preserve state across HMR or component WASM replacement only when the state layout is compatible.
+
+```swift
+let store = StateStore()
+let artifact = Counter().renderArtifact(stateStore: store)
+let snapshot = try store.snapshot(schemaHash: artifact.hydration.stateSchemaHash)
+
+let nextStore = StateStore()
+nextStore.restore(snapshot)
+```
+
+The schema hash is derived from state slot identity, value type, and source location. Moving or changing a state property changes the schema and should remount that component instead of restoring stale state.
+
+Only values that the runtime can encode are included in the snapshot. A state value that cannot be encoded falls back to the component initializer when restored.
 
 ## Runtime Dispatch
 

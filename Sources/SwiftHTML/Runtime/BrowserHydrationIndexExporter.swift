@@ -43,6 +43,7 @@ public struct BrowserHydrationIndexExporter: Sendable {
                 bundleID: component.bundleID,
                 loadPolicy: component.loadPolicy,
                 serverSlotIDs: component.serverSlots.map(\.id),
+                stateSlots: component.stateSlots,
                 environmentSnapshot: component.environmentSnapshot
             )
         }

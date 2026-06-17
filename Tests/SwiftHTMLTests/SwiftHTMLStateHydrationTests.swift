@@ -127,6 +127,59 @@ private struct BindingOwnerComponent: ClientComponent, Sendable {
     }
 }
 
+private struct NonCodableStateValue: Sendable {
+    let count: Int
+}
+
+private struct NonCodableStateComponent: ClientComponent, Sendable {
+    @State private var value = NonCodableStateValue(count: 0)
+
+    @HTMLBuilder
+    var body: some HTML {
+        div {
+            "\(value.count)"
+        }
+    }
+}
+
+private struct StaticLoadingContractComponent: ClientComponent, Sendable {
+    static let loadPolicy: LoadPolicy = .visible
+    static let bundle: BundlePolicy = .named("Analytics")
+
+    @HTMLBuilder
+    var body: some HTML {
+        div {
+            "Analytics"
+        }
+    }
+}
+
+private struct NestedLoadingOuterComponent: ClientComponent, Sendable {
+    static let loadPolicy: LoadPolicy = .interaction
+    static let bundle: BundlePolicy = .shared("Dashboard")
+
+    @HTMLBuilder
+    var body: some HTML {
+        div {
+            NestedLoadingInnerComponent()
+                .loadPolicy(.manual)
+                .bundle(.named("Inner"))
+        }
+    }
+}
+
+private struct NestedLoadingInnerComponent: ClientComponent, Sendable {
+    static let loadPolicy: LoadPolicy = .idle
+    static let bundle: BundlePolicy = .component
+
+    @HTMLBuilder
+    var body: some HTML {
+        button(.type(ButtonType.button)) {
+            "Inner"
+        }
+    }
+}
+
 @Suite
 struct SwiftHTMLStateHydrationTests {
     @Test
@@ -164,6 +217,92 @@ struct SwiftHTMLStateHydrationTests {
 
         #expect(secondComponent.id == component.id)
         #expect(second.html.contains("Count 1"))
+    }
+
+    @Test
+    func stateStoreSnapshotRestoresCodableStateIntoFreshStore() throws {
+        let store = StateStore()
+        let first = CounterComponent().renderArtifact(stateStore: store)
+        let handler = try #require(first.clientHandlers.handlers.first)
+
+        handler.invoke()
+
+        let updated = CounterComponent().renderArtifact(stateStore: store)
+        let schemaHash = updated.hydration.stateSchemaHash
+        let snapshot = try store.snapshot(schemaHash: schemaHash)
+        let restoredStore = StateStore()
+
+        restoredStore.restore(snapshot)
+
+        let restored = CounterComponent().renderArtifact(stateStore: restoredStore)
+
+        #expect(snapshot.schemaHash == schemaHash)
+        #expect(snapshot.values.count == 1)
+        #expect(restored.hydration.stateSchemaHash == schemaHash)
+        #expect(restored.html.contains("Count 1"))
+    }
+
+    @Test
+    func stateStoreSnapshotThrowsForNonCodableState() throws {
+        let store = StateStore()
+        let artifact = NonCodableStateComponent().renderArtifact(stateStore: store)
+
+        do {
+            _ = try store.snapshot(schemaHash: artifact.hydration.stateSchemaHash)
+            Issue.record("Expected non-Codable state snapshot to fail.")
+        } catch let error as StateSnapshotError {
+            #expect(error.description.contains("must conform to Codable"))
+        }
+    }
+
+    @Test
+    func clientComponentStaticLoadingContractIsRecordedInHydrationManifest() throws {
+        let artifact = StaticLoadingContractComponent().renderArtifact()
+        let component = try #require(artifact.hydration.components.first)
+
+        #expect(component.loadPolicy == .visible)
+        #expect(component.bundleID == ClientBundleID("named-analytics"))
+    }
+
+    @Test
+    func loadingModifiersOverrideStaticClientComponentContract() throws {
+        let artifact = StaticLoadingContractComponent()
+            .loadPolicy(.idle)
+            .bundle(.shared("Reports"))
+            .renderArtifact()
+        let component = try #require(artifact.hydration.components.first)
+
+        #expect(component.loadPolicy == .idle)
+        #expect(component.bundleID == ClientBundleID("shared-reports"))
+    }
+
+    @Test
+    func nestedClientComponentUsesOutermostLoadingContract() throws {
+        let artifact = NestedLoadingOuterComponent().renderArtifact()
+        let outer = try #require(artifact.hydration.components.first {
+            $0.typeName.hasSuffix(".NestedLoadingOuterComponent")
+        })
+        let inner = try #require(artifact.hydration.components.first {
+            $0.typeName.hasSuffix(".NestedLoadingInnerComponent")
+        })
+
+        #expect(outer.loadPolicy == .interaction)
+        #expect(inner.loadPolicy == .interaction)
+        #expect(outer.bundleID == ClientBundleID("shared-dashboard"))
+        #expect(inner.bundleID == ClientBundleID("shared-dashboard"))
+        #expect(artifact.diagnostics.contains {
+            $0.code == .nestedClientComponentLoadingContractIgnored
+        })
+    }
+
+    @Test
+    func browserHydrationIndexCarriesStateSlotsForRuntimeSchemaChecks() throws {
+        let artifact = CounterComponent().renderArtifact(stateStore: StateStore())
+        let component = try #require(artifact.hydration.components.first)
+        let browserComponent = try #require(artifact.browserHydrationIndex().component(component.id))
+
+        #expect(browserComponent.stateSlots == component.stateSlots)
+        #expect(browserComponent.stateSchemaHash == component.stateSchemaHash)
     }
 
     @Test
