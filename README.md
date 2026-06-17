@@ -17,7 +17,7 @@ flowchart LR
 
 ## Status
 
-SwiftHTML is an early `0.1.x` package extracted from SwiftWeb. The public API is intended to be small and framework-neutral, but runtime and hydration contracts may still evolve before `1.0`.
+SwiftHTML is an early `0.2.x` package extracted from SwiftWeb. The public API is intended to be small and framework-neutral, but runtime and hydration contracts may still evolve before `1.0`.
 
 | Package | Role |
 |---|---|
@@ -48,7 +48,7 @@ import PackageDescription
 
 let package = Package(
     dependencies: [
-        .package(url: "https://github.com/1amageek/swift-html.git", from: "0.1.0"),
+        .package(url: "https://github.com/1amageek/swift-html.git", from: "0.2.0"),
     ],
     targets: [
         .target(
