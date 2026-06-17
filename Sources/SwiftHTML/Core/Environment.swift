@@ -161,23 +161,29 @@ public enum LayoutDirection: String, Codable, Sendable {
     case rightToLeft
 }
 
-private struct LocaleEnvironmentKey: ClientEnvironmentKey {
+// These keys are `internal` (not `private`) so that `String(reflecting:)`
+// yields a stable `SwiftHTML.<Name>` identity that matches across the
+// separately compiled server and WASM binaries. A `private` key reflects to
+// `SwiftHTML.(unknown context at $<address>).<Name>`, whose discriminator
+// differs per binary, so a snapshot produced by the server can never be decoded
+// by the client. They are registered for hydration in `ClientEnvironmentRegistry.standard`.
+struct LocaleEnvironmentKey: ClientEnvironmentKey {
     static var defaultValue: Locale { .current }
 }
 
-private struct TimeZoneEnvironmentKey: ClientEnvironmentKey {
+struct TimeZoneEnvironmentKey: ClientEnvironmentKey {
     static var defaultValue: TimeZone { .current }
 }
 
-private struct CalendarEnvironmentKey: ClientEnvironmentKey {
+struct CalendarEnvironmentKey: ClientEnvironmentKey {
     static var defaultValue: Calendar { .current }
 }
 
-private struct ColorSchemeEnvironmentKey: ClientEnvironmentKey {
+struct ColorSchemeEnvironmentKey: ClientEnvironmentKey {
     static let defaultValue = ColorScheme.light
 }
 
-private struct LayoutDirectionEnvironmentKey: ClientEnvironmentKey {
+struct LayoutDirectionEnvironmentKey: ClientEnvironmentKey {
     static let defaultValue = LayoutDirection.leftToRight
 }
 
