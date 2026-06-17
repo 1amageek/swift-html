@@ -15,9 +15,9 @@ public struct HTMLPreviewRenderer: Sendable {
         self.renderOptions = renderOptions
     }
 
-    public func render(_ content: some HTML, title: String? = nil) -> String {
+    public func render(_ content: some HTML) -> String {
         HTMLPreviewDocument(
-            title: title ?? "SwiftHTML Preview",
+            title: "SwiftHTML Preview",
             style: style,
             language: language,
             content: content

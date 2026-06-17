@@ -12,7 +12,6 @@ import UIKit
 
 @MainActor
 public struct HTMLPreviewHost<Content: HTML>: View {
-    private let title: String?
     private let baseURL: URL?
     private let style: String
     private let language: String
@@ -20,14 +19,12 @@ public struct HTMLPreviewHost<Content: HTML>: View {
     private let content: Content
 
     public init(
-        _ title: String? = nil,
         baseURL: URL? = nil,
         style: String = HTMLPreviewRenderer.defaultStyle,
         language: String = "en",
         renderOptions: HTMLRenderOptions = .development,
         @HTMLBuilder content: () -> Content
     ) {
-        self.title = title
         self.baseURL = baseURL
         self.style = style
         self.language = language
@@ -57,7 +54,7 @@ public struct HTMLPreviewHost<Content: HTML>: View {
             language: language,
             renderOptions: renderOptions
         )
-        .render(content, title: title)
+        .render(content)
     }
 }
 

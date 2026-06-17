@@ -25,42 +25,29 @@ The preview snippet below is intentionally complete enough to copy into a previe
 ```swift
 import SwiftHTMLPreview
 
-struct PreviewMetric: Sendable {
-    let id: String
-    let label: String
-    let value: String
-}
+#Preview("Release Dashboard", traits: .fixedLayout(width: 520, height: 360)) {
+    HTMLPreview {
+        main(.class("dashboard-shell")) {
+            header(.class("dashboard-header")) {
+                p(.class("eyebrow"), text: "SwiftHTML Preview")
+                h1("Release Operations")
+                p("Inspect layout, copy, and CSS directly in Xcode.")
+            }
 
-struct PreviewMetricsPanel: Component, Sendable {
-    let title: String
-    let metrics: [PreviewMetric]
+            section(.class("metric-grid"), .aria("label", "Release metrics")) {
+                article(.class("metric-card")) {
+                    p(.class("metric-label"), text: "Tests")
+                    strong("108")
+                    span(.class("metric-trend"), text: "passing")
+                }
 
-    var body: some HTML {
-        section(.class("metrics-panel")) {
-            h2(title)
-            div(.class("metrics-grid")) {
-                ForEach(metrics, id: \.id) { metric in
-                    article(.class("metric")) {
-                        p(.class("metric-label"), text: metric.label)
-                        strong(metric.value)
-                    }
+                article(.class("metric-card")) {
+                    p(.class("metric-label"), text: "Preview")
+                    strong("Ready")
+                    span(.class("metric-trend"), text: "WebKit")
                 }
             }
         }
-    }
-}
-
-#Preview("Metrics Panel", traits: .fixedLayout(width: 430, height: 360)) {
-    HTMLPreview {
-        PreviewMetricsPanel(
-            title: "Release Health",
-            metrics: [
-                PreviewMetric(id: "tests", label: "Tests", value: "108 passing"),
-                PreviewMetric(id: "surface", label: "Surface", value: "HTML + CSS"),
-                PreviewMetric(id: "preview", label: "Preview", value: "#Preview"),
-                PreviewMetric(id: "runtime", label: "Runtime", value: "Hydration ready"),
-            ]
-        )
     }
     .style(
         """
@@ -69,23 +56,31 @@ struct PreviewMetricsPanel: Component, Sendable {
           padding: 24px;
           font: 16px -apple-system, BlinkMacSystemFont, sans-serif;
         }
-        .metrics-panel {
+        .dashboard-shell {
           display: grid;
           gap: 16px;
         }
-        .metrics-grid {
+        h1, p {
+          margin: 0;
+        }
+        .dashboard-header {
+          display: grid;
+          gap: 8px;
+        }
+        .eyebrow, .metric-label, .metric-trend {
+          color: color-mix(in srgb, CanvasText 68%, transparent);
+        }
+        .metric-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 12px;
         }
-        .metric {
+        .metric-card {
+          display: grid;
+          gap: 6px;
           border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
           border-radius: 8px;
           padding: 12px;
-        }
-        .metric-label {
-          margin: 0 0 6px;
-          color: color-mix(in srgb, CanvasText 68%, transparent);
         }
         """
     )

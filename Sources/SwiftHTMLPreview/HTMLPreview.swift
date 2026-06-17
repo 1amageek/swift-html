@@ -4,7 +4,6 @@ import SwiftUI
 
 @MainActor
 public struct HTMLPreview<Content: HTML>: View {
-    private let title: String?
     private var baseURLValue: URL?
     private var styleText: String
     private var languageCode: String
@@ -12,10 +11,8 @@ public struct HTMLPreview<Content: HTML>: View {
     private let content: Content
 
     public init(
-        _ title: String? = nil,
         @HTMLBuilder content: () -> Content
     ) {
-        self.title = title
         self.baseURLValue = nil
         self.styleText = HTMLPreviewRenderer.defaultStyle
         self.languageCode = "en"
@@ -25,7 +22,6 @@ public struct HTMLPreview<Content: HTML>: View {
 
     public var body: some View {
         HTMLPreviewHost(
-            title,
             baseURL: baseURLValue,
             style: styleText,
             language: languageCode,

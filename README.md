@@ -17,7 +17,9 @@ flowchart LR
 
 ## Status
 
-SwiftHTML is an early `0.3.x` package extracted from SwiftWeb. The public API is intended to be small and framework-neutral, but runtime and hydration contracts may still evolve before `1.0`.
+SwiftHTML is an early pre-`1.0` package extracted from SwiftWeb. The public API is intended to be small and framework-neutral, but runtime and hydration contracts may still evolve before `1.0`.
+
+This README describes the current `main` branch. Use the README from a matching Git tag when depending on a tagged release.
 
 | Package | Role |
 |---|---|
@@ -40,7 +42,7 @@ SwiftHTML currently requires Swift 6.3 and Apple platform SDKs that provide `Syn
 
 ## Installation
 
-Add SwiftHTML to a Swift Package:
+Add SwiftHTML to a Swift Package. The examples in this README use the current `main` branch API:
 
 ```swift
 // swift-tools-version: 6.3
@@ -48,7 +50,7 @@ import PackageDescription
 
 let package = Package(
     dependencies: [
-        .package(url: "https://github.com/1amageek/swift-html.git", from: "0.3.0"),
+        .package(url: "https://github.com/1amageek/swift-html.git", branch: "main"),
     ],
     targets: [
         .target(
@@ -189,42 +191,29 @@ func renderArticleListPage() -> String {
 ```swift
 import SwiftHTMLPreview
 
-struct Metric: Sendable {
-    let id: String
-    let label: String
-    let value: String
-}
+#Preview("Release Dashboard", traits: .fixedLayout(width: 520, height: 360)) {
+    HTMLPreview {
+        main(.class("dashboard-shell")) {
+            header(.class("dashboard-header")) {
+                p(.class("eyebrow"), text: "SwiftHTML Preview")
+                h1("Release Operations")
+                p("Inspect layout, copy, and CSS directly in Xcode.")
+            }
 
-struct MetricsPanel: Component, Sendable {
-    let title: String
-    let metrics: [Metric]
+            section(.class("metric-grid"), .aria("label", "Release metrics")) {
+                article(.class("metric-card")) {
+                    p(.class("metric-label"), text: "Tests")
+                    strong("108")
+                    span(.class("metric-trend"), text: "passing")
+                }
 
-    var body: some HTML {
-        section(.class("metrics-panel")) {
-            h2(title)
-            div(.class("metrics-grid")) {
-                ForEach(metrics, id: \.id) { metric in
-                    article(.class("metric")) {
-                        p(.class("metric-label"), text: metric.label)
-                        strong(metric.value)
-                    }
+                article(.class("metric-card")) {
+                    p(.class("metric-label"), text: "Preview")
+                    strong("Ready")
+                    span(.class("metric-trend"), text: "WebKit")
                 }
             }
         }
-    }
-}
-
-#Preview("Metrics Panel", traits: .fixedLayout(width: 430, height: 360)) {
-    HTMLPreview {
-        MetricsPanel(
-            title: "Release Health",
-            metrics: [
-                Metric(id: "tests", label: "Tests", value: "108 passing"),
-                Metric(id: "coverage", label: "Surface", value: "HTML + CSS"),
-                Metric(id: "preview", label: "Preview", value: "#Preview"),
-                Metric(id: "runtime", label: "Runtime", value: "Hydration ready"),
-            ]
-        )
     }
     .style(
         """
@@ -235,23 +224,31 @@ struct MetricsPanel: Component, Sendable {
           background: Canvas;
           color: CanvasText;
         }
-        .metrics-panel {
+        .dashboard-shell {
           display: grid;
           gap: 16px;
         }
-        .metrics-grid {
+        h1, p {
+          margin: 0;
+        }
+        .dashboard-header {
+          display: grid;
+          gap: 8px;
+        }
+        .eyebrow, .metric-label, .metric-trend {
+          color: color-mix(in srgb, CanvasText 68%, transparent);
+        }
+        .metric-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 12px;
         }
-        .metric {
+        .metric-card {
+          display: grid;
+          gap: 6px;
           border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
           border-radius: 8px;
           padding: 12px;
-        }
-        .metric-label {
-          margin: 0 0 6px;
-          color: color-mix(in srgb, CanvasText 68%, transparent);
         }
         """
     )
@@ -384,7 +381,7 @@ import SwiftHTMLPreview
 
 ### HTML-Specific Modifiers
 
-Use short modifiers on `HTMLPreview` for document-level options that SwiftUI Preview does not own.
+Use short modifiers on `HTMLPreview` for document-level settings that SwiftUI Preview does not own.
 
 | Modifier | Purpose |
 |---|---|

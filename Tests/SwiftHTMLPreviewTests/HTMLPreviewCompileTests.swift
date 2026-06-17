@@ -1,30 +1,5 @@
 import SwiftHTMLPreview
 
-private struct CompilePreviewMetric: Sendable {
-    let id: String
-    let label: String
-    let value: String
-}
-
-private struct CompilePreviewMetricsPanel: Component, Sendable {
-    let title: String
-    let metrics: [CompilePreviewMetric]
-
-    var body: some HTML {
-        section(.class("metrics-panel")) {
-            h2(title)
-            div(.class("metrics-grid")) {
-                ForEach(metrics, id: \.id) { metric in
-                    article(.class("metric")) {
-                        p(.class("metric-label"), text: metric.label)
-                        strong(metric.value)
-                    }
-                }
-            }
-        }
-    }
-}
-
 #Preview("Compile") {
     HTMLPreview {
         div {
@@ -41,17 +16,29 @@ private struct CompilePreviewMetricsPanel: Component, Sendable {
     }
 }
 
-#Preview("Documentation Snippet", traits: .fixedLayout(width: 430, height: 360)) {
+#Preview("Documentation Snippet", traits: .fixedLayout(width: 520, height: 360)) {
     HTMLPreview {
-        CompilePreviewMetricsPanel(
-            title: "Release Health",
-            metrics: [
-                CompilePreviewMetric(id: "tests", label: "Tests", value: "108 passing"),
-                CompilePreviewMetric(id: "surface", label: "Surface", value: "HTML + CSS"),
-                CompilePreviewMetric(id: "preview", label: "Preview", value: "#Preview"),
-                CompilePreviewMetric(id: "runtime", label: "Runtime", value: "Hydration ready"),
-            ]
-        )
+        main(.class("dashboard-shell")) {
+            header(.class("dashboard-header")) {
+                p(.class("eyebrow"), text: "SwiftHTML Preview")
+                h1("Release Operations")
+                p("Inspect layout, copy, and CSS directly in Xcode.")
+            }
+
+            section(.class("metric-grid"), .aria("label", "Release metrics")) {
+                article(.class("metric-card")) {
+                    p(.class("metric-label"), text: "Tests")
+                    strong("108")
+                    span(.class("metric-trend"), text: "passing")
+                }
+
+                article(.class("metric-card")) {
+                    p(.class("metric-label"), text: "Preview")
+                    strong("Ready")
+                    span(.class("metric-trend"), text: "WebKit")
+                }
+            }
+        }
     }
     .style(
         """
@@ -60,12 +47,28 @@ private struct CompilePreviewMetricsPanel: Component, Sendable {
           padding: 24px;
           font: 16px -apple-system, BlinkMacSystemFont, sans-serif;
         }
-        .metrics-grid {
+        .dashboard-shell {
+          display: grid;
+          gap: 16px;
+        }
+        h1, p {
+          margin: 0;
+        }
+        .dashboard-header {
+          display: grid;
+          gap: 8px;
+        }
+        .eyebrow, .metric-label, .metric-trend {
+          color: color-mix(in srgb, CanvasText 68%, transparent);
+        }
+        .metric-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 12px;
         }
-        .metric {
+        .metric-card {
+          display: grid;
+          gap: 6px;
           border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
           border-radius: 8px;
           padding: 12px;

@@ -9,11 +9,11 @@ struct HTMLPreviewRendererTests {
         let renderer = HTMLPreviewRenderer()
         let html = renderer.render(div(.class("card")) {
             "Preview"
-        }, title: "Card")
+        })
 
         #expect(html.contains("<!doctype html>"))
         #expect(html.contains("<html lang=\"en\">"))
-        #expect(html.contains("<title>Card</title>"))
+        #expect(html.contains("<title>SwiftHTML Preview</title>"))
         #expect(html.contains("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"))
         #expect(html.contains("<style>"))
         #expect(html.contains("<div class=\"card\">Preview</div>"))
