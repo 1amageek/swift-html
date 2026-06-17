@@ -215,43 +215,47 @@ import SwiftHTMLPreview
             }
         }
     }
-    .style(
-        """
-        body {
-          margin: 0;
-          padding: 24px;
-          font: 16px -apple-system, BlinkMacSystemFont, sans-serif;
-          background: Canvas;
-          color: CanvasText;
+    .style {
+        rule("body") {
+            .margin("0")
+            .padding("24px")
+            .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
+            .background("Canvas")
+            .color("CanvasText")
         }
-        .dashboard-shell {
-          display: grid;
-          gap: 16px;
+
+        rule(".dashboard-shell") {
+            .display("grid")
+            .gap("16px")
         }
-        h1, p {
-          margin: 0;
+
+        rule("h1, p") {
+            .margin("0")
         }
-        .dashboard-header {
-          display: grid;
-          gap: 8px;
+
+        rule(".dashboard-header") {
+            .display("grid")
+            .gap("8px")
         }
-        .eyebrow, .metric-label, .metric-trend {
-          color: color-mix(in srgb, CanvasText 68%, transparent);
+
+        rule(".eyebrow, .metric-label, .metric-trend") {
+            .color("color-mix(in srgb, CanvasText 68%, transparent)")
         }
-        .metric-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
+
+        rule(".metric-grid") {
+            .display("grid")
+            .gridTemplateColumns("repeat(2, minmax(0, 1fr))")
+            .gap("12px")
         }
-        .metric-card {
-          display: grid;
-          gap: 6px;
-          border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
-          border-radius: 8px;
-          padding: 12px;
+
+        rule(".metric-card") {
+            .display("grid")
+            .gap("6px")
+            .border("1px solid color-mix(in srgb, CanvasText 16%, transparent)")
+            .borderRadius("8px")
+            .padding("12px")
         }
-        """
-    )
+    }
 }
 ```
 
@@ -307,42 +311,75 @@ flowchart LR
 
 ### Basic Preview
 
-Import `SwiftHTMLPreview` and put `HTMLPreview` inside SwiftUI's `#Preview`:
+Import `SwiftHTMLPreview` and put the SwiftHTML you want to inspect directly inside `HTMLPreview`:
 
 ```swift
 import SwiftHTMLPreview
 
-#Preview("Card") {
+#Preview("Release Dashboard", traits: .fixedLayout(width: 520, height: 360)) {
     HTMLPreview {
-        article(.class("card")) {
-            h2("SwiftHTML")
-            p("Rendered in Xcode Preview.")
+        main(.class("dashboard-shell")) {
+            header(.class("dashboard-header")) {
+                p(.class("eyebrow"), text: "SwiftHTML Preview")
+                h1("Release Operations")
+                p("Inspect layout, copy, and CSS directly in Xcode.")
+            }
+
+            section(.class("metric-grid"), .aria("label", "Release metrics")) {
+                article(.class("metric-card")) {
+                    p(.class("metric-label"), text: "Tests")
+                    strong("108")
+                    span(.class("metric-trend"), text: "passing")
+                }
+
+                article(.class("metric-card")) {
+                    p(.class("metric-label"), text: "Preview")
+                    strong("Ready")
+                    span(.class("metric-trend"), text: "WebKit")
+                }
+            }
         }
     }
-}
-```
-
-### Preview A Component
-
-Any `Component` can be previewed without building a server:
-
-```swift
-import SwiftHTMLPreview
-
-struct ProductCard: Component {
-    let name: String
-
-    var body: some HTML {
-        article(.class("product-card")) {
-            h2(name)
-            p("Typed HTML rendered by SwiftHTML.")
+    .style {
+        rule("body") {
+            .margin("0")
+            .padding("24px")
+            .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
+            .background("Canvas")
+            .color("CanvasText")
         }
-    }
-}
 
-#Preview("Product Card") {
-    HTMLPreview {
-        ProductCard(name: "Keyboard")
+        rule(".dashboard-shell") {
+            .display("grid")
+            .gap("16px")
+        }
+
+        rule("h1, p") {
+            .margin("0")
+        }
+
+        rule(".dashboard-header") {
+            .display("grid")
+            .gap("8px")
+        }
+
+        rule(".eyebrow, .metric-label, .metric-trend") {
+            .color("color-mix(in srgb, CanvasText 68%, transparent)")
+        }
+
+        rule(".metric-grid") {
+            .display("grid")
+            .gridTemplateColumns("repeat(2, minmax(0, 1fr))")
+            .gap("12px")
+        }
+
+        rule(".metric-card") {
+            .display("grid")
+            .gap("6px")
+            .border("1px solid color-mix(in srgb, CanvasText 16%, transparent)")
+            .borderRadius("8px")
+            .padding("12px")
+        }
     }
 }
 ```
@@ -386,7 +423,7 @@ Use short modifiers on `HTMLPreview` for document-level settings that SwiftUI Pr
 | Modifier | Purpose |
 |---|---|
 | `.language(_:)` | Sets the document `<html lang="...">` value. |
-| `.style(_:)` | Injects preview-only CSS into the generated document. |
+| `.style { ... }` | Injects a preview-only `Stylesheet` into the generated document. |
 | `.baseURL(_:)` | Resolves relative URLs inside the `WKWebView`. |
 | `.renderOptions(_:)` | Controls SwiftHTML render diagnostics and runtime metadata. |
 
@@ -400,18 +437,17 @@ import SwiftHTMLPreview
             p("Xcode Preview で HTML を確認できます。")
         }
     }
-    .style(
-        """
-        body {
-          padding: 32px;
-          font: 16px -apple-system, BlinkMacSystemFont, sans-serif;
+    .style {
+        rule("body") {
+            .padding("32px")
+            .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
         }
-        .card {
-          border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
-          padding: 16px;
+
+        rule(".card") {
+            .border("1px solid color-mix(in srgb, CanvasText 16%, transparent)")
+            .padding("16px")
         }
-        """
-    )
+    }
     .language("ja")
 }
 ```

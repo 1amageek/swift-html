@@ -21,12 +21,18 @@ struct HTMLPreviewRendererTests {
 
     @Test
     func usesCustomBaseStyle() {
-        let renderer = HTMLPreviewRenderer(style: "body { padding: 0; }")
+        let renderer = HTMLPreviewRenderer(
+            stylesheet: Stylesheet {
+                rule("body") {
+                    .padding("0")
+                }
+            }
+        )
         let html = renderer.render(main {
             "Custom"
         })
 
-        #expect(html.contains("body { padding: 0; }"))
+        #expect(html.contains("body {\n  padding: 0;\n}"))
         #expect(html.contains("<main>Custom</main>"))
     }
 

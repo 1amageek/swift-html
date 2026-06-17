@@ -13,20 +13,20 @@ import UIKit
 @MainActor
 public struct HTMLPreviewHost<Content: HTML>: View {
     private let baseURL: URL?
-    private let style: String
+    private let stylesheet: Stylesheet
     private let language: String
     private let renderOptions: HTMLRenderOptions
     private let content: Content
 
     public init(
         baseURL: URL? = nil,
-        style: String = HTMLPreviewRenderer.defaultStyle,
+        stylesheet: Stylesheet = HTMLPreviewRenderer.defaultStylesheet,
         language: String = "en",
         renderOptions: HTMLRenderOptions = .development,
         @HTMLBuilder content: () -> Content
     ) {
         self.baseURL = baseURL
-        self.style = style
+        self.stylesheet = stylesheet
         self.language = language
         self.renderOptions = renderOptions
         self.content = content()
@@ -50,7 +50,7 @@ public struct HTMLPreviewHost<Content: HTML>: View {
 
     private var renderedHTML: String {
         HTMLPreviewRenderer(
-            style: style,
+            stylesheet: stylesheet,
             language: language,
             renderOptions: renderOptions
         )

@@ -5,7 +5,7 @@ import SwiftUI
 @MainActor
 public struct HTMLPreview<Content: HTML>: View {
     private var baseURLValue: URL?
-    private var styleText: String
+    private var stylesheetValue: Stylesheet
     private var languageCode: String
     private var renderOptionsValue: HTMLRenderOptions
     private let content: Content
@@ -14,7 +14,7 @@ public struct HTMLPreview<Content: HTML>: View {
         @HTMLBuilder content: () -> Content
     ) {
         self.baseURLValue = nil
-        self.styleText = HTMLPreviewRenderer.defaultStyle
+        self.stylesheetValue = HTMLPreviewRenderer.defaultStylesheet
         self.languageCode = "en"
         self.renderOptionsValue = .development
         self.content = content()
@@ -23,7 +23,7 @@ public struct HTMLPreview<Content: HTML>: View {
     public var body: some View {
         HTMLPreviewHost(
             baseURL: baseURLValue,
-            style: styleText,
+            stylesheet: stylesheetValue,
             language: languageCode,
             renderOptions: renderOptionsValue
         ) {
@@ -49,9 +49,15 @@ public struct HTMLPreview<Content: HTML>: View {
         return copy
     }
 
-    public func style(_ css: String) -> HTMLPreview {
+    public func style(_ stylesheet: Stylesheet) -> HTMLPreview {
         var copy = self
-        copy.styleText = css
+        copy.stylesheetValue = stylesheet
+        return copy
+    }
+
+    public func style(@StylesheetBuilder _ stylesheet: () -> Stylesheet) -> HTMLPreview {
+        var copy = self
+        copy.stylesheetValue = stylesheet()
         return copy
     }
 }
