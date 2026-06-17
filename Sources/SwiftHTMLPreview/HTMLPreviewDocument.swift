@@ -2,23 +2,26 @@ import SwiftHTML
 
 struct HTMLPreviewDocument<Content: HTML>: Component {
     let titleText: String
-    let configuration: HTMLPreviewConfiguration
+    let styleText: String
+    let language: String
     let content: Content
 
     init(
         title: String,
-        configuration: HTMLPreviewConfiguration,
+        style: String,
+        language: String,
         content: Content
     ) {
         self.titleText = title
-        self.configuration = configuration
+        self.styleText = style
+        self.language = language
         self.content = content
     }
 
     @HTMLBuilder
     var body: some HTML {
         document {
-            html(.lang(configuration.language)) {
+            html(.lang(language)) {
                 head {
                     meta(.charset("utf-8"))
                     meta(.name("viewport"), .content("width=device-width, initial-scale=1"))
@@ -26,7 +29,7 @@ struct HTMLPreviewDocument<Content: HTML>: Component {
                         titleText
                     }
                     style {
-                        rawHTML(configuration.baseStyle)
+                        rawHTML(styleText)
                     }
                 }
                 SwiftHTML.body {

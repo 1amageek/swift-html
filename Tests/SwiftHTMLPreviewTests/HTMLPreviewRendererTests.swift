@@ -21,9 +21,7 @@ struct HTMLPreviewRendererTests {
 
     @Test
     func usesCustomBaseStyle() {
-        let renderer = HTMLPreviewRenderer(
-            configuration: HTMLPreviewConfiguration(baseStyle: "body { padding: 0; }")
-        )
+        let renderer = HTMLPreviewRenderer(style: "body { padding: 0; }")
         let html = renderer.render(main {
             "Custom"
         })
@@ -34,9 +32,7 @@ struct HTMLPreviewRendererTests {
 
     @Test
     func usesConfiguredLanguage() {
-        let renderer = HTMLPreviewRenderer(
-            configuration: HTMLPreviewConfiguration(language: "ja")
-        )
+        let renderer = HTMLPreviewRenderer(language: "ja")
         let html = renderer.render(article {
             "Language"
         })

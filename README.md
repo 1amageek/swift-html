@@ -214,11 +214,20 @@ struct MetricsPanel: Component, Sendable {
     }
 }
 
-#HTMLPreview(
-    "Metrics Panel",
-    traits: .fixedLayout(width: 430, height: 360),
-    configuration: HTMLPreviewConfiguration(
-        baseStyle: """
+#Preview("Metrics Panel", traits: .fixedLayout(width: 430, height: 360)) {
+    HTMLPreview {
+        MetricsPanel(
+            title: "Release Health",
+            metrics: [
+                Metric(id: "tests", label: "Tests", value: "108 passing"),
+                Metric(id: "coverage", label: "Surface", value: "HTML + CSS"),
+                Metric(id: "preview", label: "Preview", value: "#Preview"),
+                Metric(id: "runtime", label: "Runtime", value: "Hydration ready"),
+            ]
+        )
+    }
+    .style(
+        """
         body {
           margin: 0;
           padding: 24px;
@@ -244,18 +253,7 @@ struct MetricsPanel: Component, Sendable {
           margin: 0 0 6px;
           color: color-mix(in srgb, CanvasText 68%, transparent);
         }
-        """,
-        viewport: .fixed(width: 430, height: 360)
-    )
-) {
-    MetricsPanel(
-        title: "Release Health",
-        metrics: [
-            Metric(id: "tests", label: "Tests", value: "108 passing"),
-            Metric(id: "coverage", label: "Surface", value: "HTML + CSS"),
-            Metric(id: "preview", label: "Preview", value: "#HTMLPreview"),
-            Metric(id: "runtime", label: "Runtime", value: "Hydration ready"),
-        ]
+        """
     )
 }
 ```
@@ -300,27 +298,29 @@ Use `SwiftHTMLPreview` when you want to inspect SwiftHTML directly inside Xcode 
 | Product | Use |
 |---|---|
 | `SwiftHTML` | HTML DSL, render artifacts, CSS, state, hydration contracts. |
-| `SwiftHTMLPreview` | `#HTMLPreview`, SwiftUI preview host, WebKit-backed rendering. |
+| `SwiftHTMLPreview` | `HTMLPreview`, SwiftUI preview host, WebKit-backed rendering. |
 
 ```mermaid
 flowchart LR
-  Source["SwiftHTML component"] --> Macro["#HTMLPreview"]
-  Macro --> Preview["SwiftUI #Preview"]
-  Preview --> Host["HTMLPreviewHost"]
+  Source["SwiftHTML component"] --> View["HTMLPreview"]
+  Preview["SwiftUI #Preview"] --> View
+  View --> Host["HTMLPreviewHost"]
   Host --> WebKit["WKWebView"]
 ```
 
 ### Basic Preview
 
-Import `SwiftHTMLPreview` and write SwiftHTML directly inside `#HTMLPreview`:
+Import `SwiftHTMLPreview` and put `HTMLPreview` inside SwiftUI's `#Preview`:
 
 ```swift
 import SwiftHTMLPreview
 
-#HTMLPreview("Card") {
-    article(.class("card")) {
-        h2("SwiftHTML")
-        p("Rendered in Xcode Preview.")
+#Preview("Card") {
+    HTMLPreview {
+        article(.class("card")) {
+            h2("SwiftHTML")
+            p("Rendered in Xcode Preview.")
+        }
     }
 }
 ```
@@ -343,61 +343,69 @@ struct ProductCard: Component {
     }
 }
 
-#HTMLPreview("Product Card") {
-    ProductCard(name: "Keyboard")
+#Preview("Product Card") {
+    HTMLPreview {
+        ProductCard(name: "Keyboard")
+    }
 }
 ```
 
 ### Fixed Size Previews
 
-`#HTMLPreview` forwards SwiftUI preview traits to `#Preview`, so fixed layouts work the same way:
+Use SwiftUI preview traits for fixed layouts:
 
 ```swift
 import SwiftHTMLPreview
 
-#HTMLPreview("Mobile", traits: .fixedLayout(width: 390, height: 844)) {
-    main(.class("page")) {
-        h1("Mobile Preview")
-        p("This document is rendered inside a fixed preview surface.")
+#Preview("Mobile", traits: .fixedLayout(width: 390, height: 844)) {
+    HTMLPreview {
+        main(.class("page")) {
+            h1("Mobile Preview")
+            p("This document is rendered inside a fixed preview surface.")
+        }
     }
 }
 ```
 
-Use `HTMLPreviewConfiguration.viewport` when the WebKit host view itself should receive a fixed frame:
+You can also use regular SwiftUI view modifiers around the preview host:
 
 ```swift
 import SwiftHTMLPreview
 
-#HTMLPreview(
-    "Fixed Host",
-    configuration: HTMLPreviewConfiguration(viewport: .fixed(width: 390, height: 844))
-) {
-    main {
-        h1("Fixed Host")
+#Preview("Fixed Host") {
+    HTMLPreview {
+        main {
+            h1("Fixed Host")
+        }
     }
+    .frame(width: 390, height: 844)
 }
 ```
 
-### HTML-Specific Configuration
+### HTML-Specific Modifiers
 
-Use `HTMLPreviewConfiguration` for document-level options such as language, base CSS, base URL, render options, and host viewport.
+Use short modifiers on `HTMLPreview` for document-level options that SwiftUI Preview does not own.
 
-| Setting | Purpose |
+| Modifier | Purpose |
 |---|---|
-| `language` | Sets the document `<html lang="...">` value. |
-| `baseStyle` | Injects preview-only CSS into the generated document. |
-| `baseURL` | Resolves relative URLs inside the `WKWebView`. |
-| `renderOptions` | Controls SwiftHTML render diagnostics and runtime metadata. |
-| `viewport` | Applies a fixed or responsive host frame. |
+| `.language(_:)` | Sets the document `<html lang="...">` value. |
+| `.style(_:)` | Injects preview-only CSS into the generated document. |
+| `.baseURL(_:)` | Resolves relative URLs inside the `WKWebView`. |
+| `.renderOptions(_:)` | Controls SwiftHTML render diagnostics and runtime metadata. |
 
 ```swift
 import SwiftHTMLPreview
 
-#HTMLPreview(
-    "Japanese",
-    configuration: HTMLPreviewConfiguration(
-        baseStyle: """
-                SwiftHTML.body {
+#Preview("Japanese", traits: .fixedLayout(width: 390, height: 240)) {
+    HTMLPreview {
+        article(.class("card")) {
+            h2("SwiftHTML")
+            p("Xcode Preview で HTML を確認できます。")
+        }
+    }
+    .style(
+        """
+        body {
           padding: 32px;
           font: 16px -apple-system, BlinkMacSystemFont, sans-serif;
         }
@@ -405,21 +413,15 @@ import SwiftHTMLPreview
           border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
           padding: 16px;
         }
-        """,
-        language: "ja",
-        viewport: .fixed(width: 390, height: 240)
+        """
     )
-) {
-    article(.class("card")) {
-        h2("SwiftHTML")
-        p("Xcode Preview で HTML を確認できます。")
-    }
+    .language("ja")
 }
 ```
 
 ### Build Behavior
 
-`#HTMLPreview` expands directly to SwiftUI's `#Preview` and does not add a custom `#if DEBUG` wrapper. Build inclusion follows the same Xcode preview behavior as `#Preview`.
+`HTMLPreview` is a SwiftUI view. Put it inside `#Preview` so Xcode's preview discovery and build behavior stay exactly aligned with SwiftUI previews.
 
 `SwiftHTMLPreview` is intentionally separate from `SwiftHTML` so the core HTML engine does not depend on SwiftUI, WebKit, or macro implementation details.
 

@@ -1,4 +1,4 @@
-import CoreGraphics
+import Foundation
 import SwiftHTML
 import SwiftUI
 
@@ -13,25 +13,30 @@ import UIKit
 @MainActor
 public struct HTMLPreviewHost<Content: HTML>: View {
     private let title: String?
-    private let configuration: HTMLPreviewConfiguration
+    private let baseURL: URL?
+    private let style: String
+    private let language: String
+    private let renderOptions: HTMLRenderOptions
     private let content: Content
 
     public init(
         _ title: String? = nil,
-        configuration: HTMLPreviewConfiguration = .default,
+        baseURL: URL? = nil,
+        style: String = HTMLPreviewRenderer.defaultStyle,
+        language: String = "en",
+        renderOptions: HTMLRenderOptions = .development,
         @HTMLBuilder content: () -> Content
     ) {
         self.title = title
-        self.configuration = configuration
+        self.baseURL = baseURL
+        self.style = style
+        self.language = language
+        self.renderOptions = renderOptions
         self.content = content()
     }
 
     public var body: some View {
         previewBody
-            .frame(
-                width: frameWidth,
-                height: frameHeight
-            )
     }
 
     @ViewBuilder
@@ -39,7 +44,7 @@ public struct HTMLPreviewHost<Content: HTML>: View {
         #if canImport(WebKit) && (os(macOS) || canImport(UIKit))
         HTMLPreviewWebView(
             html: renderedHTML,
-            baseURL: configuration.baseURL
+            baseURL: baseURL
         )
         #else
         Text(renderedHTML)
@@ -47,21 +52,12 @@ public struct HTMLPreviewHost<Content: HTML>: View {
     }
 
     private var renderedHTML: String {
-        HTMLPreviewRenderer(configuration: configuration).render(content, title: title)
-    }
-
-    private var frameWidth: CGFloat? {
-        guard let width = configuration.viewport.width else {
-            return nil
-        }
-        return CGFloat(width)
-    }
-
-    private var frameHeight: CGFloat? {
-        guard let height = configuration.viewport.height else {
-            return nil
-        }
-        return CGFloat(height)
+        HTMLPreviewRenderer(
+            style: style,
+            language: language,
+            renderOptions: renderOptions
+        )
+        .render(content, title: title)
     }
 }
 

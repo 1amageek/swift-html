@@ -25,36 +25,36 @@ private struct CompilePreviewMetricsPanel: Component, Sendable {
     }
 }
 
-#HTMLPreview("Compile") {
-    div {
-        "Macro"
+#Preview("Compile") {
+    HTMLPreview {
+        div {
+            "Preview"
+        }
     }
 }
 
-#HTMLPreview(
-    "Fixed",
-    configuration: HTMLPreviewConfiguration(viewport: .fixed(width: 390, height: 844))
-) {
-    main {
-        "Fixed viewport"
+#Preview("Fixed", traits: .fixedLayout(width: 390, height: 844)) {
+    HTMLPreview {
+        main {
+            "Fixed viewport"
+        }
     }
 }
 
-#HTMLPreview(
-    "Traits",
-    traits: .fixedLayout(width: 320, height: 240),
-    configuration: HTMLPreviewConfiguration(language: "ja", viewport: .fixed(width: 320, height: 240))
-) {
-    section {
-        "Trait viewport"
+#Preview("Documentation Snippet", traits: .fixedLayout(width: 430, height: 360)) {
+    HTMLPreview {
+        CompilePreviewMetricsPanel(
+            title: "Release Health",
+            metrics: [
+                CompilePreviewMetric(id: "tests", label: "Tests", value: "108 passing"),
+                CompilePreviewMetric(id: "surface", label: "Surface", value: "HTML + CSS"),
+                CompilePreviewMetric(id: "preview", label: "Preview", value: "#Preview"),
+                CompilePreviewMetric(id: "runtime", label: "Runtime", value: "Hydration ready"),
+            ]
+        )
     }
-}
-
-#HTMLPreview(
-    "Documentation Snippet",
-    traits: .fixedLayout(width: 430, height: 360),
-    configuration: HTMLPreviewConfiguration(
-        baseStyle: """
+    .style(
+        """
         body {
           margin: 0;
           padding: 24px;
@@ -70,17 +70,7 @@ private struct CompilePreviewMetricsPanel: Component, Sendable {
           border-radius: 8px;
           padding: 12px;
         }
-        """,
-        viewport: .fixed(width: 430, height: 360)
+        """
     )
-) {
-    CompilePreviewMetricsPanel(
-        title: "Release Health",
-        metrics: [
-            CompilePreviewMetric(id: "tests", label: "Tests", value: "108 passing"),
-            CompilePreviewMetric(id: "surface", label: "Surface", value: "HTML + CSS"),
-            CompilePreviewMetric(id: "preview", label: "Preview", value: "#HTMLPreview"),
-            CompilePreviewMetric(id: "runtime", label: "Runtime", value: "Hydration ready"),
-        ]
-    )
+    .language("ja")
 }

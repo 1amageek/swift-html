@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+Simplifies Xcode preview support by using SwiftUI's built-in `#Preview` as the only preview discovery entry point.
+
+| Area | Included |
+|---|---|
+| Preview | Replaced the freestanding preview macro with the `HTMLPreview` SwiftUI view. |
+| API | Removed public preview configuration and viewport types; use `.style(_:)`, `.language(_:)`, `.baseURL(_:)`, and `.renderOptions(_:)` on `HTMLPreview`. |
+| Package | Removed the SwiftSyntax macro dependency from `SwiftHTMLPreview`. |
+| Documentation | Updated README and DocC examples to use `#Preview { HTMLPreview { ... } }`. |
+
 ## 0.3.0 - 2026-06-17
 
 Promotes state and hydration runtime contracts for client WASM runtimes and component-level HMR.

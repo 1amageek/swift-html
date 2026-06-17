@@ -4,11 +4,11 @@ Render SwiftHTML values inside Xcode previews.
 
 ## Overview
 
-SwiftHTMLPreview is the developer-time preview surface for SwiftHTML. It wraps SwiftUI's `#Preview`, renders SwiftHTML into a full HTML document, and displays that document in a WebKit-backed SwiftUI view when WebKit is available.
+SwiftHTMLPreview is the developer-time preview surface for SwiftHTML. Put ``HTMLPreview`` inside SwiftUI's `#Preview` to render SwiftHTML into a full HTML document displayed by a WebKit-backed SwiftUI view when WebKit is available.
 
 SwiftHTMLPreview is separate from SwiftHTML so the core HTML engine remains framework-neutral.
 
-`#HTMLPreview` expands directly to SwiftUI's `#Preview`. It does not emit its own `#if DEBUG` guard; build inclusion follows the same Xcode preview behavior as `#Preview`.
+`HTMLPreview` is a SwiftUI view, so Xcode preview discovery and build inclusion follow the same behavior as ordinary SwiftUI previews.
 
 ```mermaid
 flowchart LR
@@ -16,8 +16,8 @@ flowchart LR
   Renderer --> Document["Preview HTML document"]
   Document --> Host["HTMLPreviewHost"]
   Host --> WebView["WKWebView"]
-  Macro["#HTMLPreview"] --> Preview["#Preview"]
-  Preview --> Host
+  Preview["#Preview"] --> View["HTMLPreview"]
+  View --> Host
 ```
 
 The preview snippet below is intentionally complete enough to copy into a preview-only Swift file:
@@ -50,11 +50,20 @@ struct PreviewMetricsPanel: Component, Sendable {
     }
 }
 
-#HTMLPreview(
-    "Metrics Panel",
-    traits: .fixedLayout(width: 430, height: 360),
-    configuration: HTMLPreviewConfiguration(
-        baseStyle: """
+#Preview("Metrics Panel", traits: .fixedLayout(width: 430, height: 360)) {
+    HTMLPreview {
+        PreviewMetricsPanel(
+            title: "Release Health",
+            metrics: [
+                PreviewMetric(id: "tests", label: "Tests", value: "108 passing"),
+                PreviewMetric(id: "surface", label: "Surface", value: "HTML + CSS"),
+                PreviewMetric(id: "preview", label: "Preview", value: "#Preview"),
+                PreviewMetric(id: "runtime", label: "Runtime", value: "Hydration ready"),
+            ]
+        )
+    }
+    .style(
+        """
         body {
           margin: 0;
           padding: 24px;
@@ -78,50 +87,32 @@ struct PreviewMetricsPanel: Component, Sendable {
           margin: 0 0 6px;
           color: color-mix(in srgb, CanvasText 68%, transparent);
         }
-        """,
-        viewport: .fixed(width: 430, height: 360)
-    )
-) {
-    PreviewMetricsPanel(
-        title: "Release Health",
-        metrics: [
-            PreviewMetric(id: "tests", label: "Tests", value: "108 passing"),
-            PreviewMetric(id: "surface", label: "Surface", value: "HTML + CSS"),
-            PreviewMetric(id: "preview", label: "Preview", value: "#HTMLPreview"),
-            PreviewMetric(id: "runtime", label: "Runtime", value: "Hydration ready"),
-        ]
+        """
     )
 }
 ```
 
-Use preview traits exactly as you would with SwiftUI's `#Preview`. Use ``HTMLPreviewConfiguration`` when the HTML document needs language, base CSS, base URL, render options, or a fixed WebKit viewport:
+Use preview traits exactly as you would with SwiftUI's `#Preview`. Use ``HTMLPreview/style(_:)``, ``HTMLPreview/language(_:)``, ``HTMLPreview/baseURL(_:)``, and ``HTMLPreview/renderOptions(_:)`` only for HTML-specific document settings:
 
 ```swift
-#HTMLPreview(
-    "Mobile",
-    traits: .fixedLayout(width: 390, height: 844),
-    configuration: HTMLPreviewConfiguration(
-        language: "ja",
-        viewport: .fixed(width: 390, height: 844)
-    )
-) {
-    main(.class("page")) {
-        h1("Mobile Preview")
-        p("This SwiftHTML document is rendered inside Xcode Preview.")
+#Preview("Mobile", traits: .fixedLayout(width: 390, height: 844)) {
+    HTMLPreview {
+        main(.class("page")) {
+            h1("Mobile Preview")
+            p("This SwiftHTML document is rendered inside Xcode Preview.")
+        }
     }
+    .language("ja")
 }
 ```
 
 ## Topics
 
-### Macro
+### Preview View
 
-- ``HTMLPreview(_:configuration:content:)``
-- ``HTMLPreview(_:traits:_:configuration:content:)``
+- ``HTMLPreview``
 
 ### Rendering
 
 - ``HTMLPreviewHost``
 - ``HTMLPreviewRenderer``
-- ``HTMLPreviewConfiguration``
-- ``HTMLPreviewViewport``

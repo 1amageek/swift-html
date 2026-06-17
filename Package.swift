@@ -1,6 +1,5 @@
 // swift-tools-version: 6.3
 
-import CompilerPluginSupport
 import PackageDescription
 
 let swiftSettings: [SwiftSetting] = [
@@ -20,20 +19,8 @@ let package = Package(
         .library(name: "SwiftHTML", targets: ["SwiftHTML"]),
         .library(name: "SwiftHTMLPreview", targets: ["SwiftHTMLPreview"]),
     ],
-    dependencies: [
-        .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "602.0.0"),
-    ],
+    dependencies: [],
     targets: [
-        .macro(
-            name: "SwiftHTMLPreviewMacros",
-            dependencies: [
-                .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-                .product(name: "SwiftDiagnostics", package: "swift-syntax"),
-                .product(name: "SwiftSyntax", package: "swift-syntax"),
-                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-            ],
-            swiftSettings: swiftSettings
-        ),
         .target(
             name: "SwiftHTML",
             swiftSettings: swiftSettings
@@ -42,7 +29,6 @@ let package = Package(
             name: "SwiftHTMLPreview",
             dependencies: [
                 "SwiftHTML",
-                "SwiftHTMLPreviewMacros",
             ],
             swiftSettings: swiftSettings
         ),
@@ -56,8 +42,6 @@ let package = Package(
             dependencies: [
                 "SwiftHTML",
                 "SwiftHTMLPreview",
-                "SwiftHTMLPreviewMacros",
-                .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             ],
             swiftSettings: swiftSettings
         ),
