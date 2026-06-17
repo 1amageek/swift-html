@@ -35,7 +35,7 @@ public struct HandlerID: Sendable, Hashable, Codable {
 
 public struct Key: Hashable, Sendable, Codable {
     public let rawValue: String
-    let identity: String
+    public let identity: String
 
     public init<ID: Hashable & Sendable>(_ value: ID) {
         self.rawValue = String(describing: value)
