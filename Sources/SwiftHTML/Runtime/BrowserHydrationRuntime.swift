@@ -41,6 +41,6 @@ public struct BrowserHydrationRuntime<Root: HTML, Host: BrowserDOMHost> {
         guard !update.commandBatch.isEmpty else {
             return
         }
-        try host.apply(update.commandBatch, updatedIndex: update.hydrationIndex)
+        try host.apply(update.commandBatch, currentIndex: update.previousHydrationIndex)
     }
 }

@@ -6,12 +6,12 @@ public final class BrowserDOMCommandBuffer: BrowserDOMHost {
 
     public init() {}
 
-    public func apply(_ batch: BrowserDOMCommandBatch, updatedIndex: BrowserHydrationIndex) {
+    public func apply(_ batch: BrowserDOMCommandBatch, currentIndex: BrowserHydrationIndex) {
         storage.withLock { batches in
             batches.append(batch.commands)
         }
         indexStorage.withLock { indexes in
-            indexes.append(updatedIndex)
+            indexes.append(currentIndex)
         }
     }
 

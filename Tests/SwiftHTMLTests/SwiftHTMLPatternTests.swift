@@ -108,8 +108,8 @@ struct SwiftHTMLPatternTests {
 
         #expect(artifact.clientHandlers.handlers.map(\.id.rawValue) == ["h1", "h2", "h3", "h4"])
         #expect(artifact.clientHandlers.handlers.map(\.eventName) == ["input", "change", "click", "custom"])
-        #expect(artifact.html.contains("data-swift-event-input=\"h1\""))
-        #expect(artifact.html.contains("data-swift-event-custom=\"h4\""))
+        #expect(artifact.html.contains("data-event-input=\"h1\""))
+        #expect(artifact.html.contains("data-event-custom=\"h4\""))
 
         artifact.clientHandlers.handlers[0].invoke(with: DOMEvent(value: "typed"))
         artifact.clientHandlers.handlers[1].invoke()

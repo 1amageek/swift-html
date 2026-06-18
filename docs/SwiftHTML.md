@@ -195,7 +195,7 @@ SwiftHTML needs all of these attribute categories:
 | Category | Examples | SwiftHTML handling |
 |---|---|---|
 | Global attributes | `id`, `class`, `style`, `title`, `lang`, `dir`, `hidden`, `inert`, `tabindex`, `accesskey`, `contenteditable`, `draggable`, `spellcheck`, `translate`, `autofocus`, `popover`, `nonce` | Available on every lowercase HTML tag |
-| Custom data | `data-*` | `data(_:_:)` and typed internal `data-swift-*` reservations |
+| Custom data | `data-*` | `data(_:_:)` and typed internal marker reservations |
 | Accessibility | `role`, `aria-*` | Explicit `role(...)` and `aria(_:_:)`; ARIA values remain spec-driven |
 | Shadow DOM / custom elements | `slot`, `part`, `exportparts`, `is` | Available as global attributes |
 | Microdata | `itemscope`, `itemtype`, `itemid`, `itemprop`, `itemref` | Available as global attributes |
@@ -224,7 +224,7 @@ button(.onClick {
 The generated HTML contains a framework-owned dispatch attribute, not `onclick`.
 
 ```html
-<button data-swift-event-click="handler-id">+</button>
+<button data-event-click="handler-id">+</button>
 ```
 
 `DOMEvent` is the runtime payload shape passed from the browser/WASM dispatcher into Swift closures. It carries common form, keyboard, pointer, and metadata values while keeping the HTML output free of inline JavaScript.
@@ -337,7 +337,7 @@ div(.id("root"), .data("scope", "profile")) {
 }
 ```
 
-Reserved framework attributes such as `data-swift-*` should be generated internally and should not be the normal user-facing API.
+Reserved framework marker attributes such as `data-node`, `data-key`, and `data-event-*` should be generated internally and should not be the normal user-facing API.
 
 ## Components
 
@@ -986,7 +986,7 @@ flowchart LR
 The generated HTML carries handler identity only.
 
 ```html
-<button data-swift-event-click="handler-id">+</button>
+<button data-event-click="handler-id">+</button>
 ```
 
 The browser runtime dispatches the DOM event to the WASM handler. SwiftHTML and SwiftWeb do not inject JavaScript as a fallback; if a host cannot provide the WASM dispatch bridge, the page must remain progressively usable through server routes and forms.
@@ -1273,7 +1273,7 @@ sequenceDiagram
 The descriptor is emitted as inert JSON data:
 
 ```html
-<script type="application/json" id="swift-web-client-runtime">...</script>
+<script type="application/json" id="client-runtime">...</script>
 ```
 
 That element is not application JavaScript. It is a transport envelope for the hydration index and asset references. The production path is `wasm`; client state, client event closures, diffing, and patch planning belong to the Swift/WASM runtime. The browser host binding may provide narrow Web API access, but it must not contain application state or application action logic.
@@ -1315,9 +1315,9 @@ The host binding also mirrors runtime state onto DOM attributes for development 
 
 | Attribute | Meaning |
 |---|---|
-| `data-swift-web-wasm-ready` | `"true"` after bootstrap and event listener installation |
-| `data-swift-web-wasm-phase` | Current phase such as `fetchingManifest`, `instantiatingBundle`, `bootstrapping`, or `ready` |
-| `data-swift-web-wasm-loaded` | Comma-separated loaded bundle identifiers |
+| `data-wasm-ready` | `"true"` after bootstrap and event listener installation |
+| `data-wasm-phase` | Current phase such as `fetchingManifest`, `instantiatingBundle`, `bootstrapping`, or `ready` |
+| `data-wasm-loaded` | Comma-separated loaded bundle identifiers |
 
 ### WASM Runtime Metrics
 
@@ -1345,7 +1345,7 @@ flowchart LR
 
 Metrics recording is memory-first. The host publishes the DOM snapshot only at meaningful boundaries: ready, deferred bundle load, event dispatch, and runtime failure. This keeps `.summary` from adding repeated JSON serialization and DOM mutation to the critical path being measured.
 
-The runtime publishes a JSON snapshot at `window.__swiftWebWasmRuntimeMetrics` and mirrors the same snapshot into the inert JSON element `#swift-web-wasm-runtime-metrics`. E2E tests should prefer the DOM element because it is available to restricted read-only browser evaluation contexts.
+The runtime publishes a JSON snapshot at `window.__swiftWebWasmRuntimeMetrics` and mirrors the same snapshot into the inert JSON element `#wasm-runtime-metrics`. E2E tests should prefer the DOM element because it is available to restricted read-only browser evaluation contexts.
 
 | Field | Meaning |
 |---|---|
@@ -1365,16 +1365,16 @@ Key summary values are also mirrored to DOM attributes for E2E checks:
 
 | Attribute | Meaning |
 |---|---|
-| `data-swift-web-wasm-metrics-mode` | Active metrics mode |
-| `data-swift-web-wasm-ready-ms` | Ready time |
-| `data-swift-web-wasm-initial-bytes` | Initial loaded WASM bytes |
-| `data-swift-web-wasm-total-wasm-bytes` | Total loaded WASM bytes |
-| `data-swift-web-wasm-javascript-kit-import-ms` | JavaScriptKit module import time |
-| `data-swift-web-wasm-wasm-download-ms` | Download time in detailed mode |
-| `data-swift-web-wasm-wasm-compile-ms` | Compile time in detailed mode |
-| `data-swift-web-wasm-wasm-instantiate-ms` | Instantiate time in detailed mode |
-| `data-swift-web-wasm-wasm-streaming-instantiate-ms` | Streaming instantiate time in summary mode |
-| `data-swift-web-wasm-event-dispatch-count` | Number of dispatched client events |
+| `data-wasm-metrics-mode` | Active metrics mode |
+| `data-wasm-ready-ms` | Ready time |
+| `data-wasm-initial-bytes` | Initial loaded WASM bytes |
+| `data-wasm-total-wasm-bytes` | Total loaded WASM bytes |
+| `data-wasm-javascript-kit-import-ms` | JavaScriptKit module import time |
+| `data-wasm-wasm-download-ms` | Download time in detailed mode |
+| `data-wasm-wasm-compile-ms` | Compile time in detailed mode |
+| `data-wasm-wasm-instantiate-ms` | Instantiate time in detailed mode |
+| `data-wasm-wasm-streaming-instantiate-ms` | Streaming instantiate time in summary mode |
+| `data-wasm-event-dispatch-count` | Number of dispatched client events |
 
 The roadmap demo enables `.detailed` metrics so `/counter` can be used as the baseline evaluation page. Loading the page and clicking the client counter should produce both initial-load metrics and event-dispatch metrics.
 
@@ -1392,7 +1392,7 @@ The `/counter` E2E path must exercise the real WASM runtime loaded from the gene
 | Client Counter | Click Increment and Decrement; the client value changes without a page reload |
 | Server Counter | Click Increment and Decrement; the button invokes the generated `ActionReference`, mutates `CounterService`, and returns `ActionResult.invalidate(.page)` |
 | Invalidation | The client runtime fetches the current page, preserves ClientComponent DOM, and merges the server-owned counter DOM |
-| Runtime mode | Page source includes `/__swiftweb/wasm/runtime-host.js` and the document reports `data-swift-web-wasm-ready="true"` |
+| Runtime mode | Page source includes `/__swiftweb/wasm/runtime-host.js` and the document reports `data-wasm-ready="true"` |
 | JavaScriptKit runtime | `/__swiftweb/wasm/javascript-kit-runtime.js?v=1` returns the JavaScriptKit `SwiftRuntime` module used to provide WASM imports |
 
 `swift-web dev` starts the Vapor target with development reload environment variables. Each restart receives a fresh reload token. HTML responses include the token header and a dev-only reload script. The browser waits on `/__swiftweb/dev/reload` with a long-running fetch; when a rebuild starts a new server token, the wait completes and the browser reloads the current page. This is full-page auto reload, not state-preserving HMR.

@@ -381,6 +381,10 @@ public struct RenderArtifact {
         HTMLRenderer().renderSubtree(id, graph: graph)
     }
 
+    public func renderSubtree(_ id: HTMLNodeID, options: HTMLRenderOptions) -> String {
+        HTMLRenderer().renderSubtree(id, graph: graph, options: options)
+    }
+
     public var formattedDiagnostics: String {
         diagnostics.map(\.formattedMessage).joined(separator: "\n")
     }
@@ -843,7 +847,7 @@ struct HTMLGraphBuilder {
                 handler: options.capturesClientHandlerClosures ? attribute.eventHandler : nil
             ))
             return HTMLAttributeRecord(
-                name: "data-swift-event-\(eventName)",
+                name: "data-event-\(eventName)",
                 value: id.rawValue,
                 kind: .eventBinding,
                 handlerID: id,
@@ -931,7 +935,7 @@ struct HTMLGraphBuilder {
     }
 
     private static func isValidEventName(_ name: String) -> Bool {
-        isValidHTMLName("data-swift-event-\(name)")
+        isValidHTMLName("data-event-\(name)")
     }
 
     private static func isSafeURLValue(_ value: String, for attribute: HTMLAttribute) -> Bool {

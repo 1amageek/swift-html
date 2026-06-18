@@ -52,19 +52,19 @@ public struct HTMLDOMSerializer: Sendable {
         case .fragment:
             writeChildren(of: node, snapshot: snapshot, into: &writer)
         case .component(let id):
-            writer.write("<!--swift-html-component:")
+            writer.write("<!--component:")
             writer.writeEscapedText(id.rawValue)
             writer.write(":begin-->")
             writeChildren(of: node, snapshot: snapshot, into: &writer)
-            writer.write("<!--swift-html-component:")
+            writer.write("<!--component:")
             writer.writeEscapedText(id.rawValue)
             writer.write(":end-->")
         case .serverSlot(let id):
-            writer.write("<!--swift-html-server-slot:")
+            writer.write("<!--server-slot:")
             writer.writeEscapedText(id.rawValue)
             writer.write(":begin-->")
             writeChildren(of: node, snapshot: snapshot, into: &writer)
-            writer.write("<!--swift-html-server-slot:")
+            writer.write("<!--server-slot:")
             writer.writeEscapedText(id.rawValue)
             writer.write(":end-->")
         case .placeholder(let value), .comment(let value):

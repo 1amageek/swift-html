@@ -242,7 +242,7 @@ struct SwiftHTMLHydrationRuntimeTests {
         let index = try #require(host.lastIndex())
 
         #expect(batch == update.commands)
-        #expect(index == update.hydrationIndex)
+        #expect(index == update.previousHydrationIndex)
         #expect(batch.contains { command in
             if case .updateText(_, "Count 1") = command {
                 return true

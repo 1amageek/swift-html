@@ -21,7 +21,11 @@ public struct HTMLPatch: Sendable, Equatable {
 }
 
 public struct HTMLDiffer: Sendable {
-    public init() {}
+    private let renderOptions: HTMLRenderOptions
+
+    public init(renderOptions: HTMLRenderOptions = .development) {
+        self.renderOptions = renderOptions
+    }
 
     func diff(
         from oldGraph: HTMLGraph,
@@ -416,7 +420,7 @@ public struct HTMLDiffer: Sendable {
     }
 
     private func subtreeHTML(_ id: HTMLNodeID, in graph: HTMLGraph) -> String {
-        HTMLRenderer().renderSubtree(id, graph: graph)
+        HTMLRenderer().renderSubtree(id, graph: graph, options: renderOptions)
     }
 }
 

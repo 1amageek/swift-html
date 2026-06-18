@@ -239,7 +239,7 @@ struct SwiftHTMLServerClientBoundaryTests {
         #expect(componentNames.contains { $0.hasSuffix(".BoundaryInnerClient") })
         #expect(slot.ownerComponentID == outer.id)
         #expect(slot.componentType.hasSuffix(".BoundaryServerSlot"))
-        #expect(artifact.html.contains("swift-html-server-slot:\(slot.id.rawValue):begin"))
+        #expect(artifact.html.contains("server-slot:\(slot.id.rawValue):begin"))
         #expect(artifact.diagnostics.isEmpty)
     }
 
@@ -375,6 +375,6 @@ struct SwiftHTMLServerClientBoundaryTests {
 
         #expect(handler.handler == nil)
         #expect(artifact.diagnostics.isEmpty)
-        #expect(artifact.html.contains("data-swift-event-click=\"h1\""))
+        #expect(artifact.html.contains("data-event-click=\"h1\""))
     }
 }

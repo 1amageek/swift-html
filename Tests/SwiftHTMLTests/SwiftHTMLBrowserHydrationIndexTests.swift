@@ -61,7 +61,7 @@ struct SwiftHTMLBrowserHydrationIndexTests {
         let artifact = IndexRawStyleClient().renderArtifact()
         let index = artifact.browserHydrationIndex()
 
-        // A rawHTML node carries no `data-swift-node` marker and may expand to any
+        // A rawHTML node carries no `data-node` marker and may expand to any
         // number of DOM nodes, so it cannot be resolved directly. The browser
         // runtime instead resolves it through its parent: the parent must be an
         // addressable element and the rawHTML must be its sole child for an

@@ -10,7 +10,7 @@ SwiftHTML defines runtime data structures without binding to a specific browser 
 struct LoggingHost: BrowserDOMHost {
     func apply(
         _ batch: BrowserDOMCommandBatch,
-        updatedIndex: BrowserHydrationIndex
+        currentIndex: BrowserHydrationIndex
     ) throws {
         for command in batch.commands {
             print(command)
@@ -19,7 +19,7 @@ struct LoggingHost: BrowserDOMHost {
 }
 ```
 
-A JavaScriptKit-backed package can implement this protocol. A server-side test can use ``BrowserDOMCommandBuffer``.
+`currentIndex` is the hydration index that matches the DOM before the command batch is applied. A JavaScriptKit-backed package can implement this protocol. A server-side test can use ``BrowserDOMCommandBuffer``.
 
 ## Command Batches
 

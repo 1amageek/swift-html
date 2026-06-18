@@ -261,7 +261,7 @@ struct SwiftHTMLRenderingTests {
             ClientButton()
         )
 
-        #expect(artifact.html.contains("data-swift-event-click=\"h1\""))
+        #expect(artifact.html.contains("data-event-click=\"h1\""))
         #expect(artifact.clientHandlers.handlers.count == 1)
         #expect(artifact.clientHandlers.handlers[0].id == HandlerID("h1"))
         #expect(artifact.clientHandlers.handlers[0].eventName == "click")
@@ -281,9 +281,9 @@ struct SwiftHTMLRenderingTests {
             options: .development.withBrowserHydrationMarkers()
         )
 
-        #expect(!plain.html.contains("data-swift-node"))
-        #expect(marked.html.contains("data-swift-node=\""))
-        #expect(marked.html.contains("<button data-swift-node=\""))
+        #expect(!plain.html.contains("data-node"))
+        #expect(marked.html.contains("data-node=\""))
+        #expect(marked.html.contains("<button data-node=\""))
     }
 
     @Test
@@ -293,7 +293,7 @@ struct SwiftHTMLRenderingTests {
             .render()
 
         #expect(rendered.contains("<span id=\"environment-value\">configured</span>"))
-        #expect(rendered.contains("swift-html-component:"))
+        #expect(rendered.contains("component:"))
     }
 
     @Test

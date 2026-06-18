@@ -84,6 +84,110 @@ private struct E2EAppendList: ClientComponent, Sendable {
     }
 }
 
+private struct E2EProperty: Identifiable, Sendable {
+    let id: String
+    let name: String
+    let values: String
+    let summary: String
+}
+
+private struct E2EPropertyRow: Component, Sendable {
+    let property: E2EProperty
+
+    @HTMLBuilder
+    var body: some HTML {
+        article {
+            h3 {
+                property.name
+            }
+            code {
+                property.values
+            }
+            p {
+                property.summary
+            }
+        }
+    }
+}
+
+private struct E2EPropertySelectionOwner: ClientComponent, Sendable {
+    @State private var selection = "typography"
+
+    private var properties: [E2EProperty] {
+        if selection == "button" {
+            return [
+                E2EProperty(id: "title", name: "title", values: "String", summary: "Visible button label."),
+                E2EProperty(id: "prominence", name: "prominence", values: ".primary / .secondary", summary: "Visual weight."),
+                E2EProperty(id: "action", name: "action", values: "closure / Action", summary: "Client or server action."),
+            ]
+        }
+        return [
+            E2EProperty(id: "level", name: "level", values: ".page / .section", summary: "Heading scale."),
+            E2EProperty(id: "as", name: "as", values: ".p / .small", summary: "Rendered element."),
+            E2EProperty(id: "tone", name: "tone", values: ".normal / .muted", summary: "Text tone."),
+        ]
+    }
+
+    @HTMLBuilder
+    var body: some HTML {
+        button(.type(ButtonType.button), .onClick {
+            selection = "button"
+        }) {
+            "Button"
+        }
+        section {
+            ForEach(properties) { property in
+                E2EPropertyRow(property: property)
+            }
+        }
+    }
+}
+
+private struct E2ESelectionOwner: ClientComponent, Sendable {
+    @State private var selection = "typography"
+
+    @HTMLBuilder
+    var body: some HTML {
+        button(.type(ButtonType.button), .onClick {
+            selection = "color"
+        }) {
+            "Color"
+        }
+        h1 {
+            selection
+        }
+        E2ESelectionChild(selection: selection)
+    }
+}
+
+private struct E2ESelectionChild: Component {
+    let selection: String
+
+    @HTMLBuilder
+    var body: some HTML {
+        switch selection {
+        case "color":
+            div {
+                button {
+                    "Accent"
+                }
+                button {
+                    "Danger"
+                }
+            }
+        default:
+            div {
+                h2 {
+                    "Page heading"
+                }
+                p {
+                    "Body copy"
+                }
+            }
+        }
+    }
+}
+
 private struct E2EOuterClient: ClientComponent {
     @HTMLBuilder
     var body: some HTML {
@@ -235,6 +339,63 @@ struct SwiftHTMLRuntimeE2EPatternTests {
         #expect(update.commands.contains { command in
             if case .insertHTML(_, 3, let html) = command {
                 return html.contains("Item 4")
+            }
+            return false
+        })
+        try assertCommandTargetsResolve(update)
+    }
+
+    @Test
+    func keyedForEachComponentRowsReplaceDisjointKeys() throws {
+        var session = try HydrationRuntimeSession(root: E2EPropertySelectionOwner())
+        let handler = try #require(session.artifact.clientHandlers.handlers.first)
+
+        let update = try session.invoke(handlerID: handler.id)
+        let commands = update.commands
+        let previousIndex = update.previousHydrationIndex
+
+        #expect(update.html == session.artifact.html)
+        #expect(update.html.contains("title"))
+        #expect(update.html.contains("prominence"))
+        #expect(update.html.contains("action"))
+        #expect(!update.html.contains("level</h3>"))
+        #expect(!update.html.contains("as</h3>"))
+        #expect(!update.html.contains("tone</h3>"))
+        #expect(commands.contains { command in
+            if case .remove(let parent, _, _) = command {
+                return previousIndex.node(parent)?.role == .fragment
+            }
+            return false
+        })
+        #expect(commands.contains { command in
+            if case .insertHTML(let parent, _, let html) = command {
+                return previousIndex.node(parent)?.role == .fragment && html.contains("title")
+            }
+            return false
+        })
+        try assertCommandTargetsResolve(update)
+    }
+
+    @Test
+    func childComponentPropChangeReplacesConditionalBranch() throws {
+        var session = try HydrationRuntimeSession(root: E2ESelectionOwner())
+        let handler = try #require(session.artifact.clientHandlers.handlers.first)
+
+        let update = try session.invoke(handlerID: handler.id)
+
+        #expect(update.html == session.artifact.html)
+        #expect(update.html.contains("Accent"))
+        #expect(update.html.contains("Danger"))
+        #expect(!update.html.contains("Page heading"))
+        #expect(update.commands.contains { command in
+            if case .replaceSubtree(_, let html) = command {
+                return html.contains("Accent")
+            }
+            return false
+        })
+        #expect(update.commands.contains { command in
+            if case .replaceSubtree(_, let html) = command {
+                return html.contains("Danger")
             }
             return false
         })

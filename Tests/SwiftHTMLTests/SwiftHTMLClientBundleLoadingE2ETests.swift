@@ -105,7 +105,7 @@ struct SwiftHTMLClientBundleLoadingE2ETests {
         let help = try component(named: "LoadingHelpIsland", in: artifact)
         let serverSlot = try #require(hero.serverSlots.first)
 
-        #expect(artifact.html.contains("swift-html-server-slot:\(serverSlot.id.rawValue):begin"))
+        #expect(artifact.html.contains("server-slot:\(serverSlot.id.rawValue):begin"))
         #expect(profile.serverSlots.isEmpty)
         #expect(artifact.clientHandlers.handlers.count == 2)
 

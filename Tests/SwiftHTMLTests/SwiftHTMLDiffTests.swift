@@ -136,6 +136,23 @@ struct SwiftHTMLDiffTests {
     }
 
     @Test
+    func patchSubtreeHTMLPreservesHydrationMarkersWhenConfigured() {
+        let options = HTMLRenderOptions.development.withBrowserHydrationMarkers()
+        let oldArtifact = HTMLRenderer().render(unkeyedList(["one"]), options: options)
+        let newArtifact = HTMLRenderer().render(unkeyedList(["one", "two"]), options: options)
+
+        let patches = HTMLDiffer(renderOptions: options).diff(from: oldArtifact, to: newArtifact)
+
+        #expect(patches.contains { patch in
+            if case .insertSubtree(parent: _, index: _, html: let html) = patch.operation {
+                return html.contains("<li data-node=\"")
+                    && html.contains(">two</li>")
+            }
+            return false
+        })
+    }
+
+    @Test
     func diffsKeyedChildrenByStableKey() {
         let oldArtifact = HTMLRenderer().render(keyedList([
             DiffRow(id: 1, title: "One"),

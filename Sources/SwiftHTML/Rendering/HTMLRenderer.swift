@@ -80,19 +80,19 @@ public struct HTMLRenderer: Sendable {
         case .fragment:
             writeChildren(of: node, graph: graph, options: options, into: &writer)
         case .component(let componentID):
-            writer.write("<!--swift-html-component:")
+            writer.write("<!--component:")
             writer.writeEscapedText(componentID.rawValue)
             writer.write(":begin-->")
             writeChildren(of: node, graph: graph, options: options, into: &writer)
-            writer.write("<!--swift-html-component:")
+            writer.write("<!--component:")
             writer.writeEscapedText(componentID.rawValue)
             writer.write(":end-->")
         case .serverSlot(let slotID):
-            writer.write("<!--swift-html-server-slot:")
+            writer.write("<!--server-slot:")
             writer.writeEscapedText(slotID.rawValue)
             writer.write(":begin-->")
             writeChildren(of: node, graph: graph, options: options, into: &writer)
-            writer.write("<!--swift-html-server-slot:")
+            writer.write("<!--server-slot:")
             writer.writeEscapedText(slotID.rawValue)
             writer.write(":end-->")
         case .placeholder(let stringID):
@@ -152,15 +152,15 @@ public struct HTMLRenderer: Sendable {
     ) {
         let end = node.firstAttribute + node.attributeCount
         let attributes = Array(graph.attributes[node.firstAttribute..<end])
-        if options.emitsBrowserHydrationMarkers && !attributes.contains(where: { $0.name == "data-swift-node" }) {
-            writer.write(" data-swift-node=\"")
+        if options.emitsBrowserHydrationMarkers && !attributes.contains(where: { $0.name == "data-node" }) {
+            writer.write(" data-node=\"")
             writer.writeEscapedAttribute(String(nodeID.rawValue))
             writer.write("\"")
         }
         if options.emitsBrowserHydrationMarkers,
            let key = node.key,
-           !attributes.contains(where: { $0.name == "data-swift-key" }) {
-            writer.write(" data-swift-key=\"")
+           !attributes.contains(where: { $0.name == "data-key" }) {
+            writer.write(" data-key=\"")
             writer.writeEscapedAttribute(key.identity)
             writer.write("\"")
         }

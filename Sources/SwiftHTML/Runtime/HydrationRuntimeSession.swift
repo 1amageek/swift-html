@@ -7,7 +7,6 @@ public struct HydrationRuntimeSession<Root: HTML> {
     public private(set) var dom: HTMLDOMSnapshot
 
     private let renderer = HTMLRenderer()
-    private let differ = HTMLDiffer()
     private let applicator = HTMLDOMPatchApplicator()
     private let commandEncoder = BrowserDOMCommandEncoder()
 
@@ -48,12 +47,14 @@ public struct HydrationRuntimeSession<Root: HTML> {
         let dirtyComponents = stateStore.dirtyComponents().sorted { left, right in
             left.rawValue < right.rawValue
         }
+        let previousHydrationIndex = artifact.browserHydrationIndex()
         guard !dirtyComponents.isEmpty else {
             return HydrationRuntimeUpdate(
                 dirtyComponents: [],
                 patches: [],
                 commandBatch: BrowserDOMCommandBatch(commands: []),
-                hydrationIndex: artifact.browserHydrationIndex(),
+                previousHydrationIndex: previousHydrationIndex,
+                hydrationIndex: previousHydrationIndex,
                 html: dom.html
             )
         }
@@ -65,7 +66,7 @@ public struct HydrationRuntimeSession<Root: HTML> {
             options: options
         )
         try nextArtifact.validateHydration()
-        let patches = differ.diff(from: artifact, to: nextArtifact)
+        let patches = HTMLDiffer(renderOptions: options).diff(from: artifact, to: nextArtifact)
         let commandBatch = commandEncoder.encode(patches)
         _ = try applicator.apply(patches, to: dom)
         dom = HTMLDOMSnapshot(graph: nextArtifact.graph, rootID: nextArtifact.rootID)
@@ -76,6 +77,7 @@ public struct HydrationRuntimeSession<Root: HTML> {
             dirtyComponents: dirtyComponents,
             patches: patches,
             commandBatch: commandBatch,
+            previousHydrationIndex: previousHydrationIndex,
             hydrationIndex: nextArtifact.browserHydrationIndex(),
             html: dom.html
         )

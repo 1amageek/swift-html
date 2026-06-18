@@ -194,7 +194,7 @@ struct SwiftHTMLStateHydrationTests {
         #expect(component.path == "root")
         #expect(component.id == stateSlot.componentID)
         #expect(stateSlot.valueType == "Swift.Int")
-        #expect(artifact.html.contains("<!--swift-html-component:\(component.id.rawValue):begin-->"))
+        #expect(artifact.html.contains("<!--component:\(component.id.rawValue):begin-->"))
         #expect(artifact.html.contains("Count 0"))
     }
 
@@ -435,7 +435,7 @@ struct SwiftHTMLStateHydrationTests {
         let component = try #require(first.hydration.components.first)
         let handler = try #require(first.clientHandlers.handlers.first)
 
-        #expect(first.html.contains("<textarea data-swift-event-input=\"h1\">Line &lt;one&gt;</textarea>"))
+        #expect(first.html.contains("<textarea data-event-input=\"h1\">Line &lt;one&gt;</textarea>"))
         #expect(!first.html.contains("value=\""))
         #expect(!first.html.contains("fallback"))
         #expect(first.attributeRecords.contains { attribute in
@@ -450,7 +450,7 @@ struct SwiftHTMLStateHydrationTests {
         let second = TextareaComponent().renderArtifact(stateStore: store)
 
         #expect(second.hydration.components.first?.id == component.id)
-        #expect(second.html.contains("<textarea data-swift-event-input=\"h1\">Updated &amp; saved</textarea>"))
+        #expect(second.html.contains("<textarea data-event-input=\"h1\">Updated &amp; saved</textarea>"))
     }
 
     private func rows(_ ids: [Int]) -> some HTML {
