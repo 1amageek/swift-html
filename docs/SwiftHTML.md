@@ -337,7 +337,7 @@ div(.id("root"), .data("scope", "profile")) {
 }
 ```
 
-Reserved framework marker attributes such as `data-node`, `data-key`, and `data-event-*` should be generated internally and should not be the normal user-facing API.
+Reserved framework marker attributes such as `data-node`, `data-key`, and `data-event-*` should be generated internally and should not be the normal user-facing API. `HTMLRuntimeMarkers` is the source of truth for these names and for boundary comment values such as `component:<id>:begin` and `server-slot:<id>:end`; host runtimes should consume that contract instead of redefining the strings.
 
 ## Components
 

@@ -331,6 +331,15 @@ struct SwiftHTMLRenderingTests {
         })
     }
 
+    @Test
+    func runtimeMarkerContractNamesHydrationAttributesAndBoundaries() {
+        #expect(HTMLRuntimeMarkers.nodeAttribute == "data-node")
+        #expect(HTMLRuntimeMarkers.keyAttribute == "data-key")
+        #expect(HTMLRuntimeMarkers.eventAttribute("click") == "data-event-click")
+        #expect(HTMLRuntimeMarkers.componentCommentValue(ComponentID("c1"), edge: .begin) == "component:c1:begin")
+        #expect(HTMLRuntimeMarkers.serverSlotCommentValue(ServerSlotID("s1"), edge: .end) == "server-slot:s1:end")
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func rendersLargeGraphsWithinPerformanceBudget() {
         let values = Array(0..<5_000)

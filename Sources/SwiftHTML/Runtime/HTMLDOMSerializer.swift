@@ -52,26 +52,24 @@ public struct HTMLDOMSerializer: Sendable {
         case .fragment:
             writeChildren(of: node, snapshot: snapshot, into: &writer)
         case .component(let id):
-            writer.write("<!--component:")
-            writer.writeEscapedText(id.rawValue)
-            writer.write(":begin-->")
+            writeCommentValue(HTMLRuntimeMarkers.componentCommentValue(id, edge: .begin), into: &writer)
             writeChildren(of: node, snapshot: snapshot, into: &writer)
-            writer.write("<!--component:")
-            writer.writeEscapedText(id.rawValue)
-            writer.write(":end-->")
+            writeCommentValue(HTMLRuntimeMarkers.componentCommentValue(id, edge: .end), into: &writer)
         case .serverSlot(let id):
-            writer.write("<!--server-slot:")
-            writer.writeEscapedText(id.rawValue)
-            writer.write(":begin-->")
+            writeCommentValue(HTMLRuntimeMarkers.serverSlotCommentValue(id, edge: .begin), into: &writer)
             writeChildren(of: node, snapshot: snapshot, into: &writer)
-            writer.write("<!--server-slot:")
-            writer.writeEscapedText(id.rawValue)
-            writer.write(":end-->")
+            writeCommentValue(HTMLRuntimeMarkers.serverSlotCommentValue(id, edge: .end), into: &writer)
         case .placeholder(let value), .comment(let value):
             writer.write("<!--")
             writer.writeEscapedText(value)
             writer.write("-->")
         }
+    }
+
+    private func writeCommentValue(_ value: String, into writer: inout HTMLWriter) {
+        writer.write("<!--")
+        writer.writeEscapedText(value)
+        writer.write("-->")
     }
 
     private func writeChildren(

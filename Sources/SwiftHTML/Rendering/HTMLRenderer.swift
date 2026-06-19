@@ -80,21 +80,13 @@ public struct HTMLRenderer: Sendable {
         case .fragment:
             writeChildren(of: node, graph: graph, options: options, into: &writer)
         case .component(let componentID):
-            writer.write("<!--component:")
-            writer.writeEscapedText(componentID.rawValue)
-            writer.write(":begin-->")
+            writeCommentValue(HTMLRuntimeMarkers.componentCommentValue(componentID, edge: .begin), into: &writer)
             writeChildren(of: node, graph: graph, options: options, into: &writer)
-            writer.write("<!--component:")
-            writer.writeEscapedText(componentID.rawValue)
-            writer.write(":end-->")
+            writeCommentValue(HTMLRuntimeMarkers.componentCommentValue(componentID, edge: .end), into: &writer)
         case .serverSlot(let slotID):
-            writer.write("<!--server-slot:")
-            writer.writeEscapedText(slotID.rawValue)
-            writer.write(":begin-->")
+            writeCommentValue(HTMLRuntimeMarkers.serverSlotCommentValue(slotID, edge: .begin), into: &writer)
             writeChildren(of: node, graph: graph, options: options, into: &writer)
-            writer.write("<!--server-slot:")
-            writer.writeEscapedText(slotID.rawValue)
-            writer.write(":end-->")
+            writeCommentValue(HTMLRuntimeMarkers.serverSlotCommentValue(slotID, edge: .end), into: &writer)
         case .placeholder(let stringID):
             writer.write("<!--")
             writer.writeEscapedText(graph.strings[stringID.rawValue])
@@ -152,15 +144,19 @@ public struct HTMLRenderer: Sendable {
     ) {
         let end = node.firstAttribute + node.attributeCount
         let attributes = Array(graph.attributes[node.firstAttribute..<end])
-        if options.emitsBrowserHydrationMarkers && !attributes.contains(where: { $0.name == "data-node" }) {
-            writer.write(" data-node=\"")
+        if options.emitsBrowserHydrationMarkers && !attributes.contains(where: { $0.name == HTMLRuntimeMarkers.nodeAttribute }) {
+            writer.write(" ")
+            writer.write(HTMLRuntimeMarkers.nodeAttribute)
+            writer.write("=\"")
             writer.writeEscapedAttribute(String(nodeID.rawValue))
             writer.write("\"")
         }
         if options.emitsBrowserHydrationMarkers,
            let key = node.key,
-           !attributes.contains(where: { $0.name == "data-key" }) {
-            writer.write(" data-key=\"")
+           !attributes.contains(where: { $0.name == HTMLRuntimeMarkers.keyAttribute }) {
+            writer.write(" ")
+            writer.write(HTMLRuntimeMarkers.keyAttribute)
+            writer.write("=\"")
             writer.writeEscapedAttribute(key.identity)
             writer.write("\"")
         }
@@ -186,6 +182,12 @@ public struct HTMLRenderer: Sendable {
             writer.writeEscapedAttribute(value)
             writer.write("\"")
         }
+    }
+
+    private func writeCommentValue(_ value: String, into writer: inout HTMLWriter) {
+        writer.write("<!--")
+        writer.writeEscapedText(value)
+        writer.write("-->")
     }
 
     private func textareaValue(for node: HTMLNodeRecord, graph: HTMLGraph) -> String? {

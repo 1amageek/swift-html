@@ -847,7 +847,7 @@ struct HTMLGraphBuilder {
                 handler: options.capturesClientHandlerClosures ? attribute.eventHandler : nil
             ))
             return HTMLAttributeRecord(
-                name: "data-event-\(eventName)",
+                name: HTMLRuntimeMarkers.eventAttribute(eventName),
                 value: id.rawValue,
                 kind: .eventBinding,
                 handlerID: id,
@@ -935,7 +935,7 @@ struct HTMLGraphBuilder {
     }
 
     private static func isValidEventName(_ name: String) -> Bool {
-        isValidHTMLName("data-event-\(name)")
+        isValidHTMLName(HTMLRuntimeMarkers.eventAttribute(name))
     }
 
     private static func isSafeURLValue(_ value: String, for attribute: HTMLAttribute) -> Bool {
