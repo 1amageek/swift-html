@@ -509,10 +509,36 @@ a(
 ) {
     "Account"
 }
+```
 
-Element("custom-element", attributes: [
+When attributes are conditional or assembled from parts, compose them with the
+`@HTMLAttributeBuilder` form instead of concatenating arrays. `if`, `switch`,
+and `for` work, and an existing `[HTMLAttribute]` is itself a valid expression,
+so there is no `(isBusy ? [.disabled] : []) + extra` juggling:
+
+```swift
+button(attributes: {
+    .type(ButtonType.button)
+    .class("primary")
+    if isBusy {
+        .disabled
+        .aria("busy", "true")
+    }
+    extraAttributes          // splice an existing [HTMLAttribute]
+}) {
+    "Save"
+}
+
+// Void tags and custom element names take the same builder.
+input(attributes: {
+    .type(InputType.email)
+    .name("email")
+    if isRequired { .required }
+})
+
+Element("custom-element", attributes: {
     .attribute("part", "label")
-]) {
+}) {
     "Custom element content"
 }
 ```

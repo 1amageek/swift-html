@@ -1,6 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.6.0 - 2026-06-21
+
+Fixes deep-tree rendering and adds a declarative attribute builder.
+
+| Area | Included |
+|---|---|
+| Rendering | `HTMLRenderer.render` now builds and serializes on a dedicated enlarged-stack thread so deeply composed (statically typed) trees no longer overflow the runtime's type-metadata decoder. No type erasure of the public DSL. |
+| Attributes | New `@HTMLAttributeBuilder` and matching `Element` / container / void tag initializers compose conditional or assembled attribute lists declaratively (`if`/`switch`/`for`, plus `[HTMLAttribute]` splicing) instead of `(cond ? [x] : []) + extra`. |
+| Documentation | README and `docs/SwiftHTML.md` document the attribute builder. |
+
+## 0.5.0 - 2026-06-19
 
 Simplifies Xcode preview support by using SwiftUI's built-in `#Preview` as the only preview discovery entry point.
 
@@ -9,7 +19,6 @@ Simplifies Xcode preview support by using SwiftUI's built-in `#Preview` as the o
 | Preview | Replaced the freestanding preview macro with the `HTMLPreview` SwiftUI view. |
 | API | Removed public preview configuration and viewport types; use `.style(_:)`, `.language(_:)`, `.baseURL(_:)`, and `.renderOptions(_:)` on `HTMLPreview`. |
 | Package | Removed the SwiftSyntax macro dependency from `SwiftHTMLPreview`. |
-| Rendering | `HTMLRenderer.render` now builds and serializes on a dedicated enlarged-stack thread so deeply composed (statically typed) trees no longer overflow the runtime's type-metadata decoder. No type erasure of the public DSL. |
 | Documentation | Updated README and DocC examples to use `#Preview { HTMLPreview { ... } }`. |
 
 ## 0.3.0 - 2026-06-17

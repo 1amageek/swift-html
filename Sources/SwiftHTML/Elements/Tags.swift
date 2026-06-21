@@ -30,11 +30,22 @@ public extension ContainerElement {
     init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.init(Element(Self.tagName, attributes: attributes) { content() })
     }
+
+    init<Content: HTML>(
+        @HTMLAttributeBuilder attributes: () -> [HTMLAttribute],
+        @HTMLBuilder content: () -> Content
+    ) {
+        self.init(Element(Self.tagName, attributes: attributes()) { content() })
+    }
 }
 
 public extension VoidElement {
     init(_ attributes: HTMLAttribute...) {
         self.init(Element(Self.tagName, attributes: attributes, isVoid: true))
+    }
+
+    init(@HTMLAttributeBuilder attributes: () -> [HTMLAttribute]) {
+        self.init(Element(Self.tagName, attributes: attributes(), isVoid: true))
     }
 }
 
