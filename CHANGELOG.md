@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1 - 2026-06-22
+
+Removes the `@HTMLAttributeBuilder` introduced in 0.6.0. Swift cannot express a clean per-line attribute syntax — consecutive leading-dot factories chain into method calls, and lowercase attribute functions collide with the same-named tag types — so the builder did not improve on plain attribute arrays. The enlarged-stack rendering fix from 0.6.0 is unaffected.
+
+| Area | Included |
+|---|---|
+| Attributes | Removed `@HTMLAttributeBuilder` and its `Element` / container / void tag initializers. Compose attributes with initializer arguments and arrays, as before. |
+
 ## 0.6.0 - 2026-06-21
 
 Fixes deep-tree rendering and adds a declarative attribute builder.

@@ -178,30 +178,12 @@ button(.type(.button), .class("primary")) {
 }
 ```
 
-For conditional or assembled attribute lists, the `@HTMLAttributeBuilder` form
-composes them declaratively with `if`/`switch`/`for`, mirroring `StyleBuilder`
-for declarations. A single `HTMLAttribute` and an existing `[HTMLAttribute]` are
-both valid expressions, so existing arrays splice in without
-`(cond ? [x] : []) + extra` concatenation.
-
-```swift
-button(attributes: {
-    .type(.button)
-    .class("primary")
-    if isBusy { .disabled }
-}) {
-    "Save"
-}
-```
-
-Modifiers may also exist as sugar, but the primary forms are argument-based and
-builder-based because attributes are part of the element declaration.
+Modifiers may exist as sugar for conditional composition, but the primary form is argument-based because attributes are part of the element declaration.
 
 | Attribute form | Role |
 |---|---|
-| Initializer arguments | Canonical DOM declaration for static attributes |
-| `@HTMLAttributeBuilder` | Declarative composition for conditional or assembled attributes |
-| Modifiers | Reusable post-processing sugar |
+| Initializer arguments | Canonical DOM declaration |
+| Modifiers | Conditional or reusable post-processing sugar |
 
 Attributes should be modeled as typed values rather than raw string pairs only.
 

@@ -180,23 +180,6 @@ public struct Element: ElementRepresentable, HTMLPrimitive {
         self.init(name, attributes: attributes, isVoid: isVoid, children: [HTMLContent(content())])
     }
 
-    public init<Content: HTML>(
-        _ name: String,
-        isVoid: Bool = false,
-        @HTMLAttributeBuilder attributes: () -> [HTMLAttribute],
-        @HTMLBuilder content: () -> Content
-    ) {
-        self.init(name, attributes: attributes(), isVoid: isVoid, children: [HTMLContent(content())])
-    }
-
-    public init(
-        _ name: String,
-        isVoid: Bool,
-        @HTMLAttributeBuilder attributes: () -> [HTMLAttribute]
-    ) {
-        self.init(name, attributes: attributes(), isVoid: isVoid)
-    }
-
     func buildNode(in builder: inout HTMLGraphBuilder) -> HTMLNodeID {
         guard HTMLGraphBuilder.isValidHTMLName(name) else {
             return builder.addInvalidElement(name: name)
