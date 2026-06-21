@@ -143,6 +143,31 @@ This representation gives the renderer a cache-friendly traversal:
 
 `HTMLNodeID` is only a render-pass-local index. It is not a hydration identity.
 
+### Render Execution Stack
+
+The DSL stays fully statically typed, so a deeply composed tree (nested
+containers and modifier chains) produces a deeply nested *concrete* generic
+type. When the renderer lowers that value into the graph, the Swift runtime
+instantiates the type's metadata by decoding its mangled name recursively. A
+sufficiently deep tree can drive that decoder past the default thread stack and
+crash with `SIGBUS`, even though the tree itself is valid.
+
+`HTMLRenderer.render` therefore builds and serializes the graph on a dedicated
+thread with an enlarged stack and returns the result synchronously. This keeps
+the component type architecture intact — no type erasure, no `any HTML`
+boxing of the public DSL — while giving metadata decoding the room it needs.
+
+```mermaid
+flowchart LR
+    A["render(html)"] --> B["enlarged-stack worker"]
+    B --> C["append(html) → HTMLGraph"]
+    C --> D["serialize → HTML bytes"]
+    D --> E["RenderArtifact (returned synchronously)"]
+```
+
+The hand-off is a synchronous baton: the calling thread blocks until the worker
+finishes, so neither the input value nor the result is accessed concurrently.
+
 ## Attributes
 
 Attributes are canonical as initializer arguments.
