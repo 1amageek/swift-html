@@ -59,6 +59,33 @@ let stylesheet = Stylesheet {
 print(stylesheet.cssText)
 ```
 
+## At-Rules And Timing
+
+Stylesheets compose typed at-rules instead of raw CSS strings: ``media(_:_:)``,
+``supports(_:_:)``, ``startingStyle(_:)``, and ``keyframes(_:_:)`` (whose body is a
+list of ``Keyframe`` selectors). ``TimingFunction`` provides CSS easings —
+`.linear`, `.ease`, `.easeIn`, `.easeOut`, `.easeInOut`, ``TimingFunction/cubicBezier(_:_:_:_:)``,
+``TimingFunction/steps(_:_:)``, and ``TimingFunction/spring(bounce:)`` (sampled as a
+`linear()` easing).
+
+```swift
+let stylesheet = Stylesheet {
+    rule(".sheet") {
+        .transition("opacity 0.3s \(TimingFunction.easeInOut.cssValue)")
+    }
+    startingStyle {
+        rule(".sheet") { .opacity("0") }
+    }
+    keyframes("pulse") {
+        Keyframe("from") { .opacity("1") }
+        Keyframe("to") { .opacity("0.4") }
+    }
+    media("(prefers-reduced-motion: reduce)") {
+        rule(".sheet") { .transitionDuration("0.01ms") }
+    }
+}
+```
+
 ## Builder Control Flow
 
 ``StyleBuilder`` and ``StylesheetBuilder`` support ordinary Swift control flow.

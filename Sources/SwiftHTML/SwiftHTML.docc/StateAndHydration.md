@@ -105,6 +105,18 @@ print(update.commands)
 
 Scoped subtree rendering and scoped diffing are runtime optimizations. They are not required for the public SwiftHTML correctness contract.
 
+## Transactions
+
+``Transaction`` is a per-update context that travels from a state mutation to the
+update it produces, mirroring SwiftUI's `Transaction`. It carries only a lowered
+``TransactionAnimation`` (a CSS transition timing plus its duration), so the
+reactivity layer stays unaware of how animations are described. A presentation
+layer sets ``Transaction/current`` while an event handler runs; a DOM host that
+mutates the live DOM reads it through ``BrowserDOMHost/apply(_:currentIndex:animation:)``
+to interpolate that update's changes. SwiftHTML itself never reads it — it is a
+side-channel for the runtime, kept off `StateStore` and `flush()` so those stay
+animation-agnostic.
+
 ## Diagnostics
 
 SwiftHTML reports boundary violations as diagnostics.
