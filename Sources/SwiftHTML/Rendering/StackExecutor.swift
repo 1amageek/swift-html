@@ -21,8 +21,11 @@ func withEnlargedStack<Result>(
     let box = StackResultBox<Result>()
     let semaphore = DispatchSemaphore(value: 0)
     let thread = StackBoundThread(stackSize: stackSize) {
+        // Always signal, even if `work()` exits abnormally, so the calling thread
+        // can never park forever: a failure surfaces as the `box.take()`
+        // precondition rather than a silent deadlock of the render path.
+        defer { semaphore.signal() }
         box.value = work()
-        semaphore.signal()
     }
     thread.start()
     semaphore.wait()

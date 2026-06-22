@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.2 - 2026-06-22
+
+Hardens the runtime against silent failures.
+
+| Area | Included |
+|---|---|
+| State | A `@State` snapshot whose type matches its slot but fails to decode now reports the failure to stderr instead of silently resetting the value to its default during hydration. Restores that are impossible by design (non-JSON encoding, non-`Decodable` type) still fall through to the default quietly. |
+| Rendering | The enlarged-stack render worker always signals its completion semaphore via `defer`, so an abnormal worker exit surfaces as the `box.take()` precondition failure instead of deadlocking the calling thread. |
+
 ## 0.6.1 - 2026-06-22
 
 Removes the `@HTMLAttributeBuilder` introduced in 0.6.0. Swift cannot express a clean per-line attribute syntax — consecutive leading-dot factories chain into method calls, and lowercase attribute functions collide with the same-named tag types — so the builder did not improve on plain attribute arrays. The enlarged-stack rendering fix from 0.6.0 is unaffected.

@@ -85,7 +85,7 @@ public final class StateStore: Sendable {
         }
 
         if let restored = lookup.restored,
-           let restoredValue = Self.decodeRestoredValue(restored, as: Value.self) {
+           let restoredValue = Self.decodeRestoredValue(restored, as: Value.self, slot: id) {
             return install(restoredValue, for: id, valueType: valueType)
         }
 
@@ -172,8 +172,11 @@ public final class StateStore: Sendable {
 
     private static func decodeRestoredValue<Value: Sendable>(
         _ snapshot: StateSnapshotValue,
-        as type: Value.Type
+        as type: Value.Type,
+        slot id: StateSlotID
     ) -> Value? {
+        // A non-JSON snapshot or a non-Decodable value type cannot be restored by
+        // design; that is not an error, so fall through to the default silently.
         guard snapshot.encoding == "json",
               let decodableType = Value.self as? any Decodable.Type
         else {
@@ -187,8 +190,19 @@ public final class StateStore: Sendable {
             )
             return decoded as? Value
         } catch {
+            // A JSON snapshot of a Decodable type whose slot matched but failed to
+            // decode is a genuine restore failure. Surface it instead of silently
+            // resetting the control to its default — otherwise hydration loses the
+            // user's value with no signal.
+            reportRestoreFailure(slot: id, valueType: String(reflecting: Value.self), error: error)
             return nil
         }
+    }
+
+    private static func reportRestoreFailure(slot id: StateSlotID, valueType: String, error: Error) {
+        let message = "[SwiftHTML] @State restore failed for slot \"\(id.rawValue)\" "
+            + "(\(valueType)): \(error). The value was reset to its default.\n"
+        FileHandle.standardError.write(Data(message.utf8))
     }
 
     private func install<Value: Sendable>(
