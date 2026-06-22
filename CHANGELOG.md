@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.6 - 2026-06-22
+
+| Area | Included |
+|---|---|
+| Docs | Document the timing/at-rule primitives (`media`/`supports`/`startingStyle`/`keyframes` + `TimingFunction`) under Styling, and `Transaction`/`TransactionAnimation` under State And Hydration. Documentation only — no code changes since 0.6.5. |
+
 ## 0.6.5 - 2026-06-22
 
 | Area | Included |
