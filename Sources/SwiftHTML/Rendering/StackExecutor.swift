@@ -1,5 +1,20 @@
 import Foundation
 
+#if os(WASI)
+
+/// Runs `work` directly. WebAssembly is single-threaded and has no `Thread` or
+/// `DispatchSemaphore`, so the enlarged-stack worker is neither available nor
+/// needed: the WASM module's main stack is sized at instantiation, which is where
+/// deep type-metadata recursion is accommodated.
+func withEnlargedStack<Result>(
+    ofSize stackSize: Int = 64 << 20,
+    _ work: @escaping () -> Result
+) -> Result {
+    work()
+}
+
+#else
+
 /// Runs `work` on a dedicated thread with an enlarged stack and returns its
 /// result synchronously.
 ///
@@ -56,3 +71,5 @@ private final class StackBoundThread: Thread {
         work()
     }
 }
+
+#endif
