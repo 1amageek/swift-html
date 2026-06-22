@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.5 - 2026-06-22
+
+| Area | Included |
+|---|---|
+| WASM | `withEnlargedStack` now runs its work directly on WASI, which has no `Thread`/`DispatchSemaphore`. This restores WebAssembly compilation of the package (the enlarged-stack worker is a non-WASI render path only). |
+| Transaction | New `Transaction` reactivity context carrying a lowered `TransactionAnimation` (CSS transition timing + duration), plus a `BrowserDOMHost.apply(_:currentIndex:animation:)` overload (default ignores it) so a host that mutates the live DOM can animate an update's changes. This backs SwiftUI-style `withAnimation` in the presentation layer; `StateStore`, `flush`, and `HydrationRuntimeUpdate` are unchanged. |
+
 ## 0.6.4 - 2026-06-22
 
 | Area | Included |
