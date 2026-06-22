@@ -13,7 +13,7 @@ struct SwiftHTMLTimingAndAtRuleTests {
 
     @Test
     func springApproximatesToLinearEasing() {
-        let spring = TimingFunction.spring(duration: 0.5, bounce: 0.3).cssValue
+        let spring = TimingFunction.spring(bounce: 0.3).cssValue
         #expect(spring.hasPrefix("linear("))
         // A bouncy spring overshoots past 1 before settling, which `linear()` can
         // express with stops greater than 1.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.4 - 2026-06-22
+
+| Area | Included |
+|---|---|
+| Timing | `TimingFunction.spring` drops its unused `duration` parameter — the easing is normalized over its timeline, so the caller sets duration as the transition/animation duration rather than a curve parameter. The factory is now `spring(bounce:)`. |
+
 ## 0.6.3 - 2026-06-22
 
 Adds CSS animation primitives.

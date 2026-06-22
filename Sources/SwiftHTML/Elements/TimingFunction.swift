@@ -36,8 +36,10 @@ public struct TimingFunction: Sendable, Equatable {
     /// Approximates a spring as a `linear()` easing by sampling the unit step
     /// response of a second-order system. `bounce` maps to the damping ratio:
     /// `0` is critically damped (no overshoot), `> 0` underdamped (overshoots),
-    /// `< 0` overdamped (slow, no overshoot).
-    public static func spring(duration: Double = 0.5, bounce: Double = 0.0) -> TimingFunction {
+    /// `< 0` overdamped (slow, no overshoot). The easing is normalized over its
+    /// timeline, so duration is not a curve parameter — the caller sets it as the
+    /// transition/animation duration.
+    public static func spring(bounce: Double = 0.0) -> TimingFunction {
         let zeta: Double = bounce >= 0 ? max(1.0 - bounce, 0.0001) : 1.0 / (1.0 + max(bounce, -0.999))
         let omega = 6.0
         let sampleCount = 24
