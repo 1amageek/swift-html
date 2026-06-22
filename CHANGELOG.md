@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.3 - 2026-06-22
+
+Adds CSS animation primitives.
+
+| Area | Included |
+|---|---|
+| Timing | New `TimingFunction` value type: cubic-bezier presets (`ease`/`easeIn`/`easeOut`/`easeInOut`/`linear`), `cubicBezier`, `steps`, and `spring(duration:bounce:)` approximated as a sampled `linear()` easing. |
+| At-rules | `Stylesheet` models `@media`/`@supports`/`@starting-style`/`@keyframes` as typed items (`media`/`supports`/`startingStyle`/`keyframes` + `Keyframe`), so a stylesheet needs no raw CSS strings. `Stylesheet.items` is the full list; `Stylesheet.rules` still returns the flat top-level rules. |
+
 ## 0.6.2 - 2026-06-22
 
 Hardens the runtime against silent failures.
