@@ -58,6 +58,7 @@ public struct BrowserHydrationIndex: Sendable, Codable, Equatable {
         return result
     }
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case rootID
         case nodes
@@ -85,6 +86,7 @@ public struct BrowserHydrationIndex: Sendable, Codable, Equatable {
         try container.encode(serverSlots, forKey: .serverSlots)
         try container.encode(handlers, forKey: .handlers)
     }
+    #endif
 
     public static func == (lhs: BrowserHydrationIndex, rhs: BrowserHydrationIndex) -> Bool {
         lhs.rootID == rhs.rootID

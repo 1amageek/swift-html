@@ -24,6 +24,7 @@ This README describes the current `main` branch. Use the README from a matching 
 | Package | Role |
 |---|---|
 | `SwiftHTML` | HTML DSL, rendering, diffing, state, environment, CSS, hydration contracts, browser command contracts. |
+| `SwiftHTMLEmbedded` | Experimental static HTML tree and DOM host contract that can compile with Embedded Swift for small client WASM bundles. |
 | `SwiftHTMLPreview` | Xcode `#Preview` bridge, SwiftUI host view, and WebKit-backed HTML preview surface. |
 | Higher-level server package | HTTP routing, request/response integration, security middleware, server action gateway. |
 | Higher-level UI package | Design-system components, visual defaults, JavaScriptKit adapter, WASM bootstrap. |
@@ -726,6 +727,42 @@ struct SaveAction: ActionRepresentable {
 ```
 
 Higher-level packages can map `ActionRepresentable` to forms, buttons, fetch requests, server action gateways, or actor invocation.
+
+## Embedded WASM
+
+`SwiftHTMLEmbedded` is a separate product for production client code that must
+compile with Embedded Swift. It intentionally does not include the full
+`SwiftHTML` renderer, graph, Codable manifests, reflection-based component
+identity, or task-local render context.
+
+```mermaid
+flowchart LR
+  A["SwiftHTMLEmbedded static tree"] --> B["EmbeddedDOMHost"]
+  B --> C["Runtime adapter"]
+  C --> D["Browser DOM"]
+```
+
+The package includes `Examples/EmbeddedWasm`, which connects
+`SwiftHTMLEmbedded` to JavaScriptKit in an example package. JavaScriptKit remains
+outside the core SwiftHTML target.
+
+Measured with Swift 6.3.1 and no `wasm-opt`:
+
+| Encoding | Standard WASM | Embedded WASM | Reduction |
+|---|---:|---:|---:|
+| raw | 9,027,908 bytes | 859,116 bytes | 90.5% |
+| gzip -9 | 2,423,702 bytes | 283,656 bytes | 88.3% |
+| brotli -q 11 | 1,741,470 bytes | 230,400 bytes | 86.8% |
+
+Run the measurement locally:
+
+```bash
+cd Examples/EmbeddedWasm
+export SWIFT_BIN="/Users/1amageek/Library/Developer/Toolchains/swift-6.3.1-RELEASE.xctoolchain/usr/bin/swift"
+./measure-size.sh
+npm install
+npm run test:browser
+```
 
 ## What SwiftHTML Does Not Own
 

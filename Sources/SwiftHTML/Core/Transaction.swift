@@ -1,5 +1,3 @@
-import Synchronization
-
 /// The already-lowered presentation timing an explicit transaction wants the
 /// changes it produces to be interpolated with: the CSS `transition` timing tail
 /// (`<duration> <timing-function> <delay>`) plus the total duration the runtime
@@ -27,7 +25,7 @@ public struct TransactionAnimation: Sendable, Equatable {
 /// A fresh instance is bound per update (see `Transaction.$current`), so an
 /// animation never leaks into a later, unrelated update.
 public final class Transaction: Sendable {
-    private let storage = Mutex<TransactionAnimation?>(nil)
+    private let storage = SwiftHTMLMutex<TransactionAnimation?>(nil)
 
     public init() {}
 
@@ -36,5 +34,23 @@ public final class Transaction: Sendable {
         set { storage.withLock { $0 = newValue } }
     }
 
+    #if hasFeature(Embedded)
+    nonisolated(unsafe) public static var current: Transaction?
+    #else
     @TaskLocal public static var current: Transaction?
+    #endif
+
+    public static func withValue<Result>(
+        _ value: Transaction?,
+        operation: () throws -> Result
+    ) rethrows -> Result {
+        #if hasFeature(Embedded)
+        let previous = current
+        current = value
+        defer { current = previous }
+        return try operation()
+        #else
+        return try $current.withValue(value, operation: operation)
+        #endif
+    }
 }

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Embedded SwiftHTML</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "@bjorn3/browser_wasi_shim": "/Examples/EmbeddedWasm/node_modules/@bjorn3/browser_wasi_shim/dist/index.js"
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <script type="module">
+    import { init } from "./.build/plugins/PackageToJS/outputs/Package/index.js";
+    init();
+  </script>
+</body>
+
+</html>

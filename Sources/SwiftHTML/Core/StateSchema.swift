@@ -1,5 +1,3 @@
-import Foundation
-
 public struct StateSchema: Sendable, Codable, Equatable {
     public let hash: String
     public let slots: [StateSlotRecord]
@@ -22,12 +20,7 @@ public struct StateSchema: Sendable, Codable, Equatable {
     }
 
     private static func stableHash(_ value: String) -> String {
-        var hash: UInt64 = 0xcbf29ce484222325
-        for byte in value.utf8 {
-            hash ^= UInt64(byte)
-            hash &*= 0x100000001b3
-        }
-        return String(format: "%016llx", hash)
+        StableHash.fnv1a64Hex(value)
     }
 }
 

@@ -1,5 +1,3 @@
-import Foundation
-
 public struct HTMLRenderer: Sendable {
     public init() {}
 
@@ -272,12 +270,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func escapeRawText(_ value: String, endTag: String) -> String {
-        var output = value
-        let closingTagPrefix = "</\(endTag)"
-        while let range = output.range(of: closingTagPrefix, options: [.caseInsensitive]) {
-            output.replaceSubrange(range, with: "<\\/\(endTag)")
-        }
-        return output
+        RawTextEscaper.escape(value, endTag: endTag)
     }
 }
 

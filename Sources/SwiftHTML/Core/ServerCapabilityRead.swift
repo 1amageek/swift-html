@@ -1,5 +1,3 @@
-import Synchronization
-
 public struct ServerCapabilityReadRecord: Sendable, Equatable {
     public let key: String
     public let valueType: String
@@ -11,7 +9,7 @@ public struct ServerCapabilityReadRecord: Sendable, Equatable {
 }
 
 public final class ServerCapabilityReadRecorder: Sendable {
-    private let storage = Mutex([ServerCapabilityReadRecord]())
+    private let storage = SwiftHTMLMutex([ServerCapabilityReadRecord]())
 
     public init() {}
 
@@ -33,7 +31,28 @@ public final class ServerCapabilityReadRecorder: Sendable {
 }
 
 public enum ServerCapabilityReadContext {
+    #if hasFeature(Embedded)
+    nonisolated(unsafe) public static var current: ServerCapabilityReadRecorder?
+
+    public static func withValue<Result>(
+        _ value: ServerCapabilityReadRecorder?,
+        operation: () throws -> Result
+    ) rethrows -> Result {
+        let previous = current
+        current = value
+        defer { current = previous }
+        return try operation()
+    }
+    #else
     @TaskLocal public static var current: ServerCapabilityReadRecorder?
+
+    public static func withValue<Result>(
+        _ value: ServerCapabilityReadRecorder?,
+        operation: () throws -> Result
+    ) rethrows -> Result {
+        try $current.withValue(value, operation: operation)
+    }
+    #endif
 
     public static func record<Value>(
         _ key: String,
@@ -41,7 +60,7 @@ public enum ServerCapabilityReadContext {
     ) {
         current?.record(ServerCapabilityReadRecord(
             key: key,
-            valueType: String(reflecting: valueType)
+            valueType: RuntimeTypeName.reflecting(valueType)
         ))
     }
 }

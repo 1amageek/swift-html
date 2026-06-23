@@ -37,6 +37,7 @@ public struct BrowserHydrationComponentRecord: Sendable, Codable, Equatable {
         StateSchema.hash(stateSlots)
     }
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case id
         case typeName
@@ -66,4 +67,5 @@ public struct BrowserHydrationComponentRecord: Sendable, Codable, Equatable {
             ) ?? ClientEnvironmentSnapshot()
         )
     }
+    #endif
 }

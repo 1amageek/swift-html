@@ -1,5 +1,6 @@
+#if canImport(Foundation)
 import Foundation
-import Synchronization
+#endif
 
 public struct StateSourceLocation: Sendable, Hashable, Codable {
     public let fileID: String
@@ -56,7 +57,7 @@ public final class StateStore: Sendable {
         var dirtyComponents: Set<ComponentID> = []
     }
 
-    private let storage = Mutex(Storage())
+    private let storage = SwiftHTMLMutex(Storage())
 
     public init() {}
 
@@ -64,7 +65,7 @@ public final class StateStore: Sendable {
         for id: StateSlotID,
         default defaultValue: @autoclosure () -> Value
     ) -> Value {
-        let valueType = String(reflecting: Value.self)
+        let valueType = RuntimeTypeName.reflecting(Value.self)
         let lookup: (existing: Value?, restored: StateSnapshotValue?) = storage.withLock { storage in
             if let existing = storage.values[id]?.value(as: Value.self) {
                 return (existing, nil)
@@ -97,7 +98,7 @@ public final class StateStore: Sendable {
         for id: StateSlotID,
         componentID: ComponentID
     ) {
-        let valueType = String(reflecting: Value.self)
+        let valueType = RuntimeTypeName.reflecting(Value.self)
         storage.withLock { storage in
             storage.values[id] = RuntimeValueBox(value)
             storage.valueTypes[id] = valueType
@@ -150,7 +151,7 @@ public final class StateStore: Sendable {
                 throw StateSnapshotError.encodingFailed(
                     slotID: entry.id,
                     valueType: entry.valueType,
-                    message: String(describing: error)
+                    message: RuntimeTypeName.errorDescription(error)
                 )
             }
         }
@@ -175,6 +176,7 @@ public final class StateStore: Sendable {
         as type: Value.Type,
         slot id: StateSlotID
     ) -> Value? {
+        #if canImport(Foundation)
         // A non-JSON snapshot or a non-Decodable value type cannot be restored by
         // design; that is not an error, so fall through to the default silently.
         guard snapshot.encoding == "json",
@@ -194,15 +196,20 @@ public final class StateStore: Sendable {
             // decode is a genuine restore failure. Surface it instead of silently
             // resetting the control to its default — otherwise hydration loses the
             // user's value with no signal.
-            reportRestoreFailure(slot: id, valueType: String(reflecting: Value.self), error: error)
+            reportRestoreFailure(slot: id, valueType: RuntimeTypeName.reflecting(Value.self), error: error)
             return nil
         }
+        #else
+        return nil
+        #endif
     }
 
     private static func reportRestoreFailure(slot id: StateSlotID, valueType: String, error: Error) {
+        #if canImport(Foundation)
         let message = "[SwiftHTML] @State restore failed for slot \"\(id.rawValue)\" "
             + "(\(valueType)): \(error). The value was reset to its default.\n"
         FileHandle.standardError.write(Data(message.utf8))
+        #endif
     }
 
     private func install<Value: Sendable>(
@@ -269,7 +276,7 @@ public struct State<Value: Sendable>: Sendable {
     ) {
         self.initialValue = wrappedValue
         self.source = StateSourceLocation(
-            fileID: String(describing: fileID),
+            fileID: RuntimeTypeName.sourceFileID(fileID),
             line: line,
             column: column
         )
@@ -282,7 +289,7 @@ public struct State<Value: Sendable>: Sendable {
                 return local.value()
             }
 
-            let slot = context.register(source: source, valueType: String(reflecting: Value.self))
+            let slot = context.register(source: source, valueType: RuntimeTypeName.reflecting(Value.self))
             return context.store.value(for: slot.id, default: initialValue)
         }
         nonmutating set {
@@ -291,7 +298,7 @@ public struct State<Value: Sendable>: Sendable {
                 return
             }
 
-            let slot = context.register(source: source, valueType: String(reflecting: Value.self))
+            let slot = context.register(source: source, valueType: RuntimeTypeName.reflecting(Value.self))
             context.store.set(newValue, for: slot.id, componentID: context.componentID)
         }
     }
@@ -308,7 +315,7 @@ public struct State<Value: Sendable>: Sendable {
         let source = self.source
         let initialValue = self.initialValue
         let local = self.local
-        let valueType = String(reflecting: Value.self)
+        let valueType = RuntimeTypeName.reflecting(Value.self)
         let ownerContext = StateContext.current
         return Binding(
             get: {
@@ -337,7 +344,7 @@ final class StateRenderContext: Sendable {
     let store: StateStore
     let isClientOwned: Bool
 
-    private let storage = Mutex([StateSlotID: StateSlotRecord]())
+    private let storage = SwiftHTMLMutex([StateSlotID: StateSlotRecord]())
 
     init(
         componentID: ComponentID,
@@ -381,14 +388,35 @@ final class StateRenderContext: Sendable {
 }
 
 enum StateContext {
+    #if hasFeature(Embedded)
+    nonisolated(unsafe) static var current: StateRenderContext?
+
+    static func withValue<Result>(
+        _ value: StateRenderContext?,
+        operation: () throws -> Result
+    ) rethrows -> Result {
+        let previous = current
+        current = value
+        defer { current = previous }
+        return try operation()
+    }
+    #else
     @TaskLocal static var current: StateRenderContext?
+
+    static func withValue<Result>(
+        _ value: StateRenderContext?,
+        operation: () throws -> Result
+    ) rethrows -> Result {
+        try $current.withValue(value, operation: operation)
+    }
+    #endif
 }
 
 private final class LocalStateStorage<Value: Sendable>: Sendable {
-    private let storage: Mutex<Value>
+    private let storage: SwiftHTMLMutex<Value>
 
     init(_ value: Value) {
-        self.storage = Mutex(value)
+        self.storage = SwiftHTMLMutex(value)
     }
 
     func value() -> Value {

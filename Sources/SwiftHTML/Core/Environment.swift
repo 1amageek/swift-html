@@ -1,4 +1,6 @@
+#if canImport(Foundation)
 import Foundation
+#endif
 
 public protocol EnvironmentKey: Sendable {
     associatedtype Value: Sendable
@@ -11,7 +13,7 @@ public protocol EnvironmentKey: Sendable {
 
 public extension EnvironmentKey {
     static var environmentKey: String {
-        String(reflecting: Self.self)
+        RuntimeTypeName.reflecting(Self.self)
     }
 
     static var visibility: EnvironmentVisibility {
@@ -35,7 +37,7 @@ public struct EnvironmentValues: Sendable {
             let value = storage[ObjectIdentifier(key)]?.value(as: Key.Value.self) ?? Key.defaultValue
             let read = EnvironmentReadRecord(
                 key: Key.environmentKey,
-                valueType: String(reflecting: Key.Value.self),
+                valueType: RuntimeTypeName.reflecting(Key.Value.self),
                 visibility: Key.visibility
             )
             let snapshot: ClientEnvironmentSnapshotValue?
@@ -50,8 +52,8 @@ public struct EnvironmentValues: Sendable {
                 snapshot = nil
                 snapshotError = ClientEnvironmentSnapshotError.encodingFailed(
                     key: Key.environmentKey,
-                    valueType: String(reflecting: Key.Value.self),
-                    message: String(describing: error)
+                    valueType: RuntimeTypeName.reflecting(Key.Value.self),
+                    message: RuntimeTypeName.errorDescription(error)
                 )
             }
             EnvironmentReadContext.current?.record(
@@ -71,8 +73,8 @@ public struct EnvironmentValues: Sendable {
             let value = storage[ObjectIdentifier(type)]?.value(as: Value.self)
             EnvironmentReadContext.current?.record(
                 EnvironmentReadRecord(
-                    key: String(reflecting: type),
-                    valueType: String(reflecting: type),
+                    key: RuntimeTypeName.reflecting(type),
+                    valueType: RuntimeTypeName.reflecting(type),
                     visibility: .runtimeOnly
                 ),
                 snapshot: nil
@@ -92,16 +94,47 @@ public struct EnvironmentValues: Sendable {
         storage[ObjectIdentifier(type)]?.value(as: Value.self) != nil
     }
 
+    #if !hasFeature(Embedded)
     public static func withValue<Result: Sendable>(
         _ value: EnvironmentValues,
         operation: @Sendable () async throws -> Result
     ) async rethrows -> Result {
-        try await EnvironmentContext.$current.withValue(value, operation: operation)
+        try await EnvironmentContext.withValue(value, operation: operation)
     }
+    #endif
 }
 
 enum EnvironmentContext {
+    #if hasFeature(Embedded)
+    nonisolated(unsafe) static var current = EnvironmentValues()
+
+    static func withValue<Result>(
+        _ value: EnvironmentValues,
+        operation: () throws -> Result
+    ) rethrows -> Result {
+        let previous = current
+        current = value
+        defer { current = previous }
+        return try operation()
+    }
+
+    #else
     @TaskLocal static var current = EnvironmentValues()
+
+    static func withValue<Result>(
+        _ value: EnvironmentValues,
+        operation: () throws -> Result
+    ) rethrows -> Result {
+        try $current.withValue(value, operation: operation)
+    }
+
+    static func withValue<Result: Sendable>(
+        _ value: EnvironmentValues,
+        operation: @Sendable () async throws -> Result
+    ) async rethrows -> Result {
+        try await $current.withValue(value, operation: operation)
+    }
+    #endif
 }
 
 @propertyWrapper
@@ -167,6 +200,7 @@ public enum LayoutDirection: String, Codable, Sendable {
 // `SwiftHTML.(unknown context at $<address>).<Name>`, whose discriminator
 // differs per binary, so a snapshot produced by the server can never be decoded
 // by the client. They are registered for hydration in `ClientEnvironmentRegistry.standard`.
+#if canImport(Foundation)
 struct LocaleEnvironmentKey: ClientEnvironmentKey {
     static var defaultValue: Locale { .current }
 }
@@ -178,6 +212,7 @@ struct TimeZoneEnvironmentKey: ClientEnvironmentKey {
 struct CalendarEnvironmentKey: ClientEnvironmentKey {
     static var defaultValue: Calendar { .current }
 }
+#endif
 
 struct ColorSchemeEnvironmentKey: ClientEnvironmentKey {
     static let defaultValue = ColorScheme.light
@@ -188,6 +223,7 @@ struct LayoutDirectionEnvironmentKey: ClientEnvironmentKey {
 }
 
 public extension EnvironmentValues {
+    #if canImport(Foundation)
     var locale: Locale {
         get { self[LocaleEnvironmentKey.self] }
         set { self[LocaleEnvironmentKey.self] = newValue }
@@ -202,6 +238,7 @@ public extension EnvironmentValues {
         get { self[CalendarEnvironmentKey.self] }
         set { self[CalendarEnvironmentKey.self] = newValue }
     }
+    #endif
 
     var colorScheme: ColorScheme {
         get { self[ColorSchemeEnvironmentKey.self] }

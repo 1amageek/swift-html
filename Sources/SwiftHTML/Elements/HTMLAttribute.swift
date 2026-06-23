@@ -86,7 +86,7 @@ public struct HTMLAttribute {
         self.eventName = eventName
         if let context = StateContext.current {
             self.eventHandler = DOMEventHandler { event in
-                StateContext.$current.withValue(context) {
+                StateContext.withValue(context) {
                     handler(event)
                 }
             }

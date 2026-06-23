@@ -1,0 +1,14 @@
+{
+  "name": "swift-html-embedded-wasm-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "measure:size": "./measure-size.sh",
+    "test:browser": "node verify.mjs"
+  },
+  "dependencies": {
+    "@bjorn3/browser_wasi_shim": "^0.4.1",
+    "playwright": "^1.52.0"
+  }
+}

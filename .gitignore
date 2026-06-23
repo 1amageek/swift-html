@@ -12,6 +12,9 @@ DerivedData/
 *.xccovreport
 *.xccovarchive
 
+# JavaScript example dependencies
+node_modules/
+
 # SwiftPM / Xcode user state
 .swiftpm/
 xcuserdata/

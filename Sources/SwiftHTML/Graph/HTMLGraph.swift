@@ -1,5 +1,6 @@
-import Foundation
+#if canImport(Observation)
 import Observation
+#endif
 
 public struct HTMLNodeID: Sendable, Hashable, Codable {
     public let rawValue: Int
@@ -38,8 +39,8 @@ public struct Key: Hashable, Sendable, Codable {
     public let identity: String
 
     public init<ID: Hashable & Sendable>(_ value: ID) {
-        self.rawValue = String(describing: value)
-        self.identity = "\(String(reflecting: ID.self)):\(rawValue)"
+        self.rawValue = RuntimeTypeName.describing(value)
+        self.identity = "\(RuntimeTypeName.reflecting(ID.self)):\(rawValue)"
     }
 
     init(rawValue: String, identity: String) {
@@ -535,7 +536,7 @@ struct HTMLGraphBuilder {
         }
 
         if let component = html as? any Component {
-            let typeName = String(reflecting: Swift.type(of: component))
+            let typeName = RuntimeTypeName.reflecting(Swift.type(of: component))
             let path = currentPath()
             let componentID = makeComponentID(typeName: typeName, path: path)
             let isExplicitClientComponent = component is any ClientComponent
@@ -603,16 +604,11 @@ struct HTMLGraphBuilder {
             let previousEnvironment = environment
             environment = componentEnvironment
 
-            let childID = ServerCapabilityReadContext.$current.withValue(serverCapabilityRecorder) {
-                EnvironmentReadContext.$current.withValue(environmentRecorder) {
-                    StateContext.$current.withValue(stateContext) {
-                        EnvironmentContext.$current.withValue(componentEnvironment) {
-                            withObservationTracking {
-                                let body = component.body
-                                return appendAny(body)
-                            } onChange: {
-                                store.markDirty(componentID)
-                            }
+            let childID = ServerCapabilityReadContext.withValue(serverCapabilityRecorder) {
+                EnvironmentReadContext.withValue(environmentRecorder) {
+                    StateContext.withValue(stateContext) {
+                        EnvironmentContext.withValue(componentEnvironment) {
+                            appendComponentBody(component, store: store, componentID: componentID)
                         }
                     }
                 }
@@ -715,13 +711,31 @@ struct HTMLGraphBuilder {
         return addNode(kind: .fragment, children: [])
     }
 
+    private mutating func appendComponentBody(
+        _ component: any Component,
+        store: StateStore,
+        componentID: ComponentID
+    ) -> HTMLNodeID {
+        #if canImport(Observation)
+        withObservationTracking {
+            let body = component.body
+            return appendAny(body)
+        } onChange: {
+            store.markDirty(componentID)
+        }
+        #else
+        let body = component.body
+        return appendAny(body)
+        #endif
+    }
+
     mutating func withEnvironment<Result>(
         _ environment: EnvironmentValues,
         operation: (inout HTMLGraphBuilder) -> Result
     ) -> Result {
         let previous = self.environment
         self.environment = environment
-        let result = EnvironmentContext.$current.withValue(environment) {
+        let result = EnvironmentContext.withValue(environment) {
             operation(&self)
         }
         self.environment = previous
@@ -964,7 +978,7 @@ struct HTMLGraphBuilder {
             value
                 .split(separator: ",")
                 .allSatisfy { candidate in
-                    let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let trimmed = ASCIIStringUtilities.trimmedWhitespace(candidate)
                     guard let url = trimmed.split(whereSeparator: { $0.isWhitespace }).first else {
                         return true
                     }
@@ -976,7 +990,7 @@ struct HTMLGraphBuilder {
     }
 
     private static func isSafeURL(_ value: String) -> Bool {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = ASCIIStringUtilities.trimmedWhitespace(value)
         guard !trimmed.isEmpty else {
             return true
         }
@@ -1071,7 +1085,7 @@ struct HTMLGraphBuilder {
 
     private func stableBundleName(_ value: String) -> String {
         let allowed = value.unicodeScalars.map { scalar -> Character in
-            if CharacterSet.alphanumerics.contains(scalar) || scalar == "-" || scalar == "_" {
+            if ASCIIStringUtilities.isAlphanumeric(scalar) || scalar == "-" || scalar == "_" {
                 return Character(scalar)
             }
             return "-"
@@ -1114,7 +1128,7 @@ struct HTMLGraphBuilder {
         for attribute in attributes {
             hasher.combine(attribute.name)
             hasher.combine(attribute.value)
-            hasher.combine(String(describing: attribute.kind))
+            hasher.combine(RuntimeTypeName.describing(attribute.kind))
         }
         for child in children {
             hasher.combine(graph.nodes[child.rawValue].fingerprint.rawValue)

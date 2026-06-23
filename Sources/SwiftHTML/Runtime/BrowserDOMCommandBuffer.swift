@@ -1,8 +1,6 @@
-import Synchronization
-
 public final class BrowserDOMCommandBuffer: BrowserDOMHost {
-    private let storage = Mutex([[BrowserDOMCommand]]())
-    private let indexStorage = Mutex([BrowserHydrationIndex]())
+    private let storage = SwiftHTMLMutex([[BrowserDOMCommand]]())
+    private let indexStorage = SwiftHTMLMutex([BrowserHydrationIndex]())
 
     public init() {}
 

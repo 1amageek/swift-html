@@ -1,4 +1,6 @@
+#if !os(WASI)
 import Foundation
+#endif
 
 #if os(WASI)
 

@@ -1,5 +1,6 @@
+#if canImport(Foundation)
 import Foundation
-import Synchronization
+#endif
 
 public enum EnvironmentVisibility: Sendable, Equatable {
     case serverOnly
@@ -42,18 +43,15 @@ public struct ClientEnvironmentSnapshot: Sendable, Codable, Equatable {
     }
 
     private func stableSchemaHash(_ value: String) -> String {
-        var hash: UInt64 = 0xcbf29ce484222325
-        for byte in value.utf8 {
-            hash ^= UInt64(byte)
-            hash &*= 0x100000001b3
-        }
-        return String(format: "%016llx", hash)
+        StableHash.fnv1a64Hex(value)
     }
 }
 
 public enum ClientEnvironmentSnapshotError: Error, Sendable, CustomStringConvertible, Equatable {
     case encodingFailed(key: String, valueType: String, message: String)
     case unsupportedEncoding(key: String, encoding: String)
+    case unavailableEncoding(key: String, valueType: String)
+    case unavailableDecoding(key: String, valueType: String)
     case missingDecoder(key: String, valueType: String)
     case decodingFailed(key: String, valueType: String, message: String)
 
@@ -63,6 +61,10 @@ public enum ClientEnvironmentSnapshotError: Error, Sendable, CustomStringConvert
             "Client environment snapshot encoding failed for \(key) with value type \(valueType): \(message)"
         case .unsupportedEncoding(let key, let encoding):
             "Unsupported client environment snapshot encoding '\(encoding)' for \(key)"
+        case .unavailableEncoding(let key, let valueType):
+            "Client environment snapshot encoding is unavailable for \(key) with value type \(valueType) in this runtime"
+        case .unavailableDecoding(let key, let valueType):
+            "Client environment snapshot decoding is unavailable for \(key) with value type \(valueType) in this runtime"
         case .missingDecoder(let key, let valueType):
             "No client environment decoder was registered for \(key) with value type \(valueType)"
         case .decodingFailed(let key, let valueType, let message):
@@ -78,7 +80,7 @@ public struct ClientEnvironmentSnapshotDecoder: Sendable {
 
     public init<Key: ClientEnvironmentKey>(_ key: Key.Type) {
         self.key = Key.environmentKey
-        self.valueType = String(reflecting: Key.Value.self)
+        self.valueType = RuntimeTypeName.reflecting(Key.Value.self)
         self.applyValue = { snapshotValue, environment in
             guard snapshotValue.encoding == "json" else {
                 throw ClientEnvironmentSnapshotError.unsupportedEncoding(
@@ -88,13 +90,22 @@ public struct ClientEnvironmentSnapshotDecoder: Sendable {
             }
 
             do {
+                #if canImport(Foundation)
                 let data = Data(snapshotValue.encodedValue.utf8)
                 environment[Key.self] = try JSONDecoder().decode(Key.Value.self, from: data)
+                #else
+                throw ClientEnvironmentSnapshotError.unavailableDecoding(
+                    key: snapshotValue.key,
+                    valueType: snapshotValue.valueType
+                )
+                #endif
+            } catch let error as ClientEnvironmentSnapshotError {
+                throw error
             } catch {
                 throw ClientEnvironmentSnapshotError.decodingFailed(
                     key: snapshotValue.key,
                     valueType: snapshotValue.valueType,
-                    message: String(describing: error)
+                    message: RuntimeTypeName.errorDescription(error)
                 )
             }
         }
@@ -167,7 +178,7 @@ final class EnvironmentReadRecorder: Sendable {
         var snapshotErrors: [ClientEnvironmentSnapshotError] = []
     }
 
-    private let storage = Mutex(Storage())
+    private let storage = SwiftHTMLMutex(Storage())
 
     func record(
         _ read: EnvironmentReadRecord,
@@ -213,7 +224,28 @@ final class EnvironmentReadRecorder: Sendable {
 }
 
 enum EnvironmentReadContext {
+    #if hasFeature(Embedded)
+    nonisolated(unsafe) static var current: EnvironmentReadRecorder?
+
+    static func withValue<Result>(
+        _ value: EnvironmentReadRecorder?,
+        operation: () throws -> Result
+    ) rethrows -> Result {
+        let previous = current
+        current = value
+        defer { current = previous }
+        return try operation()
+    }
+    #else
     @TaskLocal static var current: EnvironmentReadRecorder?
+
+    static func withValue<Result>(
+        _ value: EnvironmentReadRecorder?,
+        operation: () throws -> Result
+    ) rethrows -> Result {
+        try $current.withValue(value, operation: operation)
+    }
+    #endif
 }
 
 public protocol ClientEnvironmentKey: EnvironmentKey where Value: Codable & Sendable {}
@@ -222,18 +254,19 @@ public extension ClientEnvironmentKey {
     static var visibility: EnvironmentVisibility { .clientSnapshot }
 
     static func clientSnapshotValue(_ value: Value) throws -> ClientEnvironmentSnapshotValue? {
+        #if canImport(Foundation)
         do {
             let data = try JSONEncoder().encode(value)
             guard let encodedValue = String(data: data, encoding: .utf8) else {
                 throw ClientEnvironmentSnapshotError.encodingFailed(
                     key: environmentKey,
-                    valueType: String(reflecting: Value.self),
+                    valueType: RuntimeTypeName.reflecting(Value.self),
                     message: "JSON encoder produced non-UTF-8 data."
                 )
             }
             return ClientEnvironmentSnapshotValue(
                 key: environmentKey,
-                valueType: String(reflecting: Value.self),
+                valueType: RuntimeTypeName.reflecting(Value.self),
                 encoding: "json",
                 encodedValue: encodedValue
             )
@@ -242,9 +275,15 @@ public extension ClientEnvironmentKey {
         } catch {
             throw ClientEnvironmentSnapshotError.encodingFailed(
                 key: environmentKey,
-                valueType: String(reflecting: Value.self),
-                message: String(describing: error)
+                valueType: RuntimeTypeName.reflecting(Value.self),
+                message: RuntimeTypeName.errorDescription(error)
             )
         }
+        #else
+        throw ClientEnvironmentSnapshotError.unavailableEncoding(
+            key: environmentKey,
+            valueType: RuntimeTypeName.reflecting(Value.self)
+        )
+        #endif
     }
 }

@@ -1,5 +1,3 @@
-import Foundation
-
 extension ClientEnvironmentRegistry {
     /// Every client-snapshot environment key that SwiftHTML itself can serialize.
     ///
@@ -14,10 +12,16 @@ extension ClientEnvironmentRegistry {
     /// `calendar`, `colorScheme`, `layoutDirection`). Downstream modules that add
     /// their own `ClientEnvironmentKey`s should build their registry on top of
     /// this one with `.registering(_:)` so the framework keys stay decodable.
-    public static let standard = ClientEnvironmentRegistry()
-        .registering(LocaleEnvironmentKey.self)
-        .registering(TimeZoneEnvironmentKey.self)
-        .registering(CalendarEnvironmentKey.self)
-        .registering(ColorSchemeEnvironmentKey.self)
-        .registering(LayoutDirectionEnvironmentKey.self)
+    public static let standard: ClientEnvironmentRegistry = {
+        var registry = ClientEnvironmentRegistry()
+        #if canImport(Foundation)
+        registry = registry
+            .registering(LocaleEnvironmentKey.self)
+            .registering(TimeZoneEnvironmentKey.self)
+            .registering(CalendarEnvironmentKey.self)
+        #endif
+        return registry
+            .registering(ColorSchemeEnvironmentKey.self)
+            .registering(LayoutDirectionEnvironmentKey.self)
+    }()
 }

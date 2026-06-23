@@ -1,4 +1,6 @@
+#if canImport(Foundation)
 import Foundation
+#endif
 
 public struct StateSnapshotValue: Sendable, Codable, Equatable {
     public let valueType: String
@@ -11,6 +13,7 @@ public struct StateSnapshotValue: Sendable, Codable, Equatable {
         self.encodedValue = encodedValue
     }
 
+    #if !hasFeature(Embedded)
     public func decoded<Value: Decodable & Sendable>(
         as type: Value.Type = Value.self
     ) throws -> Value {
@@ -22,7 +25,17 @@ public struct StateSnapshotValue: Sendable, Codable, Equatable {
                 )
             )
         }
+        #if canImport(Foundation)
         let data = Data(encodedValue.utf8)
         return try JSONDecoder().decode(type, from: data)
+        #else
+        throw DecodingError.dataCorrupted(
+            DecodingError.Context(
+                codingPath: [],
+                debugDescription: "State snapshot decoding is unavailable in this runtime."
+            )
+        )
+        #endif
     }
+    #endif
 }
