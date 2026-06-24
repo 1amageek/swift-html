@@ -21,6 +21,14 @@ div {
 
 The generated CSS property surface is based on `@mdn/browser-compat-data`. Standard-track, non-deprecated, non-vendor properties are exposed as static ``Style`` helpers.
 
+``Style/declarations`` exposes the typed property/value records read-only. Framework layers
+that need CSS policy, validation, or class generation should inspect those records instead
+of reparsing ``Style/cssText``.
+
+``HTMLAttribute/style(_:)`` preserves the typed ``Style`` payload. A framework can install
+``HTMLAttributeTransformContext`` to rewrite typed style attributes before render graph
+records, fingerprints, and serialized HTML are produced.
+
 ## Dynamic And Custom Properties
 
 Use `Style.custom(_:_:)` for CSS custom properties, vendor-prefixed properties, platform experiments, and newly standardized CSS before the generated list is refreshed.
@@ -115,7 +123,8 @@ CSS selectors and values are serialized as authored.
 | ``CSSRule`` | Writes selector and declarations as provided. |
 | Raw `style` attributes | Writes the attribute value as provided after attribute escaping. |
 
-Validate or sanitize untrusted input before passing it to CSS APIs.
+Validate or sanitize untrusted input before passing it to CSS APIs. Frameworks that move
+declarations into stylesheet rules must validate declaration values for that target context.
 
 ## Updating Generated Properties
 

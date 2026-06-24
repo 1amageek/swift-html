@@ -60,6 +60,7 @@ public struct HTMLAttribute {
     public let name: String
     public let value: String?
     public let kind: HTMLAttributeKind
+    public let style: Style?
     let eventName: String?
     let eventHandler: DOMEventHandler?
 
@@ -67,6 +68,7 @@ public struct HTMLAttribute {
         self.name = name
         self.value = value
         self.kind = value == nil ? .boolean : .string
+        self.style = nil
         self.eventName = nil
         self.eventHandler = nil
     }
@@ -75,6 +77,16 @@ public struct HTMLAttribute {
         self.name = name
         self.value = value
         self.kind = kind
+        self.style = nil
+        self.eventName = nil
+        self.eventHandler = nil
+    }
+
+    public init(name: String, style: Style) {
+        self.name = name
+        self.value = style.cssText
+        self.kind = .string
+        self.style = style
         self.eventName = nil
         self.eventHandler = nil
     }
@@ -83,6 +95,7 @@ public struct HTMLAttribute {
         self.name = "on\(eventName)"
         self.value = nil
         self.kind = .eventBinding
+        self.style = nil
         self.eventName = eventName
         if let context = StateContext.current {
             self.eventHandler = DOMEventHandler { event in
@@ -275,7 +288,7 @@ public extension HTMLAttribute {
     static func id(_ value: String) -> HTMLAttribute { HTMLAttribute(name: "id", value: value, kind: .string) }
     static func `class`(_ value: String) -> HTMLAttribute { HTMLAttribute(name: "class", value: value, kind: .tokenList) }
     static func style(_ value: String) -> HTMLAttribute { HTMLAttribute(name: "style", value: value, kind: .string) }
-    static func style(_ style: Style) -> HTMLAttribute { HTMLAttribute(name: "style", value: style.cssText, kind: .string) }
+    static func style(_ style: Style) -> HTMLAttribute { HTMLAttribute(name: "style", style: style) }
     static func style(@StyleBuilder _ content: () -> Style) -> HTMLAttribute { .style(content()) }
     static func title(_ value: String) -> HTMLAttribute { HTMLAttribute(name: "title", value: value, kind: .string) }
     static func lang(_ value: String) -> HTMLAttribute { HTMLAttribute(name: "lang", value: value, kind: .string) }

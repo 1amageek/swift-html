@@ -770,6 +770,7 @@ struct HTMLGraphBuilder {
         flags: HTMLNodeFlags = [],
         key: Key? = nil
     ) -> HTMLNodeID {
+        let attributes = HTMLAttributeTransformContext.transform(attributes)
         let firstAttribute = graph.attributes.count
         var attributeCount = 0
         for attribute in attributes {

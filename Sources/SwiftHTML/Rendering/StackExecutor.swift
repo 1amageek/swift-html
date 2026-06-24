@@ -2,6 +2,47 @@
 import Foundation
 #endif
 
+public protocol EnlargedStackContextPropagator: Sendable {
+    func apply<Result>(_ operation: () throws -> Result) rethrows -> Result
+}
+
+public enum EnlargedStackContext {
+    @TaskLocal public static var propagators: [any EnlargedStackContextPropagator] = []
+
+    public static func withValue<Result>(
+        _ propagator: any EnlargedStackContextPropagator,
+        operation: () throws -> Result
+    ) rethrows -> Result {
+        try $propagators.withValue(propagators + [propagator], operation: operation)
+    }
+
+    public static func withValue<Result>(
+        _ propagator: any EnlargedStackContextPropagator,
+        operation: () async throws -> Result
+    ) async rethrows -> Result {
+        try await $propagators.withValue(propagators + [propagator], operation: operation)
+    }
+
+    static func apply<Result>(
+        _ propagators: [any EnlargedStackContextPropagator],
+        operation: () throws -> Result
+    ) rethrows -> Result {
+        try apply(propagators[...], operation: operation)
+    }
+
+    private static func apply<Result>(
+        _ propagators: ArraySlice<any EnlargedStackContextPropagator>,
+        operation: () throws -> Result
+    ) rethrows -> Result {
+        guard let first = propagators.first else {
+            return try operation()
+        }
+        return try first.apply {
+            try apply(propagators.dropFirst(), operation: operation)
+        }
+    }
+}
+
 #if os(WASI)
 
 /// Runs `work` directly. WebAssembly is single-threaded and has no `Thread` or
@@ -12,7 +53,9 @@ func withEnlargedStack<Result>(
     ofSize stackSize: Int = 64 << 20,
     _ work: @escaping () -> Result
 ) -> Result {
-    work()
+    EnlargedStackContext.apply(EnlargedStackContext.propagators) {
+        work()
+    }
 }
 
 #else
@@ -37,12 +80,15 @@ func withEnlargedStack<Result>(
 ) -> Result {
     let box = StackResultBox<Result>()
     let semaphore = DispatchSemaphore(value: 0)
+    let propagators = EnlargedStackContext.propagators
     let thread = StackBoundThread(stackSize: stackSize) {
         // Always signal, even if `work()` exits abnormally, so the calling thread
         // can never park forever: a failure surfaces as the `box.take()`
         // precondition rather than a silent deadlock of the render path.
         defer { semaphore.signal() }
-        box.value = work()
+        box.value = EnlargedStackContext.apply(propagators) {
+            work()
+        }
     }
     thread.start()
     semaphore.wait()

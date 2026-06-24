@@ -1,6 +1,6 @@
 @dynamicMemberLookup
 public struct Style: Sendable, Equatable {
-    var declarations: [Declaration]
+    public private(set) var declarations: [Declaration]
 
     public init() {
         self.declarations = []
@@ -63,17 +63,17 @@ public extension Style {
     }
 }
 
-extension Style {
+public extension Style {
     struct Declaration: Sendable, Equatable {
-        let property: String
-        let value: String
+        public let property: String
+        public let value: String
 
         init(_ property: String, _ value: String) {
             self.property = property
             self.value = value
         }
 
-        var cssText: String {
+        public var cssText: String {
             "\(property): \(value)"
         }
     }

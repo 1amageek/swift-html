@@ -319,7 +319,7 @@ The attribute representation must preserve the value kind because rendering, val
 | Date/time strings | `datetime`, date/time input values | Preserve HTML microsyntax |
 | Media query | `media` | Keep as CSS media query string or typed wrapper |
 | MIME/token hints | `accept`, `type`, `as` | Typed wrappers where useful |
-| CSS declarations | `style` | Prefer structured `Style` helpers; raw string allowed as an escape hatch |
+| CSS declarations | `style` | Prefer structured `Style` helpers; raw string allowed as a low-level escape hatch |
 | CSP nonce | `nonce` | Can be fed from `@Environment(\.cspNonce)` |
 | Property binding | `value($name)`, `checked($isOn)` | Hydration/runtime binding, not only serialized HTML |
 | Event binding | `onClick {}` | WASM handler binding |
@@ -334,19 +334,19 @@ SwiftHTML represents CSS as data before serialization.
 
 | Layer | Type | Purpose |
 |---|---|---|
-| Inline declarations | `Style` | Render `style` attributes and reusable declaration lists |
+| Inline declarations | `Style` | Render `style` attributes and expose reusable declaration lists |
 | Standard properties | Generated `Style` helpers | Autocomplete standard, non-deprecated, non-vendor CSS property names |
 | Stylesheet rules | `Stylesheet` / `CSSRule` | Render selector blocks for `style` tags or generated assets |
 | Builders | `@StyleBuilder` / `@StylesheetBuilder` | Compose declarations and rules with `if`, `switch`, and loops |
 
 | Surface | Status | Notes |
 |---|---|---|
-| `Style` | Public | User-facing inline declaration list and rule body |
+| `Style` | Public | User-facing declaration list, rule body, and read-only declaration records |
 | `CSSRule` | Public | Selector plus `Style` for stylesheet output |
 | `Stylesheet` | Public | Collection of stylesheet rules |
-| Declaration storage | Internal | Low-level property/value records used by `Style` serialization |
+| Declaration storage | Public read-only | Low-level property/value records used by `Style` serialization and framework policy layers |
 
-Raw CSS strings remain an escape hatch for browser-specific features, but framework-owned CSS should use the typed model so theme output, tests, and future optimization can reason about declarations. Selectors and declaration values are serialized as authored; do not pass untrusted external input directly into `Style.custom`, dynamic CSS properties, `CSSSelector`, `CSSRule`, or raw `style` attributes.
+Raw CSS strings remain an escape hatch for browser-specific features, but framework-owned CSS should use the typed model so theme output, tests, and future optimization can reason about declarations. Policy layers can inspect `Style.declarations` and can install an `HTMLAttributeTransformContext` transformer to rewrite typed attributes before graph records are created. Selectors and declaration values are serialized as authored; do not pass untrusted external input directly into `Style.custom`, dynamic CSS properties, `CSSSelector`, `CSSRule`, or raw `style` attributes.
 
 The standard property surface is generated from MDN browser compatibility data. SwiftHTML includes standard-track, non-deprecated, non-vendor CSS properties as static `Style` helpers. The generated helpers preserve Swift naming while rendering canonical CSS property names.
 

@@ -64,6 +64,30 @@ private struct Row: Identifiable, Sendable {
     let title: String
 }
 
+private struct TestAttributeTransformer: HTMLAttributeTransformer {
+    func transform(_ attributes: [HTMLAttribute]) -> [HTMLAttribute] {
+        var classTokens: [String] = []
+        var remaining: [HTMLAttribute] = []
+
+        for attribute in attributes {
+            switch attribute.name {
+            case "class":
+                if let value = attribute.value {
+                    classTokens.append(value)
+                }
+            case "style":
+                if let style = attribute.style {
+                    classTokens.append("style-\(style.declarations.count)")
+                }
+            default:
+                remaining.append(attribute)
+            }
+        }
+
+        return [.class(classTokens.joined(separator: " "))] + remaining
+    }
+}
+
 @Suite
 struct SwiftHTMLRenderingTests {
     @Test
@@ -151,6 +175,18 @@ struct SwiftHTMLRenderingTests {
         .render()
 
         #expect(rendered.contains("style=\"min-height: 36px; width: 100%; --panel-tone: muted\""))
+    }
+
+    @Test
+    func attributeTransformContextTransformsTypedStyleAcrossRenderStack() {
+        let rendered = HTMLAttributeTransformContext.withValue(TestAttributeTransformer()) {
+            div(.class("panel"), .style(.minHeight("36px")), .id("card")) {
+                "Panel"
+            }
+            .render()
+        }
+
+        #expect(rendered == "<div class=\"panel style-1\" id=\"card\">Panel</div>")
     }
 
     @Test
