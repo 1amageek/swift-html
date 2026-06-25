@@ -61,43 +61,43 @@ public extension ElementRepresentable {
         Self(element.withKey(Key(value)))
     }
 
-    func on(_ eventName: String, _ handler: @escaping (DOMEvent) -> Void) -> Self {
+    func on(_ eventName: String, _ handler: @escaping @Sendable (DOMEvent) -> Void) -> Self {
         attribute(.event(eventName, handler))
     }
 
-    func onClick(_ handler: @escaping () -> Void) -> Self {
+    func onClick(_ handler: @escaping @Sendable () -> Void) -> Self {
         attribute(.onClick(handler))
     }
 
-    func onClick(_ handler: @escaping (DOMEvent) -> Void) -> Self {
+    func onClick(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> Self {
         attribute(.onClick(handler))
     }
 
-    func onInput(_ handler: @escaping (DOMEvent) -> Void) -> Self {
+    func onInput(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> Self {
         attribute(.onInput(handler))
     }
 
-    func onChange(_ handler: @escaping (DOMEvent) -> Void) -> Self {
+    func onChange(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> Self {
         attribute(.onChange(handler))
     }
 
-    func onSubmit(_ handler: @escaping (DOMEvent) -> Void) -> Self {
+    func onSubmit(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> Self {
         attribute(.onSubmit(handler))
     }
 
-    func onKeyDown(_ handler: @escaping (DOMEvent) -> Void) -> Self {
+    func onKeyDown(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> Self {
         attribute(.onKeyDown(handler))
     }
 
-    func onKeyUp(_ handler: @escaping (DOMEvent) -> Void) -> Self {
+    func onKeyUp(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> Self {
         attribute(.onKeyUp(handler))
     }
 
-    func onFocus(_ handler: @escaping (DOMEvent) -> Void) -> Self {
+    func onFocus(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> Self {
         attribute(.onFocus(handler))
     }
 
-    func onBlur(_ handler: @escaping (DOMEvent) -> Void) -> Self {
+    func onBlur(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> Self {
         attribute(.onBlur(handler))
     }
 }

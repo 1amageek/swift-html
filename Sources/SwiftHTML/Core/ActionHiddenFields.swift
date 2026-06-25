@@ -1,5 +1,7 @@
-private struct ActionHiddenFieldsEnvironmentKey: EnvironmentKey {
-    static let defaultValue: [ActionField] = []
+public struct ActionHiddenFieldsEnvironmentKey: EnvironmentKey {
+    public static let defaultValue: [ActionField] = []
+
+    public init() {}
 }
 
 public extension EnvironmentValues {

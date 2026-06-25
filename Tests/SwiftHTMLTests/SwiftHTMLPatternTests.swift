@@ -14,7 +14,7 @@ private extension EnvironmentValues {
 }
 
 private struct PatternEnvironmentReader: ClientComponent {
-    @Environment(\.patternValue) private var value: String
+    @Environment(PatternEnvironmentKey.self) private var value: String
 
     @HTMLBuilder
     var body: some HTML {
@@ -146,10 +146,10 @@ struct SwiftHTMLPatternTests {
         let rendered = div {
             PatternEnvironmentReader()
             PatternEnvironmentReader()
-                .environment(\.patternValue, "child")
+                .environment(PatternEnvironmentKey.self, "child")
             NestedPatternComponent()
         }
-        .environment(\.patternValue, "parent")
+        .environment(PatternEnvironmentKey.self, "parent")
         .render()
 
         #expect(rendered.contains("<span class=\"environment-value\">child</span>"))

@@ -5,13 +5,33 @@ import SwiftHTML
 import Testing
 
 @Observable
-private final class ObservableBook: Identifiable {
+private final class ObservableBook: Identifiable, Sendable {
+    private struct Storage: Sendable {
+        var title: String
+    }
+
     let id: UUID
-    var title: String
+    @ObservationIgnored private let storage: Mutex<Storage>
+
+    var title: String {
+        get {
+            access(keyPath: \.title)
+            return storage.withLock { storage in
+                storage.title
+            }
+        }
+        set {
+            withMutation(keyPath: \.title) {
+                storage.withLock { storage in
+                    storage.title = newValue
+                }
+            }
+        }
+    }
 
     init(id: UUID = UUID(), title: String) {
         self.id = id
-        self.title = title
+        self.storage = Mutex(Storage(title: title))
     }
 }
 
@@ -85,13 +105,18 @@ private struct ObservableBookRow: Component {
 }
 
 private struct ObservableBookEditor: Component {
-    @Bindable var book: ObservableBook
+    let book: ObservableBook
 
     @HTMLBuilder
     var body: some HTML {
         input(
             .type(InputType.text),
-            .value($book.title)
+            .value(
+                Binding<String>(
+                    get: { book.title },
+                    set: { book.title = $0 }
+                )
+            )
         )
     }
 }

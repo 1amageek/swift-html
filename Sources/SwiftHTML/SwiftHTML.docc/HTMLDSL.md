@@ -102,7 +102,7 @@ struct NavigationMenu: Component {
     var body: some HTML {
         nav {
             ul {
-                ForEach(items, id: \.self) { item in
+                ForEach(items, id: { item in item }) { item in
                     li {
                         a(.href("/\(item)")) {
                             item
@@ -131,7 +131,7 @@ struct NavigationMenu: Component {
 Use stable keys when stateful or hydrated children may reorder.
 
 ```swift
-ForEach(rows, id: \.id) { row in
+ForEach(rows, id: { row in row.id }) { row in
     RowView(row: row)
 }
 ```

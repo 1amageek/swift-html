@@ -33,10 +33,10 @@ public struct DOMEvent: Sendable, Codable, Equatable {
     }
 }
 
-public final class DOMEventHandler {
-    private let handler: (DOMEvent) -> Void
+public final class DOMEventHandler: Sendable {
+    private let handler: @Sendable (DOMEvent) -> Void
 
-    public init(_ handler: @escaping (DOMEvent) -> Void) {
+    public init(_ handler: @escaping @Sendable (DOMEvent) -> Void) {
         self.handler = handler
     }
 
@@ -56,7 +56,7 @@ public enum HTMLAttributeKind: Sendable, Equatable, Codable {
     case raw
 }
 
-public struct HTMLAttribute {
+public struct HTMLAttribute: Sendable {
     public let name: String
     public let value: String?
     public let kind: HTMLAttributeKind
@@ -91,7 +91,7 @@ public struct HTMLAttribute {
         self.eventHandler = nil
     }
 
-    init(eventName: String, handler: @escaping (DOMEvent) -> Void) {
+    init(eventName: String, handler: @escaping @Sendable (DOMEvent) -> Void) {
         self.name = "on\(eventName)"
         self.value = nil
         self.kind = .eventBinding
@@ -482,115 +482,115 @@ public extension HTMLAttribute {
     static func command(_ value: String) -> HTMLAttribute { HTMLAttribute(name: "command", value: value, kind: .string) }
     static func commandfor(_ value: String) -> HTMLAttribute { HTMLAttribute(name: "commandfor", value: value, kind: .string) }
 
-    static func event(_ name: String, _ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func event(_ name: String, _ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: name, handler: handler)
     }
 
-    static func onClick(_ handler: @escaping () -> Void) -> HTMLAttribute {
+    static func onClick(_ handler: @escaping @Sendable () -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "click") { _ in handler() }
     }
 
-    static func onClick(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onClick(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "click", handler: handler)
     }
 
-    static func onInput(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onInput(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "input", handler: handler)
     }
 
-    static func onChange(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onChange(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "change", handler: handler)
     }
 
-    static func onSubmit(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onSubmit(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "submit", handler: handler)
     }
 
-    static func onKeyDown(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onKeyDown(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "keydown", handler: handler)
     }
 
-    static func onKeyUp(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onKeyUp(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "keyup", handler: handler)
     }
 
-    static func onFocus(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onFocus(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "focus", handler: handler)
     }
 
-    static func onBlur(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onBlur(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "blur", handler: handler)
     }
 
-    static func onMouseDown(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onMouseDown(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "mousedown", handler: handler)
     }
 
-    static func onMouseUp(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onMouseUp(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "mouseup", handler: handler)
     }
 
-    static func onMouseMove(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onMouseMove(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "mousemove", handler: handler)
     }
 
-    static func onMouseEnter(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onMouseEnter(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "mouseenter", handler: handler)
     }
 
-    static func onMouseLeave(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onMouseLeave(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "mouseleave", handler: handler)
     }
 
-    static func onPointerDown(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onPointerDown(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "pointerdown", handler: handler)
     }
 
-    static func onPointerUp(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onPointerUp(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "pointerup", handler: handler)
     }
 
-    static func onPointerMove(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onPointerMove(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "pointermove", handler: handler)
     }
 
-    static func onPointerEnter(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onPointerEnter(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "pointerenter", handler: handler)
     }
 
-    static func onPointerLeave(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onPointerLeave(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "pointerleave", handler: handler)
     }
 
-    static func onDragStart(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onDragStart(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "dragstart", handler: handler)
     }
 
-    static func onDragOver(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onDragOver(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "dragover", handler: handler)
     }
 
-    static func onDrop(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onDrop(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "drop", handler: handler)
     }
 
-    static func onReset(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onReset(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "reset", handler: handler)
     }
 
-    static func onInvalid(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onInvalid(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "invalid", handler: handler)
     }
 
-    static func onLoad(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onLoad(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "load", handler: handler)
     }
 
-    static func onError(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onError(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "error", handler: handler)
     }
 
-    static func onScroll(_ handler: @escaping (DOMEvent) -> Void) -> HTMLAttribute {
+    static func onScroll(_ handler: @escaping @Sendable (DOMEvent) -> Void) -> HTMLAttribute {
         HTMLAttribute(eventName: "scroll", handler: handler)
     }
 }

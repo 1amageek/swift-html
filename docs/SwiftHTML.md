@@ -25,10 +25,10 @@ The lowercase HTML structs form the DOM tree. Components form the semantic and l
 `HTML` itself is intentionally a marker protocol:
 
 ```swift
-public protocol HTML {}
+public protocol HTML: Sendable {}
 ```
 
-`HTML` is not the Sendable boundary. Component values may contain key paths, builders, and closures. The Sendable boundary is the rendered artifact facade, manifests, IDs, snapshots, and patch records.
+`HTML` is also the Sendable boundary. Component values, modifiers, builders, bindings, and event handlers must be safe to move through Swift concurrency domains before rendering or hydration work is scheduled.
 
 ## HTML Tags
 
@@ -320,7 +320,7 @@ The attribute representation must preserve the value kind because rendering, val
 | Media query | `media` | Keep as CSS media query string or typed wrapper |
 | MIME/token hints | `accept`, `type`, `as` | Typed wrappers where useful |
 | CSS declarations | `style` | Prefer structured `Style` helpers; raw string allowed as a low-level escape hatch |
-| CSP nonce | `nonce` | Can be fed from `@Environment(\.cspNonce)` |
+| CSP nonce | `nonce` | Can be fed from `@Environment(CSPNonceEnvironmentKey.self)` |
 | Property binding | `value($name)`, `checked($isOn)` | Hydration/runtime binding, not only serialized HTML |
 | Event binding | `onClick {}` | WASM handler binding |
 
@@ -539,7 +539,7 @@ case .failed:
 `ForEach` is a required primitive because it provides keyed identity for diffing and state preservation.
 
 ```swift
-ForEach(events, id: \.id) { event in
+ForEach(events, id: { event in event.id }) { event in
     EventRow(event: event)
 }
 ```
@@ -558,11 +558,11 @@ Required API forms:
 
 ```swift
 public struct ForEach<Data, ID: Hashable & Sendable, Content: HTML>: HTML
-where Data: RandomAccessCollection {
+where Data: RandomAccessCollection & Sendable, Data.Element: Sendable {
     public init(
         _ data: Data,
-        id: KeyPath<Data.Element, ID>,
-        @HTMLBuilder _ content: @escaping (Data.Element) -> Content
+        id: @escaping @Sendable (Data.Element) -> ID,
+        @HTMLBuilder _ content: @escaping @Sendable (Data.Element) -> Content
     )
 }
 ```
@@ -846,18 +846,18 @@ flowchart LR
 
 ```swift
 struct ProfilePage: ServerComponent {
-    @Server(\.request) private var request
+    @Server(RequestServerValueKey.self) private var request
 
     var body: some HTML {
         ProfilePanel()
-            .environment(\.locale, request.locale)
+            .environment(LocaleEnvironmentKey.self, request.locale)
     }
 }
 ```
 
 `@Server` is valid in server-owned execution such as `ServerComponent`, page `load`, route handlers, and server actions. `ClientComponent` must not read `@Server`; server work should be exposed through public props, client-safe environment snapshots, or explicit server actions.
 
-`@Server` reads participate in hydration diagnostics. SwiftWeb records reads such as `@Server(\.request)` during rendering; if the read happens inside a client-owned subtree, the renderer reports `swift-html.hydration.server-capability-in-client-component`.
+`@Server` reads participate in hydration diagnostics. SwiftWeb records reads such as `@Server(RequestServerValueKey.self)` during rendering; if the read happens inside a client-owned subtree, the renderer reports `swift-html.hydration.server-capability-in-client-component`.
 
 Environment keys are server-only by default. A key must opt in to client snapshotting.
 
@@ -918,7 +918,7 @@ Different IDs have different lifetimes and must not be conflated.
 Lists and dynamic collections require explicit keys.
 
 ```swift
-ForEach(events, id: \.id) { event in
+ForEach(events, id: { event in event.id }) { event in
     EventRow(event: event)
 }
 ```

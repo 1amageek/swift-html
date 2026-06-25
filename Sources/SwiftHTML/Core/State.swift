@@ -228,28 +228,16 @@ public final class StateStore: Sendable {
     }
 }
 
-public struct Binding<Value: Sendable> {
-    private let getValue: () -> Value
-    private let setValue: (Value) -> Void
+public struct Binding<Value: Sendable>: Sendable {
+    private let getValue: @Sendable () -> Value
+    private let setValue: @Sendable (Value) -> Void
 
     public init(
-        get: @escaping () -> Value,
-        set: @escaping (Value) -> Void
+        get: @escaping @Sendable () -> Value,
+        set: @escaping @Sendable (Value) -> Void
     ) {
         self.getValue = get
         self.setValue = set
-    }
-
-    init<Root>(
-        model: Root,
-        keyPath: ReferenceWritableKeyPath<Root, Value>
-    ) {
-        self.getValue = {
-            model[keyPath: keyPath]
-        }
-        self.setValue = { value in
-            model[keyPath: keyPath] = value
-        }
     }
 
     public var wrappedValue: Value {

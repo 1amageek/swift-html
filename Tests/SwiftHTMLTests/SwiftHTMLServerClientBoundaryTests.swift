@@ -138,8 +138,8 @@ private struct BoundaryServerTextSlot: ServerComponent {
 }
 
 private struct BoundaryEnvironmentReader: ClientComponent {
-    @Environment(\.boundaryClientValue) private var clientValue: String
-    @Environment(\.boundaryServerOnlyValue) private var serverOnlyValue: String
+    @Environment(BoundaryClientKey.self) private var clientValue: String
+    @Environment(BoundaryServerOnlyKey.self) private var serverOnlyValue: String
 
     @HTMLBuilder
     var body: some HTML {
@@ -183,13 +183,13 @@ private struct BoundaryServerCapabilityReader: ClientComponent {
     }
 
     private func serverCapabilityText() -> String {
-        ServerCapabilityReadContext.record("@Server(\\.request)", valueType: String.self)
+        ServerCapabilityReadContext.record("@Server(RequestServerValueKey.self)", valueType: String.self)
         return "client"
     }
 }
 
 private struct BoundaryFailingClientEnvironmentReader: ClientComponent {
-    @Environment(\.boundaryFailingClientValue) private var value: BoundaryFailingClientEnvironmentValue
+    @Environment(BoundaryFailingClientKey.self) private var value: BoundaryFailingClientEnvironmentValue
 
     @HTMLBuilder
     var body: some HTML {
@@ -266,8 +266,8 @@ struct SwiftHTMLServerClientBoundaryTests {
     @Test
     func clientComponentSnapshotsClientEnvironmentAndReportsServerOnlyReads() throws {
         let artifact = BoundaryEnvironmentReader()
-            .environment(\.boundaryClientValue, "client-value")
-            .environment(\.boundaryServerOnlyValue, "server-secret")
+            .environment(BoundaryClientKey.self, "client-value")
+            .environment(BoundaryServerOnlyKey.self, "server-secret")
             .renderArtifact()
 
         let component = try #require(artifact.hydration.components.first)
@@ -352,7 +352,7 @@ struct SwiftHTMLServerClientBoundaryTests {
             diagnostic.code == .serverCapabilityInClientComponent
         })
 
-        #expect(read.key == "@Server(\\.request)")
+        #expect(read.key == "@Server(RequestServerValueKey.self)")
         #expect(read.valueType == "Swift.String")
         #expect(diagnostic.componentType?.hasSuffix(".BoundaryServerCapabilityReader") == true)
         #expect(diagnostic.message.contains("server capability"))

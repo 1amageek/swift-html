@@ -1,5 +1,5 @@
 public struct ModifierContent: HTMLPrimitive {
-    private let build: (inout HTMLGraphBuilder) -> HTMLNodeID
+    private let build: @Sendable (inout HTMLGraphBuilder) -> HTMLNodeID
 
     init<Content: HTML>(_ content: Content) {
         self.build = { builder in

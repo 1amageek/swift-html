@@ -23,7 +23,7 @@ struct Counter: ClientComponent, Sendable {
 The component type and stable render path form the state identity. Use stable keys when rendering a reordering collection of stateful components.
 
 ```swift
-ForEach(rows, id: \.id) { row in
+ForEach(rows, id: { row in row.id }) { row in
     RowCounter(row: row)
 }
 ```

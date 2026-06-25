@@ -23,7 +23,7 @@ Read the value with ``Environment``:
 
 ```swift
 struct LocaleLabel: Component {
-    @Environment(\.locale) private var locale
+    @Environment(LocaleKey.self) private var locale: String
 
     var body: some HTML {
         span {
@@ -37,7 +37,7 @@ Set the value on any HTML value:
 
 ```swift
 LocaleLabel()
-    .environment(\.locale, "ja")
+    .environment(LocaleKey.self, "ja")
 ```
 
 ## Client-Safe Environment

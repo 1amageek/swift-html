@@ -1,4 +1,4 @@
-public protocol ComponentModifier {
+public protocol ComponentModifier: Sendable {
     associatedtype Body: HTML
 
     @HTMLBuilder

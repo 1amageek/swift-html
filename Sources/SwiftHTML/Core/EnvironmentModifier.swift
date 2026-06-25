@@ -1,17 +1,6 @@
 public struct EnvironmentModifier<Content: HTML>: HTMLPrimitive {
-    private let apply: (inout EnvironmentValues) -> Void
+    private let apply: @Sendable (inout EnvironmentValues) -> Void
     private let content: Content
-
-    public init<Value: Sendable>(
-        _ keyPath: WritableKeyPath<EnvironmentValues, Value>,
-        _ value: Value,
-        @HTMLBuilder content: () -> Content
-    ) {
-        self.apply = { values in
-            values[keyPath: keyPath] = value
-        }
-        self.content = content()
-    }
 
     public init<Value: Sendable>(
         _ value: Value,

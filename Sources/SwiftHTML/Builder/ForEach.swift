@@ -1,26 +1,16 @@
 public struct ForEach<
-    Data: RandomAccessCollection,
+    Data: RandomAccessCollection & Sendable,
     ID: Hashable & Sendable,
     Content: HTML
->: HTMLPrimitive {
+>: HTMLPrimitive where Data.Element: Sendable {
     private let data: Data
-    private let keyProvider: (Data.Element) -> Key
-    private let content: (Data.Element) -> Content
+    private let keyProvider: @Sendable (Data.Element) -> Key
+    private let content: @Sendable (Data.Element) -> Content
 
     public init(
         _ data: Data,
-        id: KeyPath<Data.Element, ID>,
-        @HTMLBuilder _ content: @escaping (Data.Element) -> Content
-    ) {
-        self.data = data
-        self.keyProvider = { element in Key(element[keyPath: id]) }
-        self.content = content
-    }
-
-    public init(
-        _ data: Data,
-        id: @escaping (Data.Element) -> ID,
-        @HTMLBuilder _ content: @escaping (Data.Element) -> Content
+        id: @escaping @Sendable (Data.Element) -> ID,
+        @HTMLBuilder _ content: @escaping @Sendable (Data.Element) -> Content
     ) {
         self.data = data
         self.keyProvider = { element in Key(id(element)) }
@@ -65,8 +55,8 @@ public struct ForEach<
 public extension ForEach where Data.Element: Identifiable, ID == Data.Element.ID {
     init(
         _ data: Data,
-        @HTMLBuilder _ content: @escaping (Data.Element) -> Content
+        @HTMLBuilder _ content: @escaping @Sendable (Data.Element) -> Content
     ) {
-        self.init(data, id: \.id, content)
+        self.init(data, id: { element in element.id }, content)
     }
 }

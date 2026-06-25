@@ -1,4 +1,4 @@
-public protocol HTML {}
+public protocol HTML: Sendable {}
 
 protocol HTMLPrimitive: HTML {
     func buildNode(in builder: inout HTMLGraphBuilder) -> HTMLNodeID
@@ -31,8 +31,8 @@ public extension ClientComponent {
     }
 }
 
-struct HTMLContent {
-    private let build: (inout HTMLGraphBuilder) -> HTMLNodeID
+struct HTMLContent: Sendable {
+    private let build: @Sendable (inout HTMLGraphBuilder) -> HTMLNodeID
 
     init<Content: HTML>(_ content: Content) {
         self.build = { builder in

@@ -170,7 +170,7 @@ public struct ClientHandlerRecord {
     public let componentID: ComponentID?
     private let eventHandler: DOMEventHandler?
 
-    public var handler: ((DOMEvent) -> Void)? {
+    public var handler: (@Sendable (DOMEvent) -> Void)? {
         guard let eventHandler else {
             return nil
         }
@@ -196,7 +196,7 @@ public struct ClientHandlerRecord {
         id: HandlerID,
         eventName: String,
         componentID: ComponentID? = nil,
-        handler: @escaping (DOMEvent) -> Void
+        handler: @escaping @Sendable (DOMEvent) -> Void
     ) {
         self.init(
             id: id,

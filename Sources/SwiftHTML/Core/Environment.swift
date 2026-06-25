@@ -138,12 +138,12 @@ enum EnvironmentContext {
 }
 
 @propertyWrapper
-public struct Environment<Value: Sendable> {
-    private let read: (EnvironmentValues) -> Value
+public struct Environment<Value: Sendable>: Sendable {
+    private let read: @Sendable (EnvironmentValues) -> Value
 
-    public init(_ keyPath: KeyPath<EnvironmentValues, Value>) {
+    public init<Key: EnvironmentKey>(_ key: Key.Type) where Key.Value == Value {
         self.read = { values in
-            values[keyPath: keyPath]
+            values[key]
         }
     }
 
@@ -153,21 +153,21 @@ public struct Environment<Value: Sendable> {
         }
     }
 
+    /// The key path is constrained to `Sendable` so it can be captured by the
+    /// `@Sendable` `read` closure under Swift 6 strict concurrency. Key-path
+    /// literals such as `\.colorScheme` satisfy this automatically.
+    public init(_ keyPath: KeyPath<EnvironmentValues, Value> & Sendable) {
+        self.read = { values in
+            values[keyPath: keyPath]
+        }
+    }
+
     public var wrappedValue: Value {
         read(EnvironmentContext.current)
     }
 }
 
 public extension HTML {
-    func environment<Value: Sendable>(
-        _ keyPath: WritableKeyPath<EnvironmentValues, Value>,
-        _ value: Value
-    ) -> some HTML {
-        EnvironmentModifier(keyPath, value) {
-            self
-        }
-    }
-
     func environment<Value: Sendable>(_ value: Value) -> some HTML {
         EnvironmentModifier(value) {
             self
@@ -201,25 +201,30 @@ public enum LayoutDirection: String, Codable, Sendable {
 // differs per binary, so a snapshot produced by the server can never be decoded
 // by the client. They are registered for hydration in `ClientEnvironmentRegistry.standard`.
 #if canImport(Foundation)
-struct LocaleEnvironmentKey: ClientEnvironmentKey {
-    static var defaultValue: Locale { .current }
+public struct LocaleEnvironmentKey: ClientEnvironmentKey {
+    public static var defaultValue: Locale { .current }
+    public init() {}
 }
 
-struct TimeZoneEnvironmentKey: ClientEnvironmentKey {
-    static var defaultValue: TimeZone { .current }
+public struct TimeZoneEnvironmentKey: ClientEnvironmentKey {
+    public static var defaultValue: TimeZone { .current }
+    public init() {}
 }
 
-struct CalendarEnvironmentKey: ClientEnvironmentKey {
-    static var defaultValue: Calendar { .current }
+public struct CalendarEnvironmentKey: ClientEnvironmentKey {
+    public static var defaultValue: Calendar { .current }
+    public init() {}
 }
 #endif
 
-struct ColorSchemeEnvironmentKey: ClientEnvironmentKey {
-    static let defaultValue = ColorScheme.light
+public struct ColorSchemeEnvironmentKey: ClientEnvironmentKey {
+    public static let defaultValue = ColorScheme.light
+    public init() {}
 }
 
-struct LayoutDirectionEnvironmentKey: ClientEnvironmentKey {
-    static let defaultValue = LayoutDirection.leftToRight
+public struct LayoutDirectionEnvironmentKey: ClientEnvironmentKey {
+    public static let defaultValue = LayoutDirection.leftToRight
+    public init() {}
 }
 
 public extension EnvironmentValues {

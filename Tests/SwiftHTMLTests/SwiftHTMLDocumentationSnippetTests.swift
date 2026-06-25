@@ -24,7 +24,7 @@ private struct DocumentationArticleListPage: Component, Sendable {
                         p(.class("lead"), text: "Rendered on the server with typed SwiftHTML components.")
 
                         section(.aria("label", "Articles")) {
-                            ForEach(articles, id: \.id) { summary in
+                            ForEach(articles, id: { summary in summary.id }) { summary in
                                 articleCard(summary)
                             }
                         }

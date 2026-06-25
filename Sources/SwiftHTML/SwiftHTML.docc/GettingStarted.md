@@ -32,7 +32,7 @@ struct ProductGridPage: Component, Sendable {
                         p(.class("lead"), text: "A typed SwiftHTML page rendered on the server.")
 
                         section(.aria("label", "Products")) {
-                            ForEach(products, id: \.id) { product in
+                            ForEach(products, id: { product in product.id }) { product in
                                 productCard(product)
                             }
                         }
