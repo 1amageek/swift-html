@@ -8,6 +8,7 @@ public enum StylesheetItem: Sendable, Equatable {
     case rule(CSSRule)
     case media(String, Stylesheet)
     case supports(String, Stylesheet)
+    case container(String, Stylesheet)
     case startingStyle(Stylesheet)
     case keyframes(String, [Keyframe])
 
@@ -19,6 +20,8 @@ public enum StylesheetItem: Sendable, Equatable {
             return Self.nested("@media \(query)", body: stylesheet.cssText)
         case .supports(let condition, let stylesheet):
             return Self.nested("@supports \(condition)", body: stylesheet.cssText)
+        case .container(let query, let stylesheet):
+            return Self.nested("@container \(query)", body: stylesheet.cssText)
         case .startingStyle(let stylesheet):
             return Self.nested("@starting-style", body: stylesheet.cssText)
         case .keyframes(let name, let frames):
@@ -41,6 +44,10 @@ public func media(_ query: String, @StylesheetBuilder _ content: () -> Styleshee
 
 public func supports(_ condition: String, @StylesheetBuilder _ content: () -> Stylesheet) -> StylesheetItem {
     .supports(condition, content())
+}
+
+public func container(_ query: String, @StylesheetBuilder _ content: () -> Stylesheet) -> StylesheetItem {
+    .container(query, content())
 }
 
 public func startingStyle(@StylesheetBuilder _ content: () -> Stylesheet) -> StylesheetItem {
