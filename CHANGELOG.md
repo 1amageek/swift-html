@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1 - 2026-06-25
+
+| Area | Included |
+|---|---|
+| CSS | Adds typed `@container` stylesheet items through `StylesheetItem.container` and the `container(_:)` stylesheet builder helper. |
+
 ## 0.7.0 - 2026-06-25
 
 | Area | Included |

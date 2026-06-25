@@ -54,6 +54,22 @@ struct SwiftHTMLTimingAndAtRuleTests {
     }
 
     @Test
+    func containerNestsTypedRules() {
+        let sheet = Stylesheet {
+            rule(".card") { .display("grid") }
+            container("sidebar (min-width: 768px)") {
+                rule(".card") { .gridTemplateColumns("1fr 2fr") }
+            }
+        }
+        let css = sheet.cssText
+        #expect(css.contains(".card {"))
+        #expect(css.contains("@container sidebar (min-width: 768px) {"))
+        #expect(css.contains("grid-template-columns: 1fr 2fr;"))
+        #expect(sheet.rules.count == 1)
+        #expect(sheet.items.count == 2)
+    }
+
+    @Test
     func startingStyleRendersTyped() {
         let item = startingStyle {
             rule(".dialog") { .opacity("0") }
