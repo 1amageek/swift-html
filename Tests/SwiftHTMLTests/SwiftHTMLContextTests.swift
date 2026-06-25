@@ -14,6 +14,13 @@ private struct AuthSession: Codable, Sendable, Equatable {
     static let member = AuthSession(userID: "user-2", role: "member")
 }
 
+private extension EnvironmentValues {
+    var auth: AuthSession {
+        get { self[AuthContext.self] }
+        set { self[AuthContext.self] = newValue }
+    }
+}
+
 private struct AuthStatus: ClientComponent, Sendable {
     @Context(AuthContext.self) private var auth: AuthSession
 
@@ -55,7 +62,7 @@ struct SwiftHTMLContextTests {
             Group {
                 AuthStatus()
             }
-            .environment(AuthContext.self, .admin)
+            .environment(\.auth, .admin)
             AuthStatus()
         }
         .render()
@@ -69,7 +76,7 @@ struct SwiftHTMLContextTests {
         let rendered = div {
             AuthStatus()
         }
-        .environment(AuthContext.self, .member)
+        .environment(\.auth, .member)
         .render()
 
         #expect(rendered.contains("<span class=\"auth-status\">member</span>"))
@@ -80,7 +87,7 @@ struct SwiftHTMLContextTests {
         let artifact = Group {
             AuthStatus()
         }
-        .environment(AuthContext.self, .admin)
+        .environment(\.auth, .admin)
         .renderArtifact()
 
         #expect(artifact.hydration.components.count == 1)
@@ -95,7 +102,7 @@ struct SwiftHTMLContextTests {
         let first = Group {
             AuthStatefulPanel()
         }
-        .environment(AuthContext.self, .admin)
+        .environment(\.auth, .admin)
         .renderArtifact(stateStore: store)
 
         let component = try #require(first.hydration.components.first)
@@ -109,7 +116,7 @@ struct SwiftHTMLContextTests {
         let second = Group {
             AuthStatefulPanel()
         }
-        .environment(AuthContext.self, .admin)
+        .environment(\.auth, .admin)
         .renderArtifact(stateStore: store)
 
         #expect(second.hydration.components.first?.id == component.id)

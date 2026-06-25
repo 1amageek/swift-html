@@ -141,12 +141,6 @@ enum EnvironmentContext {
 public struct Environment<Value: Sendable>: Sendable {
     private let read: @Sendable (EnvironmentValues) -> Value
 
-    public init<Key: EnvironmentKey>(_ key: Key.Type) where Key.Value == Value {
-        self.read = { values in
-            values[key]
-        }
-    }
-
     public init<Wrapped>(_ type: Wrapped.Type) where Value == Wrapped? {
         self.read = { values in
             values[type]
@@ -174,11 +168,11 @@ public extension HTML {
         }
     }
 
-    func environment<Key: EnvironmentKey>(
-        _ key: Key.Type,
-        _ value: Key.Value
+    func environment<Value: Sendable>(
+        _ keyPath: WritableKeyPath<EnvironmentValues, Value> & Sendable,
+        _ value: Value
     ) -> some HTML {
-        EnvironmentModifier(key, value: value) {
+        EnvironmentModifier(keyPath, value) {
             self
         }
     }

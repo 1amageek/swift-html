@@ -100,7 +100,7 @@ struct SwiftHTMLClientBundlePlannerTests {
         )
         let environmentSnapshot = ClientEnvironmentSnapshot(values: [
             ClientEnvironmentSnapshotValue(
-                key: "theme",
+                key: "colorScheme",
                 valueType: "Swift.String",
                 encoding: "json",
                 encodedValue: #""dark""#

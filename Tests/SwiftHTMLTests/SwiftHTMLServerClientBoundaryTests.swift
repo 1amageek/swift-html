@@ -138,8 +138,8 @@ private struct BoundaryServerTextSlot: ServerComponent {
 }
 
 private struct BoundaryEnvironmentReader: ClientComponent {
-    @Environment(BoundaryClientKey.self) private var clientValue: String
-    @Environment(BoundaryServerOnlyKey.self) private var serverOnlyValue: String
+    @Environment(\.boundaryClientValue) private var clientValue: String
+    @Environment(\.boundaryServerOnlyValue) private var serverOnlyValue: String
 
     @HTMLBuilder
     var body: some HTML {
@@ -189,7 +189,7 @@ private struct BoundaryServerCapabilityReader: ClientComponent {
 }
 
 private struct BoundaryFailingClientEnvironmentReader: ClientComponent {
-    @Environment(BoundaryFailingClientKey.self) private var value: BoundaryFailingClientEnvironmentValue
+    @Environment(\.boundaryFailingClientValue) private var value: BoundaryFailingClientEnvironmentValue
 
     @HTMLBuilder
     var body: some HTML {
@@ -266,8 +266,8 @@ struct SwiftHTMLServerClientBoundaryTests {
     @Test
     func clientComponentSnapshotsClientEnvironmentAndReportsServerOnlyReads() throws {
         let artifact = BoundaryEnvironmentReader()
-            .environment(BoundaryClientKey.self, "client-value")
-            .environment(BoundaryServerOnlyKey.self, "server-secret")
+            .environment(\.boundaryClientValue, "client-value")
+            .environment(\.boundaryServerOnlyValue, "server-secret")
             .renderArtifact()
 
         let component = try #require(artifact.hydration.components.first)

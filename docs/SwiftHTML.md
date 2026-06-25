@@ -320,7 +320,7 @@ The attribute representation must preserve the value kind because rendering, val
 | Media query | `media` | Keep as CSS media query string or typed wrapper |
 | MIME/token hints | `accept`, `type`, `as` | Typed wrappers where useful |
 | CSS declarations | `style` | Prefer structured `Style` helpers; raw string allowed as a low-level escape hatch |
-| CSP nonce | `nonce` | Can be fed from `@Environment(CSPNonceEnvironmentKey.self)` |
+| CSP nonce | `nonce` | Can be fed from an environment value such as `@Environment(\.cspNonce)` |
 | Property binding | `value($name)`, `checked($isOn)` | Hydration/runtime binding, not only serialized HTML |
 | Event binding | `onClick {}` | WASM handler binding |
 
@@ -346,7 +346,7 @@ SwiftHTML represents CSS as data before serialization.
 | `Stylesheet` | Public | Collection of stylesheet rules |
 | Declaration storage | Public read-only | Low-level property/value records used by `Style` serialization and framework policy layers |
 
-Raw CSS strings remain an escape hatch for browser-specific features, but framework-owned CSS should use the typed model so theme output, tests, and future optimization can reason about declarations. Policy layers can inspect `Style.declarations` and can install an `HTMLAttributeTransformContext` transformer to rewrite typed attributes before graph records are created. Selectors and declaration values are serialized as authored; do not pass untrusted external input directly into `Style.custom`, dynamic CSS properties, `CSSSelector`, `CSSRule`, or raw `style` attributes.
+Raw CSS strings remain an escape hatch for browser-specific features, but framework-owned CSS should use the typed model so stylesheet output, tests, and future optimization can reason about declarations. Policy layers can inspect `Style.declarations` and can install an `HTMLAttributeTransformContext` transformer to rewrite typed attributes before graph records are created. Selectors and declaration values are serialized as authored; do not pass untrusted external input directly into `Style.custom`, dynamic CSS properties, `CSSSelector`, `CSSRule`, or raw `style` attributes.
 
 The standard property surface is generated from MDN browser compatibility data. SwiftHTML includes standard-track, non-deprecated, non-vendor CSS properties as static `Style` helpers. The generated helpers preserve Swift naming while rendering canonical CSS property names.
 
@@ -362,7 +362,7 @@ The standard property surface is generated from MDN browser compatibility data. 
 
 Use `Style.custom(_:_:)` for CSS custom properties, vendor-prefixed properties, experiments, and newly standardized properties before the generated helper list is refreshed.
 
-The canonical stylesheet rule form is builder-based because CSS rules often need conditional declarations and theme-dependent composition. Rule builders use the same declaration syntax as inline `.style { ... }`.
+The canonical stylesheet rule form is builder-based because CSS rules often need conditional declarations and environment-dependent composition. Rule builders use the same declaration syntax as inline `.style { ... }`.
 
 ```swift
 Stylesheet {
@@ -792,6 +792,13 @@ Prefer `@Environment` when SwiftUI parity matters or when the value is a framewo
 struct AuthContext: ContextKey {
     static let defaultValue = AuthSession.guest
 }
+
+extension EnvironmentValues {
+    var auth: AuthSession {
+        get { self[AuthContext.self] }
+        set { self[AuthContext.self] = newValue }
+    }
+}
 ```
 
 ```swift
@@ -808,7 +815,7 @@ struct UserMenu: Component {
 
 ```swift
 Dashboard()
-    .environment(AuthContext.self, session)
+    .environment(\.auth, session)
 ```
 
 Use `Group` when multiple sibling components need the same scoped value and no extra DOM element should be emitted.
@@ -818,10 +825,10 @@ Group {
     UserMenu()
     AccountLinks()
 }
-    .environment(AuthContext.self, session)
+    .environment(\.auth, session)
 ```
 
-Use `@Environment` for platform/framework values such as theme, locale, layout direction, route metadata, nonce, and request-derived values. Use `@Context` sparingly for app/domain context that would otherwise be named as a React context. Both flow through the same scoped environment mechanism.
+Use `@Environment` for platform/framework values such as color scheme, locale, layout direction, route metadata, nonce, and request-derived values. Use `@Context` sparingly for app/domain context that would otherwise be named as a React context. Both flow through the same scoped environment mechanism.
 
 `@Context` reads scoped values. It is not local state. `@State` is owned by the component instance and should not be used to pass global values down the tree.
 
@@ -832,7 +839,7 @@ Use `@Environment` for platform/framework values such as theme, locale, layout d
 ```mermaid
 flowchart LR
     A["@Environment"] --> B["view context"]
-    B --> C["theme / locale / public route data"]
+    B --> C["color scheme / locale / public route data"]
     D["@Server"] --> E["server capability"]
     E --> F["request / database / cache / secrets"]
 ```
@@ -850,7 +857,7 @@ struct ProfilePage: ServerComponent {
 
     var body: some HTML {
         ProfilePanel()
-            .environment(LocaleEnvironmentKey.self, request.locale)
+            .environment(\.locale, request.locale)
     }
 }
 ```

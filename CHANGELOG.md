@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0 - 2026-06-25
+
+| Area | Included |
+|---|---|
+| Environment | Breaking: Environment reads and writes now use SwiftUI-style key paths. Use `@Environment(\.value)` and `.environment(\.value, newValue)` instead of passing an `EnvironmentKey` type. The key-type storage and client snapshot registry remain internal framework mechanisms. |
+| Context | `ContextKey` values are still read with `@Context(Key.self)`, but providers should expose an `EnvironmentValues` computed property and write through `.environment(\.value, newValue)`. There is no separate context provider. |
+| CSS | Exposes typed style declaration access and typed attribute transform hooks so framework layers can inspect and rewrite structured style attributes before rendering. |
+| Concurrency | SwiftHTML HTML values are `Sendable` where appropriate, aligning component/rendering contracts with Swift 6 strict concurrency. |
+| Embedded | Adds the Embedded SwiftHTML WebAssembly support package and tests. |
+| Documentation | Updates Environment, CSS, and runtime docs to describe the current SwiftUI-style API and removes stale styling-system wording. |
+
 ## 0.6.6 - 2026-06-22
 
 | Area | Included |

@@ -73,7 +73,7 @@ struct SwiftHTMLPerformanceTests {
         let artifact = timed("render environment snapshots \(size)", limit: .seconds(8)) {
             HTMLRenderer().render(
                 environmentHeavyDOM(count: size)
-                    .environment(PerformanceEnvironmentKey.self, "snapshot")
+                    .environment(\.performanceValue, "snapshot")
             )
         }
 
@@ -236,7 +236,7 @@ private struct EnvironmentHeavyDOM: Component {
 
 private struct EnvironmentHeavyRow: ClientComponent {
     let value: Int
-    @Environment(PerformanceEnvironmentKey.self) private var environmentValue: String
+    @Environment(\.performanceValue) private var environmentValue: String
 
     @HTMLBuilder
     var body: some HTML {

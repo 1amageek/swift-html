@@ -12,13 +12,13 @@ public struct EnvironmentModifier<Content: HTML>: HTMLPrimitive {
         self.content = content()
     }
 
-    public init<Key: EnvironmentKey>(
-        _ key: Key.Type,
-        value: Key.Value,
+    public init<Value: Sendable>(
+        _ keyPath: WritableKeyPath<EnvironmentValues, Value> & Sendable,
+        _ value: Value,
         @HTMLBuilder content: () -> Content
     ) {
         self.apply = { values in
-            values[Key.self] = value
+            values[keyPath: keyPath] = value
         }
         self.content = content()
     }

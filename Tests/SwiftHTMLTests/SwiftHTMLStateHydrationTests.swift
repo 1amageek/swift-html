@@ -26,7 +26,7 @@ private struct CounterComponent: ClientComponent, Sendable {
 }
 
 private struct EnvironmentConsumerComponent: ClientComponent {
-    @Environment(HydrationEnvironmentKey.self) private var value: String
+    @Environment(\.hydrationValue) private var value: String
 
     @HTMLBuilder
     var body: some HTML {
@@ -312,10 +312,10 @@ struct SwiftHTMLStateHydrationTests {
             Group {
                 EnvironmentConsumerComponent()
             }
-            .environment(HydrationEnvironmentKey.self, "provided")
+            .environment(\.hydrationValue, "provided")
             EnvironmentConsumerComponent()
         }
-        .environment(HydrationEnvironmentKey.self, "outer")
+        .environment(\.hydrationValue, "outer")
         .renderArtifact()
 
         #expect(artifact.html.components(separatedBy: "<span class=\"hydration-value\">outer</span>").count - 1 == 2)

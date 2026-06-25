@@ -83,7 +83,7 @@ private extension EnvironmentValues {
 }
 
 private struct RuntimeServerOnlyReader: Component {
-    @Environment(RuntimeServerOnlyKey.self) private var serverOnlyValue: String
+    @Environment(\.runtimeServerOnlyValue) private var serverOnlyValue: String
 
     @HTMLBuilder
     var body: some HTML {

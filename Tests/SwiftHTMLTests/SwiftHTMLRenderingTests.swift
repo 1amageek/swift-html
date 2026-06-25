@@ -13,7 +13,7 @@ private extension EnvironmentValues {
 }
 
 private struct EnvironmentReader: ClientComponent {
-    @Environment(TestEnvironmentKey.self) private var value: String
+    @Environment(\.testValue) private var value: String
 
     @HTMLBuilder
     var body: some HTML {
@@ -325,7 +325,7 @@ struct SwiftHTMLRenderingTests {
     @Test
     func readsEnvironmentThroughComponentBody() {
         let rendered = EnvironmentReader()
-            .environment(TestEnvironmentKey.self, "configured")
+            .environment(\.testValue, "configured")
             .render()
 
         #expect(rendered.contains("<span id=\"environment-value\">configured</span>"))

@@ -23,7 +23,7 @@ Read the value with ``Environment``:
 
 ```swift
 struct LocaleLabel: Component {
-    @Environment(LocaleKey.self) private var locale: String
+    @Environment(\.locale) private var locale: String
 
     var body: some HTML {
         span {
@@ -37,7 +37,7 @@ Set the value on any HTML value:
 
 ```swift
 LocaleLabel()
-    .environment(LocaleKey.self, "ja")
+    .environment(\.locale, "ja")
 ```
 
 ## Client-Safe Environment
@@ -45,8 +45,8 @@ LocaleLabel()
 Use ``ClientEnvironmentKey`` for values that can be encoded into hydration metadata.
 
 ```swift
-struct ThemeKey: ClientEnvironmentKey {
-    static let defaultValue = "system"
+struct AppearanceKey: ClientEnvironmentKey {
+    static let defaultValue = "default"
 }
 ```
 

@@ -13,7 +13,7 @@ SwiftHTML does not own HTTP routing, request and response objects, server action
 | SwiftHTML | HTML DSL, rendering, diffing, state, environment, CSS, actions as render contracts, hydration records, browser command contracts. |
 | SwiftHTMLPreview | Xcode preview bridge, SwiftUI host view, and WebKit preview surface. |
 | Server framework | HTTP routing, request/response integration, CSRF/CORS/Origin policy, redirect policy, server action dispatch. |
-| UI/runtime package | Visual components, theme defaults, JavaScriptKit adapter, WASM bootstrap, concrete DOM host. |
+| UI/runtime package | Visual components, style defaults, JavaScriptKit adapter, WASM bootstrap, concrete DOM host. |
 
 Use ``HTML/render()`` when you only need an HTML string. Use ``HTML/renderArtifact(environment:stateStore:options:)`` when a server or runtime needs diagnostics, hydration metadata, event handlers, DOM snapshots, or browser commands.
 
