@@ -15,7 +15,7 @@ case "$swift_sdk_base" in
 esac
 
 env \
-  SWIFTHTML_EXPERIMENTAL_EMBEDDED_WASM=1 \
+  SWIFTHTML_CLIENT_RUNTIME_PROFILE=embedded \
   JAVASCRIPTKIT_EXPERIMENTAL_EMBEDDED_WASM=1 \
   "$swift_bin" package \
     --build-system native \

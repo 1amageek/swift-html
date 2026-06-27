@@ -6,8 +6,9 @@ let swiftSettings: [SwiftSetting] = [
     .enableUpcomingFeature("ApproachableConcurrency"),
 ]
 
-let embeddedSwiftSettings: [SwiftSetting] = swiftSettings
-    + (Context.environment["SWIFTHTML_EXPERIMENTAL_EMBEDDED_WASM"] == "1"
+let clientRuntimeProfile = Context.environment["SWIFTHTML_CLIENT_RUNTIME_PROFILE"]
+let clientRuntimeSwiftSettings: [SwiftSetting] = swiftSettings
+    + (clientRuntimeProfile == "embedded"
         ? [
             .enableExperimentalFeature("Embedded"),
             .unsafeFlags(["-Xfrontend", "-emit-empty-object-file"]),
@@ -24,7 +25,7 @@ let package = Package(
     ],
     products: [
         .library(name: "SwiftHTML", targets: ["SwiftHTML"]),
-        .library(name: "SwiftHTMLEmbedded", targets: ["SwiftHTMLEmbedded"]),
+        .library(name: "SwiftHTMLClientRuntime", targets: ["SwiftHTMLClientRuntime"]),
         .library(name: "SwiftHTMLPreview", targets: ["SwiftHTMLPreview"]),
     ],
     dependencies: [],
@@ -34,8 +35,8 @@ let package = Package(
             swiftSettings: swiftSettings
         ),
         .target(
-            name: "SwiftHTMLEmbedded",
-            swiftSettings: embeddedSwiftSettings
+            name: "SwiftHTMLClientRuntime",
+            swiftSettings: clientRuntimeSwiftSettings
         ),
         .target(
             name: "SwiftHTMLPreview",
@@ -50,8 +51,8 @@ let package = Package(
             swiftSettings: swiftSettings
         ),
         .testTarget(
-            name: "SwiftHTMLEmbeddedTests",
-            dependencies: ["SwiftHTMLEmbedded"],
+            name: "SwiftHTMLClientRuntimeTests",
+            dependencies: ["SwiftHTMLClientRuntime"],
             swiftSettings: swiftSettings
         ),
         .testTarget(

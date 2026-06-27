@@ -1,18 +1,18 @@
 import JavaScriptKit
-import SwiftHTMLEmbedded
+import SwiftHTMLClientRuntime
 
 let document = JSObject.global.document.object!
 let root = document.createElement!("div").object!
-root.id = "embedded-swift-html-root"
+root.id = "client-runtime-swift-html-root"
 
 let host = JavaScriptKitDOMHost(document: document)
-let app = EmbeddedHTMLDocument {
-    main(.id("app"), .class("embedded-shell")) {
+let app = ClientHTMLDocument {
+    main(.id("app"), .class("client-runtime-shell")) {
         h1 {
-            "Embedded SwiftHTML"
+            "Client Runtime SwiftHTML"
         }
         p(.class("lead")) {
-            "A small static SwiftHTML runtime mounted from Embedded Swift."
+            "A small static SwiftHTML runtime mounted through the client runtime."
         }
         section(.class("counter-panel")) {
             output(.id("count-value"), .ariaLabel("Counter value")) {
@@ -60,7 +60,7 @@ nameInput.oninput = JSValue.object(JSClosure { _ in
     return .undefined
 })
 
-struct JavaScriptKitDOMHost: EmbeddedDOMHost {
+struct JavaScriptKitDOMHost: ClientDOMHost {
     let document: JSObject
 
     func createElement(_ tagName: String) -> JSObject {
@@ -71,7 +71,7 @@ struct JavaScriptKitDOMHost: EmbeddedDOMHost {
         document.createTextNode!(text).object!
     }
 
-    func setAttribute(_ attribute: EmbeddedHTMLAttribute, on node: JSObject) {
+    func setAttribute(_ attribute: ClientHTMLAttribute, on node: JSObject) {
         _ = node.setAttribute!(attribute.name, attribute.value)
     }
 

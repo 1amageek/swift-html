@@ -1,16 +1,16 @@
-import SwiftHTMLEmbedded
+import SwiftHTMLClientRuntime
 import Testing
 
 @Suite
-struct SwiftHTMLEmbeddedTests {
+struct SwiftHTMLClientRuntimeTests {
     @Test
     func documentMountsElementsAndTextIntoHost() {
         let host = RecordingDOMHost()
         let root = host.root()
-        let document = EmbeddedHTMLDocument {
+        let document = ClientHTMLDocument {
             main(.id("app")) {
                 h1 {
-                    "Embedded SwiftHTML"
+                    "Client Runtime SwiftHTML"
                 }
                 p(.class("lead")) {
                     "Small static runtime"
@@ -27,7 +27,7 @@ struct SwiftHTMLEmbeddedTests {
             "createElement:main",
             "setAttribute:1:id=app",
             "createElement:h1",
-            "createText:Embedded SwiftHTML",
+            "createText:Client Runtime SwiftHTML",
             "append:3->2",
             "append:2->1",
             "createElement:p",
@@ -46,7 +46,7 @@ struct SwiftHTMLEmbeddedTests {
     }
 }
 
-private final class RecordingDOMHost: EmbeddedDOMHost {
+private final class RecordingDOMHost: ClientDOMHost {
     struct Node: Equatable {
         let id: Int
     }
@@ -70,7 +70,7 @@ private final class RecordingDOMHost: EmbeddedDOMHost {
         return node
     }
 
-    func setAttribute(_ attribute: EmbeddedHTMLAttribute, on node: Node) {
+    func setAttribute(_ attribute: ClientHTMLAttribute, on node: Node) {
         operations.append("setAttribute:\(node.id):\(attribute.name)=\(attribute.value)")
     }
 

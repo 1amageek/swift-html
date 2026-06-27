@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0 - 2026-06-28
+
+| Area | Included |
+|---|---|
+| Client runtime | Renames the static client runtime product from `SwiftHTMLEmbedded` to `SwiftHTMLClientRuntime`, with `ClientHTML*` and `ClientDOMHost` APIs replacing the old `EmbeddedHTML*` names. The source is now named by runtime responsibility rather than the Embedded Swift compiler profile. |
+| WASM profiles | Replaces `SWIFTHTML_EXPERIMENTAL_EMBEDDED_WASM=1` with `SWIFTHTML_CLIENT_RUNTIME_PROFILE=embedded`. The same `SwiftHTMLClientRuntime` source builds under both standard WASM and Embedded Swift WASM. |
+| Hydration | Caches the previous browser hydration index inside `HydrationRuntimeSession`, avoiding a duplicate full index export on each flush. |
+| Documentation | Updates README, runtime docs, tests, and the EmbeddedWasm example to describe standard WASM and Embedded Swift as compiler profiles rather than separate source families. |
+
 ## 0.7.1 - 2026-06-25
 
 | Area | Included |

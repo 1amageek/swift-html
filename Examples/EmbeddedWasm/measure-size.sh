@@ -28,7 +28,7 @@ build_mode() {
 
   if [ "$mode" = "embedded" ]; then
     env \
-      SWIFTHTML_EXPERIMENTAL_EMBEDDED_WASM=1 \
+      SWIFTHTML_CLIENT_RUNTIME_PROFILE=embedded \
       JAVASCRIPTKIT_EXPERIMENTAL_EMBEDDED_WASM=1 \
       "$swift_bin" package \
         --build-system native \
@@ -91,8 +91,8 @@ build_mode "standard" "$standard_sdk"
 echo "Building SwiftHTML Embedded WASM with $embedded_sdk"
 build_mode "embedded" "$embedded_sdk"
 
-standard_wasm="$output_dir/standard/Package/EmbeddedSwiftHTMLApp.wasm"
-embedded_wasm="$output_dir/embedded/Package/EmbeddedSwiftHTMLApp.wasm"
+standard_wasm="$output_dir/standard/Package/ClientRuntimeHTMLApp.wasm"
+embedded_wasm="$output_dir/embedded/Package/ClientRuntimeHTMLApp.wasm"
 
 standard_raw="$(byte_count "$standard_wasm")"
 embedded_raw="$(byte_count "$embedded_wasm")"

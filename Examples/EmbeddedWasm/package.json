@@ -1,5 +1,5 @@
 {
-  "name": "swift-html-embedded-wasm-example",
+  "name": "swift-html-client-runtime-profile-example",
   "version": "0.0.0",
   "private": true,
   "type": "module",

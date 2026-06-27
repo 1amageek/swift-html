@@ -1,8 +1,8 @@
-public indirect enum EmbeddedHTMLNode: Sendable, Equatable {
-    case element(EmbeddedHTMLElement)
+public indirect enum ClientHTMLNode: Sendable, Equatable {
+    case element(ClientHTMLElement)
     case text(String)
 
-    public func mount<Host: EmbeddedDOMHost>(
+    public func mount<Host: ClientDOMHost>(
         into host: Host,
         parent: Host.Node
     ) {

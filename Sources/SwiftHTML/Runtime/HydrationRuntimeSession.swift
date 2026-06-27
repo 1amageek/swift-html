@@ -6,6 +6,12 @@ public struct HydrationRuntimeSession<Root: HTML> {
     public private(set) var artifact: RenderArtifact
     public private(set) var dom: HTMLDOMSnapshot
 
+    // The browser hydration index is a pure function of `artifact`, and the
+    // "previous" index of one flush is the "next" index of the prior flush.
+    // Caching it (refreshed only when `artifact` changes) collapses the two full
+    // O(N) index exports per flush down to one.
+    private var cachedHydrationIndex: BrowserHydrationIndex
+
     private let renderer = HTMLRenderer()
     private let applicator = HTMLDOMPatchApplicator()
     private let commandEncoder = BrowserDOMCommandEncoder()
@@ -29,6 +35,7 @@ public struct HydrationRuntimeSession<Root: HTML> {
         try artifact.validateHydration()
         self.artifact = artifact
         self.dom = HTMLDOMSnapshot(graph: artifact.graph, rootID: artifact.rootID)
+        self.cachedHydrationIndex = artifact.browserHydrationIndex()
     }
 
     public mutating func invoke(
@@ -47,7 +54,7 @@ public struct HydrationRuntimeSession<Root: HTML> {
         let dirtyComponents = stateStore.dirtyComponents().sorted { left, right in
             left.rawValue < right.rawValue
         }
-        let previousHydrationIndex = artifact.browserHydrationIndex()
+        let previousHydrationIndex = cachedHydrationIndex
         guard !dirtyComponents.isEmpty else {
             return HydrationRuntimeUpdate(
                 dirtyComponents: [],
@@ -71,6 +78,8 @@ public struct HydrationRuntimeSession<Root: HTML> {
         _ = try applicator.apply(patches, to: dom)
         dom = HTMLDOMSnapshot(graph: nextArtifact.graph, rootID: nextArtifact.rootID)
         artifact = nextArtifact
+        let nextHydrationIndex = nextArtifact.browserHydrationIndex()
+        cachedHydrationIndex = nextHydrationIndex
         stateStore.clearDirtyComponents(dirtyComponents)
 
         return HydrationRuntimeUpdate(
@@ -78,7 +87,7 @@ public struct HydrationRuntimeSession<Root: HTML> {
             patches: patches,
             commandBatch: commandBatch,
             previousHydrationIndex: previousHydrationIndex,
-            hydrationIndex: nextArtifact.browserHydrationIndex(),
+            hydrationIndex: nextHydrationIndex,
             html: dom.html
         )
     }

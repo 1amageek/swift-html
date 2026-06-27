@@ -3,9 +3,9 @@
 import PackageDescription
 
 let package = Package(
-    name: "EmbeddedSwiftHTML",
+    name: "ClientRuntimeHTML",
     products: [
-        .executable(name: "EmbeddedSwiftHTMLApp", targets: ["EmbeddedSwiftHTMLApp"]),
+        .executable(name: "ClientRuntimeHTMLApp", targets: ["ClientRuntimeHTMLApp"]),
     ],
     dependencies: [
         .package(name: "swift-html", path: "../.."),
@@ -13,9 +13,9 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "EmbeddedSwiftHTMLApp",
+            name: "ClientRuntimeHTMLApp",
             dependencies: [
-                .product(name: "SwiftHTMLEmbedded", package: "swift-html"),
+                .product(name: "SwiftHTMLClientRuntime", package: "swift-html"),
                 .product(name: "JavaScriptKit", package: "JavaScriptKit"),
             ],
             swiftSettings: [

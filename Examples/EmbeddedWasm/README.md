@@ -1,7 +1,7 @@
-# Embedded SwiftHTML WASM
+# Client Runtime WASM Profiles
 
-This example builds a small SwiftHTML runtime surface with standard Swift WASM
-and Embedded Swift WASM, then compares the produced binary sizes.
+This example builds the same SwiftHTML client runtime source with standard Swift
+WASM and Embedded Swift WASM, then compares the produced binary sizes.
 
 Requirements:
 
@@ -10,7 +10,7 @@ Requirements:
 - `swift-6.3.1-RELEASE_wasm-embedded` Swift SDK
 - A sibling `JavaScriptKit` checkout at `../../../JavaScriptKit`
 
-Build the Embedded version:
+Build the Embedded Swift compiler-profile version:
 
 ```sh
 export SWIFT_BIN="/Users/1amageek/Library/Developer/Toolchains/swift-6.3.1-RELEASE.xctoolchain/usr/bin/swift"

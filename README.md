@@ -24,7 +24,7 @@ This README describes the current `main` branch. Use the README from a matching 
 | Package | Role |
 |---|---|
 | `SwiftHTML` | HTML DSL, rendering, diffing, state, environment, CSS, hydration contracts, browser command contracts. |
-| `SwiftHTMLEmbedded` | Experimental static HTML tree and DOM host contract that can compile with Embedded Swift for small client WASM bundles. |
+| `SwiftHTMLClientRuntime` | Static client HTML tree and DOM host contract that can compile under standard WASM and Embedded Swift compiler profiles. |
 | `SwiftHTMLPreview` | Xcode `#Preview` bridge, SwiftUI host view, and WebKit-backed HTML preview surface. |
 | Higher-level server package | HTTP routing, request/response integration, security middleware, server action gateway. |
 | Higher-level UI package | Design-system components, visual defaults, JavaScriptKit adapter, WASM bootstrap. |
@@ -728,23 +728,24 @@ struct SaveAction: ActionRepresentable {
 
 Higher-level packages can map `ActionRepresentable` to forms, buttons, fetch requests, server action gateways, or actor invocation.
 
-## Embedded WASM
+## Client Runtime Compiler Profiles
 
-`SwiftHTMLEmbedded` is a separate product for production client code that must
-compile with Embedded Swift. It intentionally does not include the full
-`SwiftHTML` renderer, graph, Codable manifests, reflection-based component
-identity, or task-local render context.
+`SwiftHTMLClientRuntime` is the production client runtime surface. It is named by
+responsibility, not by compiler profile: the same source must compile under the
+standard WASM SDK and the Embedded Swift WASM SDK. It intentionally does not
+include the full `SwiftHTML` renderer, graph, Codable manifests,
+reflection-based component identity, or task-local render context.
 
 ```mermaid
 flowchart LR
-  A["SwiftHTMLEmbedded static tree"] --> B["EmbeddedDOMHost"]
+  A["SwiftHTMLClientRuntime static tree"] --> B["ClientDOMHost"]
   B --> C["Runtime adapter"]
   C --> D["Browser DOM"]
 ```
 
-The package includes `Examples/EmbeddedWasm`, which connects
-`SwiftHTMLEmbedded` to JavaScriptKit in an example package. JavaScriptKit remains
-outside the core SwiftHTML target.
+The package includes `Examples/EmbeddedWasm`, which verifies the compiler
+profile boundary by connecting `SwiftHTMLClientRuntime` to JavaScriptKit in an
+example package. JavaScriptKit remains outside the core SwiftHTML target.
 
 Measured with Swift 6.3.1 and no `wasm-opt`:
 

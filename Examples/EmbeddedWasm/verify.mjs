@@ -51,7 +51,7 @@ try {
   });
 
   await page.goto(`http://127.0.0.1:${port}/Examples/EmbeddedWasm/index.html`);
-  await page.getByText("Embedded SwiftHTML").waitFor();
+  await page.getByText("Client Runtime SwiftHTML").waitFor();
   await page.getByText("Count 0").waitFor();
   await page.getByRole("button", { name: "Increment" }).click();
   await page.getByText("Count 1").waitFor();
@@ -61,7 +61,7 @@ try {
     throw pageErrors[0];
   }
 
-  console.log("Embedded SwiftHTML browser smoke test passed");
+  console.log("Client Runtime SwiftHTML browser smoke test passed");
 } finally {
   await browser.close();
   await new Promise((resolve) => server.close(resolve));

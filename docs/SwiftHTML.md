@@ -168,7 +168,7 @@ flowchart LR
 The hand-off is a synchronous baton: the calling thread blocks until the worker
 finishes, so neither the input value nor the result is accessed concurrently.
 
-### Embedded WASM Runtime Boundary
+### Client Runtime Compiler Profiles
 
 SwiftHTML should support small production WebAssembly binaries, but the full
 SwiftHTML target is not the right Embedded Swift compilation unit. Swift 6.3
@@ -185,27 +185,28 @@ manifest layer intentionally use:
 | Key-path convenience such as `map(\.id)` | key paths are unavailable | Embedded runtime code must use explicit closures |
 
 The production client path is therefore a static client runtime, not the same
-full target compiled with `-enable-experimental-feature Embedded`.
-`SwiftHTMLEmbedded` is the small product for that path. It provides a static HTML
-tree and `EmbeddedDOMHost` contract that can compile with Embedded Swift while
-leaving the full renderer, graph, and manifest APIs in `SwiftHTML`.
+full target compiled with `-enable-experimental-feature Embedded`. The runtime
+source is still named by responsibility rather than compiler profile:
+`SwiftHTMLClientRuntime` provides a static HTML tree and `ClientDOMHost` contract
+that must compile under standard WASM and Embedded Swift while leaving the full
+renderer, graph, and manifest APIs in `SwiftHTML`.
 
 ```mermaid
 flowchart LR
     A["Server / dev SwiftHTML"] --> B["HTML graph + manifests"]
     B --> C["SwiftWeb generated client contract"]
-    C --> D["SwiftHTMLEmbedded static tree"]
+    C --> D["SwiftHTMLClientRuntime static tree"]
     D --> E["Runtime adapter"]
     E --> F["JavaScriptKit DOM bridge"]
 ```
 
 The static client runtime keeps the SwiftHTML authoring surface, but SwiftWeb
-generates the runtime contract that the embedded binary consumes. It should not
+generates the runtime contract that the client binary consumes. It should not
 discover component identity, environment keys, state slots, or bundle ownership
 through reflection in the browser.
 
 `Examples/EmbeddedWasm` verifies the boundary by building the same
-SwiftHTMLEmbedded + JavaScriptKit example as standard WASM and Embedded WASM.
+SwiftHTMLClientRuntime + JavaScriptKit example as standard WASM and Embedded WASM.
 With Swift 6.3.1 and no `wasm-opt`, the measured output was:
 
 | Encoding | Standard WASM | Embedded WASM | Reduction |
