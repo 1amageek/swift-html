@@ -771,10 +771,14 @@ struct HTMLGraphBuilder {
         key: Key? = nil
     ) -> HTMLNodeID {
         let attributes = HTMLAttributeTransformContext.transform(attributes)
+        var elementName: String?
+        if case .element(let stringID) = kind {
+            elementName = graph.strings[stringID.rawValue]
+        }
         let firstAttribute = graph.attributes.count
         var attributeCount = 0
         for attribute in attributes {
-            guard let record = makeRecord(for: attribute) else {
+            guard let record = makeRecord(for: attribute, element: elementName) else {
                 continue
             }
             graph.attributes.append(record)
@@ -827,7 +831,7 @@ struct HTMLGraphBuilder {
         return nodeID
     }
 
-    private mutating func makeRecord(for attribute: HTMLAttribute) -> HTMLAttributeRecord? {
+    private mutating func makeRecord(for attribute: HTMLAttribute, element elementName: String?) -> HTMLAttributeRecord? {
         if attribute.kind == .eventBinding, let eventName = attribute.eventName {
             guard Self.isValidEventName(eventName) else {
                 report(RenderDiagnostic(
@@ -883,7 +887,8 @@ struct HTMLGraphBuilder {
             return nil
         }
 
-        if Self.requiresSafeURL(attribute), let value = attribute.value, !Self.isSafeURLValue(value, for: attribute) {
+        if Self.requiresSafeURL(attribute), let value = attribute.value,
+           !Self.isSafeURLValue(value, for: attribute, element: elementName) {
             report(RenderDiagnostic(
                 code: .unsafeURLAttribute,
                 severity: .error,
@@ -891,7 +896,7 @@ struct HTMLGraphBuilder {
                 componentID: StateContext.current?.componentID,
                 componentType: StateContext.current?.componentType,
                 path: StateContext.current?.path ?? currentPath(),
-                hint: "Use a relative URL or an allowed scheme such as http, https, mailto, or tel."
+                hint: "Use a relative URL or an allowed scheme such as http, https, mailto, or tel; image sources (img src/srcset, source srcset, video poster) may also use data:image/ payloads."
             ))
             return nil
         }
@@ -953,11 +958,30 @@ struct HTMLGraphBuilder {
         isValidHTMLName(HTMLRuntimeMarkers.eventAttribute(name))
     }
 
-    private static func isSafeURLValue(_ value: String, for attribute: HTMLAttribute) -> Bool {
+    private static func isSafeURLValue(
+        _ value: String,
+        for attribute: HTMLAttribute,
+        element elementName: String?
+    ) -> Bool {
+        let allowsDataImage = allowsDataImageURL(attributeName: attribute.name, element: elementName)
         if attribute.kind == .urlList || isURLListAttributeName(attribute.name) {
-            return isSafeURLList(value, attributeName: attribute.name)
+            return isSafeURLList(value, attributeName: attribute.name, allowsDataImage: allowsDataImage)
         }
-        return isSafeURL(value)
+        return isSafeURL(value, allowsDataImage: allowsDataImage)
+    }
+
+    /// Image decoding contexts may carry inline images, including SVG, while
+    /// navigational and executable URL positions keep rejecting data URLs.
+    private static func allowsDataImageURL(attributeName: String, element elementName: String?) -> Bool {
+        guard let elementName = elementName?.lowercased() else {
+            return false
+        }
+        switch (elementName, attributeName.lowercased()) {
+        case ("img", "src"), ("img", "srcset"), ("source", "srcset"), ("video", "poster"), ("link", "imagesrcset"):
+            return true
+        default:
+            return false
+        }
     }
 
     private static func isURLListAttributeName(_ name: String) -> Bool {
@@ -969,31 +993,31 @@ struct HTMLGraphBuilder {
         }
     }
 
-    private static func isSafeURLList(_ value: String, attributeName: String) -> Bool {
+    private static func isSafeURLList(
+        _ value: String,
+        attributeName: String,
+        allowsDataImage: Bool = false
+    ) -> Bool {
         switch attributeName.lowercased() {
         case "ping":
             value
                 .split(whereSeparator: { $0.isWhitespace })
                 .allSatisfy { isSafeURL(String($0)) }
         case "srcset", "imagesrcset":
-            value
-                .split(separator: ",")
-                .allSatisfy { candidate in
-                    let trimmed = ASCIIStringUtilities.trimmedWhitespace(candidate)
-                    guard let url = trimmed.split(whereSeparator: { $0.isWhitespace }).first else {
-                        return true
-                    }
-                    return isSafeURL(String(url))
-                }
+            isSafeSrcset(value, allowsDataImage: allowsDataImage)
         default:
-            isSafeURL(value)
+            isSafeURL(value, allowsDataImage: allowsDataImage)
         }
     }
 
-    private static func isSafeURL(_ value: String) -> Bool {
+    private static func isSafeURL(_ value: String, allowsDataImage: Bool = false) -> Bool {
         let trimmed = ASCIIStringUtilities.trimmedWhitespace(value)
         guard !trimmed.isEmpty else {
             return true
+        }
+
+        if hasScheme("data", in: trimmed) {
+            return allowsDataImage && isSafeDataImageURL(trimmed)
         }
 
         var scheme = ""
@@ -1013,6 +1037,234 @@ struct HTMLGraphBuilder {
         }
 
         return true
+    }
+
+    private static func isSafeSrcset(_ value: String, allowsDataImage: Bool) -> Bool {
+        var index = value.startIndex
+        while true {
+            skipSrcsetSeparators(in: value, from: &index)
+            guard index < value.endIndex else {
+                return true
+            }
+
+            let url: String
+            if allowsDataImage && hasPrefix("data:", in: value, at: index) {
+                guard let candidate = dataImageSrcsetCandidate(in: value, from: index) else {
+                    return false
+                }
+                url = candidate.url
+                index = candidate.endIndex
+            } else {
+                let urlStart = index
+                while index < value.endIndex {
+                    let scalar = value[index].unicodeScalars.first!
+                    if value[index] == "," || isASCIIWhitespace(scalar) {
+                        break
+                    }
+                    index = value.index(after: index)
+                }
+                guard urlStart < index else {
+                    return false
+                }
+                url = String(value[urlStart..<index])
+            }
+
+            guard isSafeURL(url, allowsDataImage: allowsDataImage) else {
+                return false
+            }
+
+            let descriptorStart = index
+            while index < value.endIndex {
+                let scalar = value[index].unicodeScalars.first!
+                if value[index] == "," {
+                    break
+                }
+                if isASCIIControl(scalar) {
+                    return false
+                }
+                index = value.index(after: index)
+            }
+            guard areSafeSrcsetDescriptors(String(value[descriptorStart..<index])) else {
+                return false
+            }
+            if index < value.endIndex, value[index] == "," {
+                index = value.index(after: index)
+            }
+        }
+    }
+
+    private static func dataImageSrcsetCandidate(
+        in value: String,
+        from startIndex: String.Index
+    ) -> (url: String, endIndex: String.Index)? {
+        guard let metadataEnd = value[startIndex...].firstIndex(of: ",") else {
+            return nil
+        }
+        var endIndex = value.index(after: metadataEnd)
+        let payloadStart = endIndex
+        while endIndex < value.endIndex {
+            let scalar = value[endIndex].unicodeScalars.first!
+            if value[endIndex] == "," || isASCIIWhitespace(scalar) {
+                break
+            }
+            guard isBase64DataURLPayloadScalar(scalar) else {
+                return nil
+            }
+            endIndex = value.index(after: endIndex)
+        }
+        guard payloadStart < endIndex else {
+            return nil
+        }
+        return (String(value[startIndex..<endIndex]), endIndex)
+    }
+
+    private static func skipSrcsetSeparators(in value: String, from index: inout String.Index) {
+        while index < value.endIndex {
+            let scalar = value[index].unicodeScalars.first!
+            guard value[index] == "," || isASCIIWhitespace(scalar) else {
+                return
+            }
+            index = value.index(after: index)
+        }
+    }
+
+    private static func areSafeSrcsetDescriptors(_ value: String) -> Bool {
+        let descriptors = value.split { character in
+            guard let scalar = character.unicodeScalars.first else {
+                return false
+            }
+            return isASCIIWhitespace(scalar)
+        }
+        guard descriptors.count <= 1 else {
+            return false
+        }
+        guard let descriptor = descriptors.first else {
+            return true
+        }
+        return isSafeSrcsetDescriptor(String(descriptor))
+    }
+
+    private static func isSafeSrcsetDescriptor(_ descriptor: String) -> Bool {
+        guard let suffix = descriptor.unicodeScalars.last else {
+            return false
+        }
+        let value = descriptor.dropLast()
+        guard !value.isEmpty else {
+            return false
+        }
+        switch suffix {
+        case "w", "h":
+            return value.allSatisfy { character in
+                character >= "0" && character <= "9"
+            }
+        case "x":
+            var sawDot = false
+            var sawDigit = false
+            for character in value {
+                if character == "." {
+                    guard !sawDot else {
+                        return false
+                    }
+                    sawDot = true
+                } else if character >= "0" && character <= "9" {
+                    sawDigit = true
+                } else {
+                    return false
+                }
+            }
+            return sawDigit
+        default:
+            return false
+        }
+    }
+
+    private static func isSafeDataImageURL(_ value: String) -> Bool {
+        let trimmed = ASCIIStringUtilities.trimmedWhitespace(value)
+        guard hasPrefix("data:image/", in: trimmed, at: trimmed.startIndex) else {
+            return false
+        }
+        guard let metadataEnd = trimmed.firstIndex(of: ",") else {
+            return false
+        }
+        let metadata = String(trimmed[trimmed.index(trimmed.startIndex, offsetBy: 5)..<metadataEnd])
+            .lowercased()
+        let metadataParts = metadata.split(separator: ";", omittingEmptySubsequences: false)
+        guard let mediaType = metadataParts.first.map(String.init),
+              isAllowedDataImageMediaType(mediaType)
+        else {
+            return false
+        }
+        guard metadataParts.dropFirst().contains("base64") else {
+            return false
+        }
+
+        let payloadStart = trimmed.index(after: metadataEnd)
+        guard payloadStart < trimmed.endIndex else {
+            return false
+        }
+        for scalar in trimmed[payloadStart...].unicodeScalars {
+            guard isBase64DataURLPayloadScalar(scalar) else {
+                return false
+            }
+        }
+        return true
+    }
+
+    private static func isAllowedDataImageMediaType(_ mediaType: String) -> Bool {
+        switch mediaType {
+        case "image/apng",
+             "image/avif",
+             "image/bmp",
+             "image/gif",
+             "image/jpeg",
+             "image/jpg",
+             "image/png",
+             "image/svg+xml",
+             "image/vnd.microsoft.icon",
+             "image/webp",
+             "image/x-icon":
+            true
+        default:
+            false
+        }
+    }
+
+    private static func hasScheme(_ scheme: String, in value: String) -> Bool {
+        let prefix = "\(scheme):"
+        return hasPrefix(prefix, in: value, at: value.startIndex)
+    }
+
+    private static func hasPrefix(
+        _ prefix: String,
+        in value: String,
+        at index: String.Index
+    ) -> Bool {
+        guard let endIndex = value.index(index, offsetBy: prefix.count, limitedBy: value.endIndex) else {
+            return false
+        }
+        return value[index..<endIndex].lowercased() == prefix.lowercased()
+    }
+
+    private static func isASCIIWhitespace(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar {
+        case "\t", "\n", "\u{000C}", "\r", " ":
+            true
+        default:
+            false
+        }
+    }
+
+    private static func isASCIIControl(_ scalar: Unicode.Scalar) -> Bool {
+        scalar.value <= 0x1F || scalar.value == 0x7F
+    }
+
+    private static func isBase64DataURLPayloadScalar(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar {
+        case "A"..."Z", "a"..."z", "0"..."9", "+", "/", "=":
+            true
+        default:
+            false
+        }
     }
 
     private static func isAllowedURLScheme(_ scheme: String) -> Bool {

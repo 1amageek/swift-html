@@ -262,6 +262,79 @@ struct SwiftHTMLRenderingTests {
     }
 
     @Test
+    func imageSourcesAcceptDataImageURLs() {
+        let pixel = "data:image/png;base64,iVBORw0KGgo="
+        let svg = "data:image/svg+xml;base64,PHN2Zy8+"
+        let artifact = HTMLRenderer().render(
+            div {
+                img(.src(pixel))
+                img(.srcset("\(svg) 2x"))
+                picture {
+                    source(.srcset("\(svg) 1x"))
+                    img(.src(pixel))
+                }
+                link(.rel("preload"), .imagesrcset("\(svg) 1x"))
+                video(.poster(pixel)) {}
+            }
+        )
+
+        #expect(artifact.html.contains("src=\"\(pixel)\""))
+        #expect(artifact.html.contains("srcset=\"\(svg) 2x\""))
+        #expect(artifact.html.contains("srcset=\"\(svg) 1x\""))
+        #expect(artifact.html.contains("imagesrcset=\"\(svg) 1x\""))
+        #expect(artifact.html.contains("poster=\"\(pixel)\""))
+        #expect(artifact.errors.isEmpty)
+    }
+
+    @Test
+    func nonImagePositionsStillRejectDataURLs() {
+        let artifact = HTMLRenderer().render(
+            div {
+                a(.href("data:text/html,<script>alert(1)</script>")) {
+                    "bad link"
+                }
+                img(.src("data:text/html,<script>alert(1)</script>"))
+                script(.src("data:image/png;base64,iVBORw0KGgo=")) {}
+                iframe(.src("data:image/svg+xml;base64,PHN2Zy8+")) {}
+            }
+        )
+
+        #expect(!artifact.html.contains("data:"))
+        let codes = artifact.errors.map { diagnostic in diagnostic.code }
+        #expect(codes.filter { $0 == .unsafeURLAttribute }.count == 4)
+    }
+
+    @Test
+    func srcsetDataImageURLsDoNotMaskUnsafeCandidates() {
+        let svg = "data:image/svg+xml;base64,PHN2Zy8+"
+        let artifact = HTMLRenderer().render(
+            div {
+                img(.srcset("\(svg) 1x, javascript:alert(1) 2x"))
+                img(.srcset("data:image/svg+xml;base64,PHN2 Zy8+ 1x"))
+            }
+        )
+
+        #expect(!artifact.html.contains("srcset="))
+        let codes = artifact.errors.map { diagnostic in diagnostic.code }
+        #expect(codes.filter { $0 == .unsafeURLAttribute }.count == 2)
+    }
+
+    @Test
+    func dataImageURLsRequireImageMediaTypeAndBase64Payload() {
+        let artifact = HTMLRenderer().render(
+            div {
+                img(.src("data:text/html;base64,PHNjcmlwdD48L3NjcmlwdD4="))
+                img(.src("data:image/svg+xml,%3Csvg%2F%3E"))
+                img(.src("data:image/png;base64,"))
+            }
+        )
+
+        #expect(!artifact.html.contains("data:"))
+        let codes = artifact.errors.map { diagnostic in diagnostic.code }
+        #expect(codes.filter { $0 == .unsafeURLAttribute }.count == 3)
+    }
+
+    @Test
     func srcdocRequiresRawHTMLForEmbeddedMarkup() {
         let escaped = iframe(.srcdoc("<script>alert(1)</script>")) {}.render()
         let raw = iframe(.srcdoc(rawHTML("<p>Allowed</p>"))) {}.render()
