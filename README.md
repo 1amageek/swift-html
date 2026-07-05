@@ -304,16 +304,14 @@ element-level `.style { ... }`:
 import SwiftHTML
 
 #Preview("Japanese") {
-    article(.class("card")) {
+    article {
         h2("SwiftHTML")
         p("Xcode Preview で HTML を確認できます。")
     }
     .style {
-        rule(".card") {
-            .padding("32px")
-            .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
-            .border("1px solid color-mix(in srgb, CanvasText 16%, transparent)")
-        }
+        .padding("32px")
+        .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
+        .border("1px solid color-mix(in srgb, CanvasText 16%, transparent)")
     }
 }
 ```
@@ -330,6 +328,17 @@ Apple's `#Preview` generates — but wrapping a `WKWebView` instead of a SwiftUI
 The expansion is self-gated behind `#if DEBUG && canImport(WebKit)`, so it is absent
 from release and WebAssembly builds without any guard in your own code, and the
 macro plugin is a host-only build tool not linked on non-Apple platforms.
+
+### Known limitation: the canvas blanks after a few seconds
+
+Xcode's canvas hosts the preview off the normal on-screen window, so WebKit treats
+the `WKWebView` as non-visible and purges its rendered content after a few seconds —
+the preview renders, then goes blank (the WebContent process stays alive, so this is
+not a crash). This affects any WebKit- or MapKit-backed preview, including Apple's
+own `#Preview { WKWebView() }` and `#Preview { MKMapView() }`; it is not specific to
+SwiftHTML, and there is no public API to prevent WebKit's non-visible purge. Use the
+preview for a quick look at layout and CSS; for sustained or interactive viewing,
+run on a device or Simulator, or serve the HTML in a browser.
 
 SwiftHTML escapes text and attribute values by default:
 
