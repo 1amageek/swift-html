@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1
+
+| Area | Included |
+|---|---|
+| Preview | Fixes a regression from 0.9.0 where the preview surface used `@_exported import WebKit` / `DeveloperToolsSupport`. Those leaked through any package that re-exports `SwiftHTML` (e.g. a server runtime) and broke unrelated type lookups downstream. The `#Preview` expansion now names only `SwiftHTML` SPI (`_HTMLPreviewRegistry`, `_HTMLPreviewValue`, `_makeHTMLPreview`), so WebKit and DeveloperToolsSupport stay regular imports inside `SwiftHTML` and nothing leaks. `import SwiftHTML` alone still writes a preview. |
+
 ## 0.9.0
 
 | Area | Included |

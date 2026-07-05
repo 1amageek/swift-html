@@ -30,21 +30,15 @@ import SwiftHTML
 }
 ```
 
-For a named preview, layout traits, or document settings (stylesheet, language,
-base URL, render options), call the `HTMLPreview(...)` function inside Apple's
-`#Preview`. That macro comes from `DeveloperToolsSupport`, so the file imports
-both:
+Pass a display name as the first argument:
 
 ```swift
 import SwiftHTML
-import DeveloperToolsSupport
 
-#Preview("Mobile", traits: .fixedLayout(width: 390, height: 844)) {
-    HTMLPreview(language: "ja") {
-        main(.class("page")) {
-            h1("Mobile Preview")
-            p("Xcode Preview で HTML を確認できます。")
-        }
+#Preview("Mobile") {
+    main(.class("page")) {
+        h1("Mobile Preview")
+        p("Xcode Preview で HTML を確認できます。")
     }
 }
 ```
