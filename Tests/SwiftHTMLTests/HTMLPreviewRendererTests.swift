@@ -1,5 +1,5 @@
+#if DEBUG && canImport(WebKit)
 import SwiftHTML
-import SwiftHTMLPreview
 import Testing
 
 @Suite
@@ -47,3 +47,4 @@ struct HTMLPreviewRendererTests {
         #expect(html.contains("<article>Language</article>"))
     }
 }
+#endif

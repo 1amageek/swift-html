@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0
+
+| Area | Included |
+|---|---|
+| Preview | Adds SwiftHTML's own `#Preview { ... }` macro. Xcode's canvas discovers previews by the macro name `Preview`, so a single `import SwiftHTML` — no `import DeveloperToolsSupport`, no `#if DEBUG` guard — renders SwiftHTML content in an Xcode preview through a `WKWebView`. No SwiftUI dependency. |
+| Preview | Moves the preview surface (`HTMLPreview`, `HTMLPreviewRenderer`) into `SwiftHTML` and replaces the SwiftUI-based `HTMLPreview` view with a WebKit-backed one. `HTMLPreview` is now a function returning `WKWebView`; the former SwiftUI `HTMLPreviewHost` is removed. |
+| Preview | Gates the whole surface behind `#if DEBUG && canImport(WebKit)`, so release servers and WebAssembly builds link neither WebKit nor DeveloperToolsSupport. The `#Preview` macro plugin is a host-only build tool, excluded from WASM/Linux. |
+| Package | `SwiftHTMLPreview` is now a compatibility re-export of `SwiftHTML`; existing `import SwiftHTMLPreview` code keeps resolving the preview types. |
+
 ## 0.8.0 - 2026-06-28
 
 | Area | Included |

@@ -1,5 +1,4 @@
-import SwiftHTML
-
+#if DEBUG && canImport(WebKit)
 struct HTMLPreviewDocument<Content: HTML>: Component {
     let titleText: String
     let styleText: String
@@ -39,3 +38,4 @@ struct HTMLPreviewDocument<Content: HTML>: Component {
         }
     }
 }
+#endif

@@ -1,5 +1,4 @@
-import SwiftHTML
-
+#if DEBUG && canImport(WebKit)
 public struct HTMLPreviewRenderer: Sendable {
     public var stylesheet: Stylesheet
     public var language: String
@@ -49,3 +48,4 @@ public struct HTMLPreviewRenderer: Sendable {
         }
     }
 }
+#endif

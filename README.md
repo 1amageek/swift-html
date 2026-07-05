@@ -23,9 +23,9 @@ This README describes the current `main` branch. Use the README from a matching 
 
 | Package | Role |
 |---|---|
-| `SwiftHTML` | HTML DSL, rendering, diffing, state, environment, CSS, hydration contracts, browser command contracts. |
+| `SwiftHTML` | HTML DSL, rendering, diffing, state, environment, CSS, hydration contracts, browser command contracts, and the `#Preview` macro / `HTMLPreview` Xcode preview surface. |
 | `SwiftHTMLClientRuntime` | Static client HTML tree and DOM host contract that can compile under standard WASM and Embedded Swift compiler profiles. |
-| `SwiftHTMLPreview` | Xcode `#Preview` bridge, SwiftUI host view, and WebKit-backed HTML preview surface. |
+| `SwiftHTMLPreview` | Compatibility re-export of `SwiftHTML` (the preview surface now lives in `SwiftHTML`). |
 | Higher-level server package | HTTP routing, request/response integration, security middleware, server action gateway. |
 | Higher-level UI package | Design-system components, visual defaults, JavaScriptKit adapter, WASM bootstrap. |
 
@@ -60,15 +60,13 @@ let package = Package(
                 .product(name: "SwiftHTML", package: "swift-html"),
             ]
         ),
-        .target(
-            name: "AppPreviews",
-            dependencies: [
-                .product(name: "SwiftHTMLPreview", package: "swift-html"),
-            ]
-        ),
     ]
 )
 ```
+
+`#Preview` ships with `SwiftHTML`, so any target that depends on `SwiftHTML`
+can write previews — no separate preview product is required. `SwiftHTMLPreview`
+remains as a compatibility re-export for existing `import SwiftHTMLPreview` code.
 
 ## Quick Start
 
@@ -189,72 +187,31 @@ func renderArticleListPage() -> String {
 
 ### Xcode Preview
 
+`import SwiftHTML` and mark the HTML you want to inspect with `#Preview`. It renders the content in a `WKWebView` inside Xcode's canvas — a single import, no `#if DEBUG` guard, no SwiftUI, and nothing links into a release or WebAssembly build:
+
 ```swift
-import SwiftHTMLPreview
+import SwiftHTML
 
-#Preview("Release Dashboard", traits: .fixedLayout(width: 520, height: 360)) {
-    HTMLPreview {
-        main(.class("dashboard-shell")) {
-            header(.class("dashboard-header")) {
-                p(.class("eyebrow"), text: "SwiftHTML Preview")
-                h1("Release Operations")
-                p("Inspect layout, copy, and CSS directly in Xcode.")
+#Preview {
+    main(.class("dashboard-shell")) {
+        header(.class("dashboard-header")) {
+            p(.class("eyebrow"), text: "SwiftHTML Preview")
+            h1("Release Operations")
+            p("Inspect layout, copy, and CSS directly in Xcode.")
+        }
+
+        section(.class("metric-grid"), .aria("label", "Release metrics")) {
+            article(.class("metric-card")) {
+                p(.class("metric-label"), text: "Tests")
+                strong("108")
+                span(.class("metric-trend"), text: "passing")
             }
 
-            section(.class("metric-grid"), .aria("label", "Release metrics")) {
-                article(.class("metric-card")) {
-                    p(.class("metric-label"), text: "Tests")
-                    strong("108")
-                    span(.class("metric-trend"), text: "passing")
-                }
-
-                article(.class("metric-card")) {
-                    p(.class("metric-label"), text: "Preview")
-                    strong("Ready")
-                    span(.class("metric-trend"), text: "WebKit")
-                }
+            article(.class("metric-card")) {
+                p(.class("metric-label"), text: "Preview")
+                strong("Ready")
+                span(.class("metric-trend"), text: "WebKit")
             }
-        }
-    }
-    .style {
-        rule("body") {
-            .margin("0")
-            .padding("24px")
-            .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
-            .background("Canvas")
-            .color("CanvasText")
-        }
-
-        rule(".dashboard-shell") {
-            .display("grid")
-            .gap("16px")
-        }
-
-        rule("h1, p") {
-            .margin("0")
-        }
-
-        rule(".dashboard-header") {
-            .display("grid")
-            .gap("8px")
-        }
-
-        rule(".eyebrow, .metric-label, .metric-trend") {
-            .color("color-mix(in srgb, CanvasText 68%, transparent)")
-        }
-
-        rule(".metric-grid") {
-            .display("grid")
-            .gridTemplateColumns("repeat(2, minmax(0, 1fr))")
-            .gap("12px")
-        }
-
-        rule(".metric-card") {
-            .display("grid")
-            .gap("6px")
-            .border("1px solid color-mix(in srgb, CanvasText 16%, transparent)")
-            .borderRadius("8px")
-            .padding("12px")
         }
     }
 }
@@ -295,169 +252,84 @@ func renderCounterAfterOneClick() throws -> String {
 
 ## Xcode Preview
 
-Use `SwiftHTMLPreview` when you want to inspect SwiftHTML directly inside Xcode previews. Keep production targets depending on `SwiftHTML`, and add `SwiftHTMLPreview` only to preview or development-only targets.
+`import SwiftHTML` and use `#Preview` to inspect SwiftHTML directly inside Xcode's canvas. There is no SwiftUI dependency, and the whole surface is self-gated behind `#if DEBUG && canImport(WebKit)`, so it never links WebKit or DeveloperToolsSupport into a release server or a WebAssembly build.
 
 | Product | Use |
 |---|---|
-| `SwiftHTML` | HTML DSL, render artifacts, CSS, state, hydration contracts. |
-| `SwiftHTMLPreview` | `HTMLPreview`, SwiftUI preview host, WebKit-backed rendering. |
+| `SwiftHTML` | HTML DSL, render artifacts, CSS, state, hydration contracts, and the `#Preview` macro. |
+| `SwiftHTMLPreview` | Compatibility re-export of `SwiftHTML`. New code can import `SwiftHTML` directly. |
 
 ```mermaid
 flowchart LR
-  Source["SwiftHTML component"] --> View["HTMLPreview"]
-  Preview["SwiftUI #Preview"] --> View
-  View --> Host["HTMLPreviewHost"]
-  Host --> WebKit["WKWebView"]
+  Source["SwiftHTML content"] --> Macro["#Preview"]
+  Macro --> Renderer["HTMLPreviewRenderer"]
+  Renderer --> Document["Preview HTML document"]
+  Document --> WebKit["WKWebView"]
+  WebKit --> Canvas["Xcode canvas (PreviewRegistry)"]
 ```
 
 ### Basic Preview
 
-Import `SwiftHTMLPreview` and put the SwiftHTML you want to inspect directly inside `HTMLPreview`:
+A single `import SwiftHTML` provides both the content DSL and the `#Preview` macro — Xcode's canvas discovers it by name, exactly like SwiftUI's. No `import DeveloperToolsSupport`, no `#if DEBUG`, and no platform guard is needed:
 
 ```swift
-import SwiftHTMLPreview
+import SwiftHTML
 
-#Preview("Release Dashboard", traits: .fixedLayout(width: 520, height: 360)) {
-    HTMLPreview {
-        main(.class("dashboard-shell")) {
-            header(.class("dashboard-header")) {
-                p(.class("eyebrow"), text: "SwiftHTML Preview")
-                h1("Release Operations")
-                p("Inspect layout, copy, and CSS directly in Xcode.")
-            }
+#Preview {
+    main(.class("dashboard-shell")) {
+        header(.class("dashboard-header")) {
+            p(.class("eyebrow"), text: "SwiftHTML Preview")
+            h1("Release Operations")
+            p("Inspect layout, copy, and CSS directly in Xcode.")
+        }
 
-            section(.class("metric-grid"), .aria("label", "Release metrics")) {
-                article(.class("metric-card")) {
-                    p(.class("metric-label"), text: "Tests")
-                    strong("108")
-                    span(.class("metric-trend"), text: "passing")
-                }
-
-                article(.class("metric-card")) {
-                    p(.class("metric-label"), text: "Preview")
-                    strong("Ready")
-                    span(.class("metric-trend"), text: "WebKit")
-                }
+        section(.class("metric-grid"), .aria("label", "Release metrics")) {
+            article(.class("metric-card")) {
+                p(.class("metric-label"), text: "Tests")
+                strong("108")
+                span(.class("metric-trend"), text: "passing")
             }
         }
     }
-    .style {
-        rule("body") {
-            .margin("0")
-            .padding("24px")
-            .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
-            .background("Canvas")
-            .color("CanvasText")
-        }
-
-        rule(".dashboard-shell") {
-            .display("grid")
-            .gap("16px")
-        }
-
-        rule("h1, p") {
-            .margin("0")
-        }
-
-        rule(".dashboard-header") {
-            .display("grid")
-            .gap("8px")
-        }
-
-        rule(".eyebrow, .metric-label, .metric-trend") {
-            .color("color-mix(in srgb, CanvasText 68%, transparent)")
-        }
-
-        rule(".metric-grid") {
-            .display("grid")
-            .gridTemplateColumns("repeat(2, minmax(0, 1fr))")
-            .gap("12px")
-        }
-
-        rule(".metric-card") {
-            .display("grid")
-            .gap("6px")
-            .border("1px solid color-mix(in srgb, CanvasText 16%, transparent)")
-            .borderRadius("8px")
-            .padding("12px")
-        }
-    }
 }
 ```
 
-### Fixed Size Previews
+### Named Previews and Styling
 
-Use SwiftUI preview traits for fixed layouts:
-
-```swift
-import SwiftHTMLPreview
-
-#Preview("Mobile", traits: .fixedLayout(width: 390, height: 844)) {
-    HTMLPreview {
-        main(.class("page")) {
-            h1("Mobile Preview")
-            p("This document is rendered inside a fixed preview surface.")
-        }
-    }
-}
-```
-
-You can also use regular SwiftUI view modifiers around the preview host:
+Pass a display name as the first argument, exactly like SwiftUI's `#Preview`. The
+preview renders with a default stylesheet; apply your own CSS with SwiftHTML's
+element-level `.style { ... }`:
 
 ```swift
-import SwiftHTMLPreview
+import SwiftHTML
 
-#Preview("Fixed Host") {
-    HTMLPreview {
-        main {
-            h1("Fixed Host")
-        }
-    }
-    .frame(width: 390, height: 844)
-}
-```
-
-### HTML-Specific Modifiers
-
-Use short modifiers on `HTMLPreview` for document-level settings that SwiftUI Preview does not own.
-
-| Modifier | Purpose |
-|---|---|
-| `.language(_:)` | Sets the document `<html lang="...">` value. |
-| `.style { ... }` | Injects a preview-only `Stylesheet` into the generated document. |
-| `.baseURL(_:)` | Resolves relative URLs inside the `WKWebView`. |
-| `.renderOptions(_:)` | Controls SwiftHTML render diagnostics and runtime metadata. |
-
-```swift
-import SwiftHTMLPreview
-
-#Preview("Japanese", traits: .fixedLayout(width: 390, height: 240)) {
-    HTMLPreview {
-        article(.class("card")) {
-            h2("SwiftHTML")
-            p("Xcode Preview で HTML を確認できます。")
-        }
+#Preview("Japanese") {
+    article(.class("card")) {
+        h2("SwiftHTML")
+        p("Xcode Preview で HTML を確認できます。")
     }
     .style {
-        rule("body") {
+        rule(".card") {
             .padding("32px")
             .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
-        }
-
-        rule(".card") {
             .border("1px solid color-mix(in srgb, CanvasText 16%, transparent)")
-            .padding("16px")
         }
     }
-    .language("ja")
 }
 ```
+
+For rendering SwiftHTML to a `WKWebView` outside a preview (custom stylesheet,
+language, base URL, render options), use the `HTMLPreview(...)` function directly.
 
 ### Build Behavior
 
-`HTMLPreview` is a SwiftUI view. Put it inside `#Preview` so Xcode's preview discovery and build behavior stay exactly aligned with SwiftUI previews.
-
-`SwiftHTMLPreview` is intentionally separate from `SwiftHTML` so the core HTML engine does not depend on SwiftUI, WebKit, or macro implementation details.
+`#Preview` here is SwiftHTML's own macro. Xcode's canvas discovers previews by the
+macro name `Preview`, so it appears in the canvas exactly like SwiftUI's `#Preview`.
+It expands to a `DeveloperToolsSupport.PreviewRegistry` conformance — the same type
+Apple's `#Preview` generates — but wrapping a `WKWebView` instead of a SwiftUI view.
+The expansion is self-gated behind `#if DEBUG && canImport(WebKit)`, so it is absent
+from release and WebAssembly builds without any guard in your own code, and the
+macro plugin is a host-only build tool not linked on non-Apple platforms.
 
 SwiftHTML escapes text and attribute values by default:
 
