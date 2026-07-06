@@ -1,5 +1,9 @@
 #if !os(WASI)
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
 #endif
 
 public protocol EnlargedStackContextPropagator: Sendable {

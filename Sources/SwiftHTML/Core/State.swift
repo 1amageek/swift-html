@@ -1,5 +1,9 @@
 #if canImport(Foundation)
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
 #endif
 
 public struct StateSourceLocation: Sendable, Hashable, Codable {
@@ -205,10 +209,14 @@ public final class StateStore: Sendable {
     }
 
     private static func reportRestoreFailure(slot id: StateSlotID, valueType: String, error: Error) {
-        #if canImport(Foundation)
         let message = "[SwiftHTML] @State restore failed for slot \"\(id.rawValue)\" "
-            + "(\(valueType)): \(error). The value was reset to its default.\n"
-        FileHandle.standardError.write(Data(message.utf8))
+            + "(\(valueType)): \(error). The value was reset to its default."
+        #if canImport(FoundationEssentials)
+        // FoundationEssentials has no FileHandle; these hosts route standard
+        // output to the platform console.
+        print(message)
+        #else
+        FileHandle.standardError.write(Data((message + "\n").utf8))
         #endif
     }
 

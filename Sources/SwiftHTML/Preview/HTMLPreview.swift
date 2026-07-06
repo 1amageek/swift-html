@@ -1,5 +1,9 @@
 #if DEBUG && canImport(WebKit)
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
 import WebKit
 import DeveloperToolsSupport
 

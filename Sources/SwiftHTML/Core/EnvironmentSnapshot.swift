@@ -1,5 +1,9 @@
 #if canImport(Foundation)
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
 #endif
 
 public enum EnvironmentVisibility: Sendable, Equatable {
