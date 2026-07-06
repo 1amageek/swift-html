@@ -106,6 +106,12 @@ public struct EnvironmentValues: Sendable {
         try await EnvironmentContext.withValue(value, operation: operation)
     }
     #endif
+
+    /// The ambient environment established by the enclosing `withValue`
+    /// scope (empty outside any). This is what `@Environment` resolves from.
+    public static var current: EnvironmentValues {
+        EnvironmentContext.current
+    }
 }
 
 enum EnvironmentContext {
