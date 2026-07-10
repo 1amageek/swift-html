@@ -293,6 +293,37 @@ struct SwiftHTMLDiffTests {
         }
     }
 
+    @Test
+    func reemitsEventBindingAttributeWhenHandlerIDShifts() {
+        // Handler ids are a per-render positional counter. Introducing a new
+        // binding BEFORE a structurally unchanged button shifts the button's
+        // id (h1 -> h2); the diff must re-emit the button's event attribute so
+        // the DOM id keeps mapping to the button's current closure. A silent
+        // skip here leaves a stale id in the DOM that resolves to the wrong
+        // handler after the shift.
+        let oldArtifact = HTMLRenderer().render(
+            div {
+                span { "static" }
+                button(.onClick { }) { "Pay" }
+            }
+        )
+        let newArtifact = HTMLRenderer().render(
+            div {
+                span(.onClick { }) { "static" }
+                button(.onClick { }) { "Pay" }
+            }
+        )
+
+        let patches = HTMLDiffer().diff(from: oldArtifact, to: newArtifact)
+
+        #expect(patches.contains { patch in
+            if case .updateAttributes(node: _, attributes: let attributes) = patch.operation {
+                return attributes.contains { $0.name == "data-event-click" && $0.value == "h2" }
+            }
+            return false
+        })
+    }
+
     private func page(title: String, rows: [Int]) -> some HTML {
         article {
             h1 { title }

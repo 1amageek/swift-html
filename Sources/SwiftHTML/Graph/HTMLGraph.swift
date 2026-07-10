@@ -788,6 +788,19 @@ struct HTMLGraphBuilder {
         let firstChild = graph.edges.count
         graph.edges.append(contentsOf: children)
 
+        // Fingerprint from the recorded attributes, not the raw ones: records
+        // carry the rendered values — most importantly the allocated event
+        // handler id, which a raw event-binding attribute lacks (value: nil).
+        // If the fingerprint ignored handler ids, a re-render that shifts the
+        // positional handler counter would leave the node's fingerprint
+        // unchanged, the differ would short-circuit, and the DOM would keep a
+        // stale `data-event-*` id that no longer maps to the node's closure.
+        // (The keyed re-fingerprint in `append(_:key:)` already derives from
+        // records; this keeps both call sites consistent.)
+        let recordedAttributes = graph.attributes[firstAttribute..<(firstAttribute + attributeCount)].map {
+            HTMLAttribute(name: $0.name, value: $0.value, kind: $0.kind)
+        }
+
         let id = HTMLNodeID(graph.nodes.count)
         graph.nodes.append(HTMLNodeRecord(
             kind: kind,
@@ -796,7 +809,7 @@ struct HTMLGraphBuilder {
             firstChild: firstChild,
             childCount: children.count,
             flags: flags,
-            fingerprint: fingerprint(kind: kind, attributes: attributes, children: children, key: key),
+            fingerprint: fingerprint(kind: kind, attributes: recordedAttributes, children: children, key: key),
             key: key
         ))
         return id
