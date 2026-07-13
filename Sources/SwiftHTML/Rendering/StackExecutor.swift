@@ -1,8 +1,11 @@
 #if !os(WASI)
-#if canImport(FoundationEssentials)
-import FoundationEssentials
-#else
+// The enlarged-stack worker below requires `Thread` and `DispatchSemaphore`,
+// which FoundationEssentials does not provide — import full Foundation and
+// Dispatch on every non-WASI platform (including static Linux, where
+// FoundationEssentials is also importable but insufficient).
 import Foundation
+#if canImport(Dispatch)
+import Dispatch
 #endif
 #endif
 
