@@ -1,4 +1,4 @@
-public struct StateStoreSnapshot: Sendable, Codable, Equatable {
+public struct StateStoreSnapshot: Sendable, Equatable {
     public let schemaHash: String
     public let values: [String: StateSnapshotValue]
 
@@ -9,3 +9,7 @@ public struct StateStoreSnapshot: Sendable, Codable, Equatable {
 
     public static let empty = StateStoreSnapshot(schemaHash: "", values: [:])
 }
+
+#if !hasFeature(Embedded)
+extension StateStoreSnapshot: Codable {}
+#endif

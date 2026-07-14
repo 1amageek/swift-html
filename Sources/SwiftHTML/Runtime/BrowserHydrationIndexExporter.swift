@@ -42,13 +42,13 @@ public struct BrowserHydrationIndexExporter: Sendable {
                 nodeID: component.nodeID,
                 bundleID: component.bundleID,
                 loadPolicy: component.loadPolicy,
-                serverSlotIDs: component.serverSlots.map(\.id),
+                serverSlotIDs: component.serverSlots.map { $0.id },
                 stateSlots: component.stateSlots,
                 environmentSnapshot: component.environmentSnapshot
             )
         }
 
-        let serverSlots = artifact.hydration.components.flatMap(\.serverSlots).sorted { left, right in
+        let serverSlots = artifact.hydration.components.flatMap { $0.serverSlots }.sorted { left, right in
             left.id.rawValue < right.id.rawValue
         }
 

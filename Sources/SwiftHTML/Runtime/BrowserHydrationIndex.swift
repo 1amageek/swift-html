@@ -1,4 +1,4 @@
-public struct BrowserHydrationIndex: Sendable, Codable, Equatable {
+public struct BrowserHydrationIndex: Sendable, Equatable {
     public let rootID: HTMLNodeID
     public let nodes: [BrowserHydrationNodeRecord]
     public let components: [BrowserHydrationComponentRecord]
@@ -96,3 +96,7 @@ public struct BrowserHydrationIndex: Sendable, Codable, Equatable {
             && lhs.handlers == rhs.handlers
     }
 }
+
+#if !hasFeature(Embedded)
+extension BrowserHydrationIndex: Codable {}
+#endif

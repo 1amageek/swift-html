@@ -25,7 +25,7 @@ public enum StylesheetItem: Sendable, Equatable {
         case .startingStyle(let stylesheet):
             return Self.nested("@starting-style", body: stylesheet.cssText)
         case .keyframes(let name, let frames):
-            return Self.nested("@keyframes \(name)", body: frames.map(\.cssText).joined(separator: "\n"))
+            return Self.nested("@keyframes \(name)", body: frames.map { $0.cssText }.joined(separator: "\n"))
         }
     }
 

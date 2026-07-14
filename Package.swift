@@ -4,6 +4,8 @@ import PackageDescription
 import CompilerPluginSupport
 
 let swiftSettings: [SwiftSetting] = [
+    // The WASI clock syscall declaration in UnixClock.swift uses @_extern.
+    .enableExperimentalFeature("Extern"),
     .enableUpcomingFeature("ApproachableConcurrency"),
 ]
 

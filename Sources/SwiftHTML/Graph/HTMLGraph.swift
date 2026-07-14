@@ -2,7 +2,7 @@
 import Observation
 #endif
 
-public struct HTMLNodeID: Sendable, Hashable, Codable {
+public struct HTMLNodeID: Sendable, Hashable {
     public let rawValue: Int
 
     public init(_ rawValue: Int) {
@@ -10,7 +10,7 @@ public struct HTMLNodeID: Sendable, Hashable, Codable {
     }
 }
 
-struct HTMLStringID: Sendable, Hashable, Codable {
+struct HTMLStringID: Sendable, Hashable {
     let rawValue: Int
 
     init(_ rawValue: Int) {
@@ -18,7 +18,7 @@ struct HTMLStringID: Sendable, Hashable, Codable {
     }
 }
 
-public struct ComponentID: Sendable, Hashable, Codable {
+public struct ComponentID: Sendable, Hashable {
     public let rawValue: String
 
     public init(_ rawValue: String) {
@@ -26,7 +26,7 @@ public struct ComponentID: Sendable, Hashable, Codable {
     }
 }
 
-public struct HandlerID: Sendable, Hashable, Codable {
+public struct HandlerID: Sendable, Hashable {
     public let rawValue: String
 
     public init(_ rawValue: String) {
@@ -34,13 +34,16 @@ public struct HandlerID: Sendable, Hashable, Codable {
     }
 }
 
-public struct Key: Hashable, Sendable, Codable {
+public struct Key: Hashable, Sendable {
     public let rawValue: String
     public let identity: String
 
     public init<ID: Hashable & Sendable>(_ value: ID) {
         self.rawValue = RuntimeTypeName.describing(value)
-        self.identity = "\(RuntimeTypeName.reflecting(ID.self)):\(rawValue)"
+        // Identity is the value's wire form alone. The former reflected-type
+        // prefix is unavailable on Embedded; a String/Int key collision at
+        // the same graph position is the accepted trade-off.
+        self.identity = self.rawValue
     }
 
     init(rawValue: String, identity: String) {
@@ -53,7 +56,7 @@ public struct Key: Hashable, Sendable, Codable {
     }
 }
 
-public struct NodeFingerprint: Hashable, Sendable, Codable {
+public struct NodeFingerprint: Hashable, Sendable {
     public let rawValue: UInt64
 
     public init(_ rawValue: UInt64) {
@@ -134,7 +137,7 @@ public struct HTMLNodeFlags: OptionSet, Sendable, Equatable {
     public static let void = HTMLNodeFlags(rawValue: 1 << 0)
 }
 
-public struct HTMLAttributeRecord: Sendable, Equatable, Codable {
+public struct HTMLAttributeRecord: Sendable, Equatable {
     public var name: String
     public var value: String?
     public var kind: HTMLAttributeKind
@@ -294,7 +297,7 @@ public struct HydrationManifest: Sendable {
     }
 
     public var componentIDs: [ComponentID] {
-        components.map(\.id)
+        components.map { $0.id }
     }
 }
 
@@ -387,7 +390,7 @@ public struct RenderArtifact {
     }
 
     public var formattedDiagnostics: String {
-        diagnostics.map(\.formattedMessage).joined(separator: "\n")
+        diagnostics.map { $0.formattedMessage }.joined(separator: "\n")
     }
 
     public var nodeCount: Int {
@@ -403,7 +406,7 @@ public struct RenderArtifact {
     }
 
     public var nodeKeys: [Key] {
-        graph.nodes.compactMap(\.key)
+        graph.nodes.compactMap { $0.key }
     }
 
     public func domSnapshot() -> HTMLDOMSnapshot {
@@ -425,7 +428,7 @@ public struct RenderDiagnosticError: Error, Sendable, CustomStringConvertible {
     }
 
     public var description: String {
-        diagnostics.map(\.formattedMessage).joined(separator: "\n")
+        diagnostics.map { $0.formattedMessage }.joined(separator: "\n")
     }
 }
 
@@ -458,7 +461,7 @@ private struct ClientIslandContract: Sendable, Equatable {
     let loadPolicy: LoadPolicy
 }
 
-struct HTMLGraphBuilder {
+public struct HTMLGraphBuilder {
     private(set) var graph: HTMLGraph
     var environment: EnvironmentValues
     private(set) var hydration = HydrationManifest()
@@ -487,13 +490,13 @@ struct HTMLGraphBuilder {
         self.options = options
     }
 
-    mutating func append(_ html: some HTML) -> HTMLNodeID {
-        appendAny(html)
+    mutating func append<H: HTML>(_ html: H) -> HTMLNodeID {
+        H._buildNode(html, in: &self)
     }
 
     mutating func append(_ html: some HTML, key: Key) -> HTMLNodeID {
         let id = withPathSegment("key:\(key.identity)") { builder in
-            builder.appendAny(html)
+            builder.append(html)
         }
         graph.nodes[id.rawValue].key = key
         graph.nodes[id.rawValue].fingerprint = fingerprint(
@@ -526,206 +529,209 @@ struct HTMLGraphBuilder {
         return result
     }
 
+    #if !hasFeature(Embedded)
+    /// Existential entry point for pre-Embedded call sites: implicit opening
+    /// dispatches through the same `_buildNode` witness the generic path uses.
     mutating func appendAny(_ html: any HTML) -> HTMLNodeID {
-        if let primitive = html as? any HTMLPrimitive {
-            return primitive.buildNode(in: &self)
-        }
+        append(html)
+    }
+    #endif
 
-        if let element = html as? any ElementRepresentable {
-            return element.element.buildNode(in: &self)
-        }
+    /// The historical fallback for values that are neither primitives,
+    /// elements, nor components.
+    mutating func buildFallbackNode() -> HTMLNodeID {
+        addNode(kind: .fragment, children: [])
+    }
 
-        if let component = html as? any Component {
-            let typeName = RuntimeTypeName.reflecting(Swift.type(of: component))
-            let path = currentPath()
-            let componentID = makeComponentID(typeName: typeName, path: path)
-            let isExplicitClientComponent = component is any ClientComponent
-            let isServerComponent = component is any ServerComponent
-            let isClientOwned = isExplicitClientComponent || (clientOwnershipDepth > 0 && !isServerComponent)
-            let serverSlotOwner = isServerComponent && clientOwnershipDepth > 0 ? clientComponentStack.last : nil
-            let componentLoadPolicy = (component as? any ClientLoadPolicyProviding)?.clientLoadPolicy ?? LoadPolicy.eager
-            let componentBundlePolicy = (component as? any ClientBundlePolicyProviding)?.clientBundlePolicy ?? BundlePolicy.main
-            let loadingOverride = currentClientLoadingOverride()
-            let isOutermostClientIsland = isExplicitClientComponent && clientOwnershipDepth == 0
-            let islandContract: ClientIslandContract?
-            if isOutermostClientIsland {
-                let resolvedLoadPolicy = loadingOverride.loadPolicy ?? componentLoadPolicy
-                let resolvedBundlePolicy = loadingOverride.bundle ?? componentBundlePolicy
-                let resolvedBundleID = clientBundleID(
-                    for: resolvedBundlePolicy,
-                    loadPolicy: resolvedLoadPolicy,
-                    componentID: componentID,
-                    typeName: typeName,
-                    path: path
-                )
-                islandContract = ClientIslandContract(
-                    ownerComponentID: componentID,
-                    bundleID: resolvedBundleID,
-                    bundlePolicy: resolvedBundlePolicy,
-                    loadPolicy: resolvedLoadPolicy
-                )
-            } else {
-                islandContract = clientIslandContractStack.last
-                if isExplicitClientComponent && clientOwnershipDepth > 0 {
-                    reportNestedClientLoadingContractIfNeeded(
-                        typeName: typeName,
-                        componentID: componentID,
-                        path: path,
-                        loadPolicy: componentLoadPolicy,
-                        bundlePolicy: componentBundlePolicy,
-                        override: loadingOverride
-                    )
-                }
-            }
-            let componentEnvironment = options.componentEnvironmentOverrides[path] ?? environment
-            let store = stateStore
-            let stateContext = StateRenderContext(
+    mutating func buildComponentNode<C: Component>(_ component: C) -> HTMLNodeID {
+        let typeName = RuntimeTypeName.reflecting(C.self)
+        let path = currentPath()
+        let componentID = makeComponentID(typeName: typeName, path: path)
+        let isExplicitClientComponent = C._isClientComponent
+        let isServerComponent = C._isServerComponent
+        let isClientOwned = isExplicitClientComponent || (clientOwnershipDepth > 0 && !isServerComponent)
+        let serverSlotOwner = isServerComponent && clientOwnershipDepth > 0 ? clientComponentStack.last : nil
+        let componentLoadPolicy = component._clientLoadPolicy ?? LoadPolicy.eager
+        let componentBundlePolicy = component._clientBundlePolicy ?? BundlePolicy.main
+        let loadingOverride = currentClientLoadingOverride()
+        let isOutermostClientIsland = isExplicitClientComponent && clientOwnershipDepth == 0
+        let islandContract: ClientIslandContract?
+        if isOutermostClientIsland {
+            let resolvedLoadPolicy = loadingOverride.loadPolicy ?? componentLoadPolicy
+            let resolvedBundlePolicy = loadingOverride.bundle ?? componentBundlePolicy
+            let resolvedBundleID = clientBundleID(
+                for: resolvedBundlePolicy,
+                loadPolicy: resolvedLoadPolicy,
                 componentID: componentID,
-                componentType: typeName,
-                path: path,
-                store: stateStore,
-                isClientOwned: isClientOwned
+                typeName: typeName,
+                path: path
             )
-            let environmentRecorder = isClientOwned ? EnvironmentReadRecorder() : nil
-            let serverCapabilityRecorder = isClientOwned ? ServerCapabilityReadRecorder() : nil
-            let previousClientOwnershipDepth = clientOwnershipDepth
-            let previousClientComponentStack = clientComponentStack
-            let previousClientIslandContractStack = clientIslandContractStack
-            if isClientOwned {
-                clientOwnershipDepth += 1
-                clientComponentStack.append(componentID)
-                if let islandContract, isOutermostClientIsland {
-                    clientIslandContractStack.append(islandContract)
-                }
-            } else if isServerComponent {
-                clientOwnershipDepth = 0
-                clientIslandContractStack.removeAll()
+            islandContract = ClientIslandContract(
+                ownerComponentID: componentID,
+                bundleID: resolvedBundleID,
+                bundlePolicy: resolvedBundlePolicy,
+                loadPolicy: resolvedLoadPolicy
+            )
+        } else {
+            islandContract = clientIslandContractStack.last
+            if isExplicitClientComponent && clientOwnershipDepth > 0 {
+                reportNestedClientLoadingContractIfNeeded(
+                    typeName: typeName,
+                    componentID: componentID,
+                    path: path,
+                    loadPolicy: componentLoadPolicy,
+                    bundlePolicy: componentBundlePolicy,
+                    override: loadingOverride
+                )
             }
-            let previousEnvironment = environment
-            environment = componentEnvironment
+        }
+        let componentEnvironment = options.componentEnvironmentOverrides[path] ?? environment
+        let store = stateStore
+        let stateContext = StateRenderContext(
+            componentID: componentID,
+            componentType: typeName,
+            path: path,
+            store: stateStore,
+            isClientOwned: isClientOwned
+        )
+        let environmentRecorder = isClientOwned ? EnvironmentReadRecorder() : nil
+        let serverCapabilityRecorder = isClientOwned ? ServerCapabilityReadRecorder() : nil
+        let previousClientOwnershipDepth = clientOwnershipDepth
+        let previousClientComponentStack = clientComponentStack
+        let previousClientIslandContractStack = clientIslandContractStack
+        if isClientOwned {
+            clientOwnershipDepth += 1
+            clientComponentStack.append(componentID)
+            if let islandContract, isOutermostClientIsland {
+                clientIslandContractStack.append(islandContract)
+            }
+        } else if isServerComponent {
+            clientOwnershipDepth = 0
+            clientIslandContractStack.removeAll()
+        }
+        let previousEnvironment = environment
+        environment = componentEnvironment
 
-            let childID = ServerCapabilityReadContext.withValue(serverCapabilityRecorder) {
-                EnvironmentReadContext.withValue(environmentRecorder) {
-                    StateContext.withValue(stateContext) {
-                        EnvironmentContext.withValue(componentEnvironment) {
-                            appendComponentBody(component, store: store, componentID: componentID)
-                        }
+        let childID = ServerCapabilityReadContext.withValue(serverCapabilityRecorder) {
+            EnvironmentReadContext.withValue(environmentRecorder) {
+                StateContext.withValue(stateContext) {
+                    EnvironmentContext.withValue(componentEnvironment) {
+                        appendComponentBody(component, store: store, componentID: componentID)
                     }
                 }
             }
-            clientOwnershipDepth = previousClientOwnershipDepth
-            clientComponentStack = previousClientComponentStack
-            clientIslandContractStack = previousClientIslandContractStack
-            environment = previousEnvironment
+        }
+        clientOwnershipDepth = previousClientOwnershipDepth
+        clientComponentStack = previousClientComponentStack
+        clientIslandContractStack = previousClientIslandContractStack
+        environment = previousEnvironment
 
-            let stateSlots = stateContext.stateSlots()
-            if !isClientOwned, !stateSlots.isEmpty {
-                report(RenderDiagnostic(
-                    code: .stateOutsideClientComponent,
-                    severity: .error,
-                    message: "\(typeName) uses @State outside a ClientComponent boundary",
-                    componentID: componentID,
-                    componentType: typeName,
-                    path: path,
-                    hint: "Conform this component or an owning wrapper to ClientComponent, or move state to a ClientComponent child."
-                ))
-            }
-
-            guard isClientOwned else {
-                if let serverSlotOwner {
-                    return wrapServerSlot(
-                        childID,
-                        ownerComponentID: serverSlotOwner,
-                        componentType: typeName,
-                        path: path
-                    )
-                }
-                return childID
-            }
-
-            let reads = environmentRecorder?.reads() ?? []
-            for read in reads where read.visibility == .serverOnly {
-                report(RenderDiagnostic(
-                    code: .serverOnlyEnvironmentInClientComponent,
-                    severity: .error,
-                    message: "\(typeName) reads server-only environment value \(read.key)",
-                    componentID: componentID,
-                    componentType: typeName,
-                    path: path,
-                    hint: "Use ClientEnvironmentKey for public Codable values, pass a client-safe prop, or keep the read inside ServerComponent."
-                ))
-            }
-            for read in reads where read.visibility == .runtimeOnly {
-                report(RenderDiagnostic(
-                    code: .runtimeOnlyEnvironmentInClientComponent,
-                    severity: .warning,
-                    message: "\(typeName) reads runtime-only environment value \(read.key)",
-                    componentID: componentID,
-                    componentType: typeName,
-                    path: path,
-                    hint: "Runtime-only values are not encoded into the hydration environment snapshot. Ensure the client runtime provides this value or replace it with a ClientEnvironmentKey/prop."
-                ))
-            }
-            let snapshotErrors = environmentRecorder?.snapshotErrors() ?? []
-            for error in snapshotErrors {
-                report(RenderDiagnostic(
-                    code: .clientEnvironmentSnapshotEncodingFailed,
-                    severity: .error,
-                    message: error.description,
-                    componentID: componentID,
-                    componentType: typeName,
-                    path: path,
-                    hint: "ClientEnvironmentKey values must encode successfully before they can be hydrated on the client."
-                ))
-            }
-            let serverCapabilityReads = serverCapabilityRecorder?.reads() ?? []
-            for read in serverCapabilityReads {
-                report(RenderDiagnostic(
-                    code: .serverCapabilityInClientComponent,
-                    severity: .error,
-                    message: "\(typeName) reads server capability \(read.key)",
-                    componentID: componentID,
-                    componentType: typeName,
-                    path: path,
-                    hint: "Read @Server only from ServerComponent, page load, route handlers, or server actions. Pass client-safe values into ClientComponent instead."
-                ))
-            }
-
-            let nodeID = addNode(kind: .component(componentID), children: [childID])
-            hydration.components.append(HydrationComponentRecord(
-                id: componentID,
-                typeName: typeName,
+        let stateSlots = stateContext.stateSlots()
+        if !isClientOwned, !stateSlots.isEmpty {
+            report(RenderDiagnostic(
+                code: .stateOutsideClientComponent,
+                severity: .error,
+                message: "\(typeName) uses @State outside a ClientComponent boundary",
+                componentID: componentID,
+                componentType: typeName,
                 path: path,
-                nodeID: nodeID,
-                stateSlots: stateSlots,
-                environmentReads: reads,
-                serverCapabilityReads: serverCapabilityReads,
-                bundleID: islandContract?.bundleID,
-                loadPolicy: islandContract?.loadPolicy ?? componentLoadPolicy,
-                serverSlots: serverSlotsByOwner[componentID, default: []],
-                environmentSnapshot: environmentRecorder?.snapshot() ?? ClientEnvironmentSnapshot()
+                hint: "Conform this component or an owning wrapper to ClientComponent, or move state to a ClientComponent child."
             ))
-            return nodeID
         }
 
-        return addNode(kind: .fragment, children: [])
+        guard isClientOwned else {
+            if let serverSlotOwner {
+                return wrapServerSlot(
+                    childID,
+                    ownerComponentID: serverSlotOwner,
+                    componentType: typeName,
+                    path: path
+                )
+            }
+            return childID
+        }
+
+        let reads = environmentRecorder?.reads() ?? []
+        for read in reads where read.visibility == .serverOnly {
+            report(RenderDiagnostic(
+                code: .serverOnlyEnvironmentInClientComponent,
+                severity: .error,
+                message: "\(typeName) reads server-only environment value \(read.key)",
+                componentID: componentID,
+                componentType: typeName,
+                path: path,
+                hint: "Use ClientEnvironmentKey for public Codable values, pass a client-safe prop, or keep the read inside ServerComponent."
+            ))
+        }
+        for read in reads where read.visibility == .runtimeOnly {
+            report(RenderDiagnostic(
+                code: .runtimeOnlyEnvironmentInClientComponent,
+                severity: .warning,
+                message: "\(typeName) reads runtime-only environment value \(read.key)",
+                componentID: componentID,
+                componentType: typeName,
+                path: path,
+                hint: "Runtime-only values are not encoded into the hydration environment snapshot. Ensure the client runtime provides this value or replace it with a ClientEnvironmentKey/prop."
+            ))
+        }
+        let snapshotErrors = environmentRecorder?.snapshotErrors() ?? []
+        for error in snapshotErrors {
+            report(RenderDiagnostic(
+                code: .clientEnvironmentSnapshotEncodingFailed,
+                severity: .error,
+                message: error.description,
+                componentID: componentID,
+                componentType: typeName,
+                path: path,
+                hint: "ClientEnvironmentKey values must encode successfully before they can be hydrated on the client."
+            ))
+        }
+        let serverCapabilityReads = serverCapabilityRecorder?.reads() ?? []
+        for read in serverCapabilityReads {
+            report(RenderDiagnostic(
+                code: .serverCapabilityInClientComponent,
+                severity: .error,
+                message: "\(typeName) reads server capability \(read.key)",
+                componentID: componentID,
+                componentType: typeName,
+                path: path,
+                hint: "Read @Server only from ServerComponent, page load, route handlers, or server actions. Pass client-safe values into ClientComponent instead."
+            ))
+        }
+
+        let nodeID = addNode(kind: .component(componentID), children: [childID])
+        hydration.components.append(HydrationComponentRecord(
+            id: componentID,
+            typeName: typeName,
+            path: path,
+            nodeID: nodeID,
+            stateSlots: stateSlots,
+            environmentReads: reads,
+            serverCapabilityReads: serverCapabilityReads,
+            bundleID: islandContract?.bundleID,
+            loadPolicy: islandContract?.loadPolicy ?? componentLoadPolicy,
+            serverSlots: serverSlotsByOwner[componentID, default: []],
+            environmentSnapshot: environmentRecorder?.snapshot() ?? ClientEnvironmentSnapshot()
+        ))
+        return nodeID
+
     }
 
-    private mutating func appendComponentBody(
-        _ component: any Component,
+    private mutating func appendComponentBody<C: Component>(
+        _ component: C,
         store: StateStore,
         componentID: ComponentID
     ) -> HTMLNodeID {
         #if canImport(Observation)
         withObservationTracking {
             let body = component.body
-            return appendAny(body)
+            return append(body)
         } onChange: {
             store.markDirty(componentID)
         }
         #else
         let body = component.body
-        return appendAny(body)
+        return append(body)
         #endif
     }
 
@@ -1366,12 +1372,16 @@ struct HTMLGraphBuilder {
         return rawName
     }
 
+    // Structural identity: the graph path uniquely names a component position
+    // (tuple:N / conditional:first|second / key:… segments), so the reflected
+    // type name adds nothing — and Embedded Swift cannot reflect it. Path-only
+    // hashing keeps IDs byte-identical across compilation profiles.
     private func makeComponentID(typeName: String, path: String) -> ComponentID {
-        ComponentID("c\(stableHashHex("\(typeName)|\(path)"))")
+        ComponentID("c\(stableHashHex(path))")
     }
 
     private func makeServerSlotID(componentType: String, path: String) -> ServerSlotID {
-        ServerSlotID("s\(stableHashHex("\(componentType)|\(path)"))")
+        ServerSlotID("s\(stableHashHex(path))")
     }
 
     private func stableHashHex(_ value: String) -> String {
@@ -1485,3 +1495,13 @@ private struct StableFingerprintHasher {
         hash &*= 1_099_511_628_211
     }
 }
+
+#if !hasFeature(Embedded)
+extension HTMLNodeID: Codable {}
+extension HTMLStringID: Codable {}
+extension ComponentID: Codable {}
+extension HandlerID: Codable {}
+extension Key: Codable {}
+extension NodeFingerprint: Codable {}
+extension HTMLAttributeRecord: Codable {}
+#endif

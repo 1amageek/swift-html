@@ -464,7 +464,7 @@ struct SwiftHTMLStateHydrationTests {
     private func component(forKey key: Int, in artifact: RenderArtifact) -> HydrationComponentRecord? {
         artifact.hydration.components.first { component in
             component.typeName.hasSuffix(".StatefulRowComponent")
-                && component.path.contains("key:Swift.Int:\(key)")
+                && component.path.contains("key:\(key)")
         }
     }
 }

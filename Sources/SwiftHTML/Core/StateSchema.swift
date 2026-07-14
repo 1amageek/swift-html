@@ -1,4 +1,4 @@
-public struct StateSchema: Sendable, Codable, Equatable {
+public struct StateSchema: Sendable, Equatable {
     public let hash: String
     public let slots: [StateSlotRecord]
 
@@ -26,7 +26,7 @@ public struct StateSchema: Sendable, Codable, Equatable {
 
 public extension HydrationManifest {
     var stateSchema: StateSchema {
-        StateSchema(slots: components.flatMap(\.stateSlots))
+        StateSchema(slots: components.flatMap { $0.stateSlots })
     }
 
     var stateSchemaHash: String {
@@ -43,3 +43,7 @@ public extension HydrationComponentRecord {
         stateSchema.hash
     }
 }
+
+#if !hasFeature(Embedded)
+extension StateSchema: Codable {}
+#endif

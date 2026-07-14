@@ -105,6 +105,18 @@ public struct EnvironmentValues: Sendable {
     ) async rethrows -> Result {
         try await EnvironmentContext.withValue(value, operation: operation)
     }
+    #else
+    /// Embedded: no @TaskLocal; the render walk runs inline on the single
+    /// WASI thread, so plain save/restore is equivalent.
+    public static func withValue<Result: Sendable>(
+        _ value: EnvironmentValues,
+        operation: @Sendable () async throws -> Result
+    ) async rethrows -> Result {
+        let previous = EnvironmentContext.current
+        EnvironmentContext.current = value
+        defer { EnvironmentContext.current = previous }
+        return try await operation()
+    }
     #endif
 
     /// The ambient environment established by the enclosing `withValue`
@@ -157,6 +169,7 @@ public struct Environment<Value: Sendable>: Sendable {
         }
     }
 
+    #if !hasFeature(Embedded)
     /// The key path is constrained to `Sendable` so it can be captured by the
     /// `@Sendable` `read` closure under Swift 6 strict concurrency. Key-path
     /// literals such as `\.colorScheme` satisfy this automatically.
@@ -164,6 +177,16 @@ public struct Environment<Value: Sendable>: Sendable {
         self.read = { values in
             values[keyPath: keyPath]
         }
+    }
+    #endif
+
+    /// Accessor-closure form of `init(_ keyPath:)`, e.g.
+    /// `@Environment({ $0.colorScheme })`. Key-path literals cannot compile
+    /// under Embedded Swift, so this spelling is the profile-neutral one;
+    /// both read through the same `EnvironmentValues` accessors and are
+    /// otherwise interchangeable.
+    public init(_ read: @escaping @Sendable (EnvironmentValues) -> Value) {
+        self.read = read
     }
 
     public var wrappedValue: Value {
@@ -178,6 +201,7 @@ public extension HTML {
         }
     }
 
+    #if !hasFeature(Embedded)
     func environment<Value: Sendable>(
         _ keyPath: WritableKeyPath<EnvironmentValues, Value> & Sendable,
         _ value: Value
@@ -186,14 +210,28 @@ public extension HTML {
             self
         }
     }
+    #endif
+
+    /// Mutation-closure form of `environment(_:_:)`, e.g.
+    /// `.transformEnvironment { $0.colorScheme = .dark }`. Key-path literals
+    /// cannot compile under Embedded Swift, so this spelling is the
+    /// profile-neutral one; both write through the same `EnvironmentValues`
+    /// accessors and scope the change to the wrapped content.
+    func transformEnvironment(
+        _ transform: @escaping @Sendable (inout EnvironmentValues) -> Void
+    ) -> some HTML {
+        EnvironmentModifier(transform: transform) {
+            self
+        }
+    }
 }
 
-public enum ColorScheme: String, Codable, Sendable {
+public enum ColorScheme: String, Sendable {
     case light
     case dark
 }
 
-public enum LayoutDirection: String, Codable, Sendable {
+public enum LayoutDirection: String, Sendable {
     case leftToRight
     case rightToLeft
 }
@@ -259,3 +297,8 @@ public extension EnvironmentValues {
         set { self[LayoutDirectionEnvironmentKey.self] = newValue }
     }
 }
+
+#if !hasFeature(Embedded)
+extension ColorScheme: Codable {}
+extension LayoutDirection: Codable {}
+#endif

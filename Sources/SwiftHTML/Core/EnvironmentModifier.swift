@@ -12,6 +12,7 @@ public struct EnvironmentModifier<Content: HTML>: HTMLPrimitive {
         self.content = content()
     }
 
+    #if !hasFeature(Embedded)
     public init<Value: Sendable>(
         _ keyPath: WritableKeyPath<EnvironmentValues, Value> & Sendable,
         _ value: Value,
@@ -20,6 +21,17 @@ public struct EnvironmentModifier<Content: HTML>: HTMLPrimitive {
         self.apply = { values in
             values[keyPath: keyPath] = value
         }
+        self.content = content()
+    }
+    #endif
+
+    /// Profile-neutral form backing `HTML.transformEnvironment(_:)`; key-path
+    /// literals cannot compile under Embedded Swift.
+    public init(
+        transform: @escaping @Sendable (inout EnvironmentValues) -> Void,
+        @HTMLBuilder content: () -> Content
+    ) {
+        self.apply = transform
         self.content = content()
     }
 

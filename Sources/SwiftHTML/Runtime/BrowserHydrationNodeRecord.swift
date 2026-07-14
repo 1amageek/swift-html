@@ -1,4 +1,4 @@
-public struct BrowserHydrationNodeRecord: Sendable, Codable, Equatable {
+public struct BrowserHydrationNodeRecord: Sendable, Equatable {
     public let id: HTMLNodeID
     public let parentID: HTMLNodeID?
     public let childIDs: [HTMLNodeID]
@@ -40,3 +40,7 @@ public struct BrowserHydrationNodeRecord: Sendable, Codable, Equatable {
         self.fingerprint = fingerprint
     }
 }
+
+#if !hasFeature(Embedded)
+extension BrowserHydrationNodeRecord: Codable {}
+#endif

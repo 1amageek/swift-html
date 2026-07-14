@@ -1,4 +1,4 @@
-public struct ClientSymbolRecord: Sendable, Codable, Equatable {
+public struct ClientSymbolRecord: Sendable, Equatable {
     public let id: ClientSymbolID
     public let estimatedByteSize: Int
 
@@ -10,3 +10,7 @@ public struct ClientSymbolRecord: Sendable, Codable, Equatable {
         self.estimatedByteSize = estimatedByteSize
     }
 }
+
+#if !hasFeature(Embedded)
+extension ClientSymbolRecord: Codable {}
+#endif

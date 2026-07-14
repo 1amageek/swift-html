@@ -1,7 +1,7 @@
 @resultBuilder
 public enum StyleBuilder {
     public static func buildBlock(_ components: Style...) -> Style {
-        Style(components.flatMap(\.declarations))
+        Style(components.flatMap { $0.declarations })
     }
 
     public static func buildExpression(_ style: Style) -> Style {
@@ -21,7 +21,7 @@ public enum StyleBuilder {
     }
 
     public static func buildArray(_ components: [Style]) -> Style {
-        Style(components.flatMap(\.declarations))
+        Style(components.flatMap { $0.declarations })
     }
 
     public static func buildLimitedAvailability(_ component: Style) -> Style {

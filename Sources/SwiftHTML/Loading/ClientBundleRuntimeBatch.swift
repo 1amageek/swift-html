@@ -14,7 +14,7 @@ public struct ClientBundleRuntimeBatch: Sendable, Equatable {
     }
 
     public var bundleIDs: [ClientBundleID] {
-        bundles.map(\.id)
+        bundles.map { $0.id }
     }
 
     public var missingAssetBundleIDs: [ClientBundleID] {

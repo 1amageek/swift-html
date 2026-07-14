@@ -12,7 +12,7 @@ public enum EnvironmentVisibility: Sendable, Equatable {
     case runtimeOnly
 }
 
-public struct ClientEnvironmentSnapshotValue: Sendable, Codable, Equatable {
+public struct ClientEnvironmentSnapshotValue: Sendable, Equatable {
     public let key: String
     public let valueType: String
     public let encoding: String
@@ -26,7 +26,7 @@ public struct ClientEnvironmentSnapshotValue: Sendable, Codable, Equatable {
     }
 }
 
-public struct ClientEnvironmentSnapshot: Sendable, Codable, Equatable {
+public struct ClientEnvironmentSnapshot: Sendable, Equatable {
     public let values: [ClientEnvironmentSnapshotValue]
 
     public init(values: [ClientEnvironmentSnapshotValue] = []) {
@@ -252,6 +252,24 @@ enum EnvironmentReadContext {
     #endif
 }
 
+#if hasFeature(Embedded)
+// Codable is unavailable in Embedded Swift; the client environment snapshot
+// feeds hydration, which the embedded SSR profile does not serve, so the key
+// protocol keeps its shape without the serialization requirement and
+// snapshotting reports itself unavailable.
+public protocol ClientEnvironmentKey: EnvironmentKey where Value: Sendable {}
+
+public extension ClientEnvironmentKey {
+    static var visibility: EnvironmentVisibility { .clientSnapshot }
+
+    static func clientSnapshotValue(_ value: Value) throws -> ClientEnvironmentSnapshotValue? {
+        throw ClientEnvironmentSnapshotError.unavailableEncoding(
+            key: environmentKey,
+            valueType: RuntimeTypeName.reflecting(Value.self)
+        )
+    }
+}
+#else
 public protocol ClientEnvironmentKey: EnvironmentKey where Value: Codable & Sendable {}
 
 public extension ClientEnvironmentKey {
@@ -291,3 +309,9 @@ public extension ClientEnvironmentKey {
         #endif
     }
 }
+#endif
+
+#if !hasFeature(Embedded)
+extension ClientEnvironmentSnapshotValue: Codable {}
+extension ClientEnvironmentSnapshot: Codable {}
+#endif

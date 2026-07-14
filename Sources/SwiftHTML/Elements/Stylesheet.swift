@@ -30,6 +30,6 @@ public struct Stylesheet: Sendable, Equatable {
     }
 
     public var cssText: String {
-        items.map(\.cssText).joined(separator: "\n")
+        items.map { $0.cssText }.joined(separator: "\n")
     }
 }

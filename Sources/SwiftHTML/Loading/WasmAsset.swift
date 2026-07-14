@@ -1,4 +1,4 @@
-public struct WasmAsset: Sendable, Codable, Equatable {
+public struct WasmAsset: Sendable, Equatable {
     public let path: String
     public let contentHash: String?
     public let byteSize: Int?
@@ -13,3 +13,7 @@ public struct WasmAsset: Sendable, Codable, Equatable {
         self.byteSize = byteSize
     }
 }
+
+#if !hasFeature(Embedded)
+extension WasmAsset: Codable {}
+#endif

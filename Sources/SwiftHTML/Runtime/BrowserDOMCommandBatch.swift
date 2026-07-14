@@ -1,4 +1,4 @@
-public struct BrowserDOMCommandBatch: Sendable, Equatable, Codable {
+public struct BrowserDOMCommandBatch: Sendable, Equatable {
     public let commands: [BrowserDOMCommand]
 
     public init(commands: [BrowserDOMCommand]) {
@@ -9,3 +9,7 @@ public struct BrowserDOMCommandBatch: Sendable, Equatable, Codable {
         commands.isEmpty
     }
 }
+
+#if !hasFeature(Embedded)
+extension BrowserDOMCommandBatch: Codable {}
+#endif

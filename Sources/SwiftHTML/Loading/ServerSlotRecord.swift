@@ -1,4 +1,4 @@
-public struct ServerSlotRecord: Sendable, Codable, Equatable {
+public struct ServerSlotRecord: Sendable, Equatable {
     public let id: ServerSlotID
     public let ownerComponentID: ComponentID
     public let componentType: String
@@ -19,3 +19,7 @@ public struct ServerSlotRecord: Sendable, Codable, Equatable {
         self.nodeID = nodeID
     }
 }
+
+#if !hasFeature(Embedded)
+extension ServerSlotRecord: Codable {}
+#endif

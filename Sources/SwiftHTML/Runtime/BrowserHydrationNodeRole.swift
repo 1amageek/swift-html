@@ -1,4 +1,4 @@
-public enum BrowserHydrationNodeRole: String, Sendable, Codable, Equatable {
+public enum BrowserHydrationNodeRole: String, Sendable, Equatable {
     case document
     case doctype
     case element
@@ -10,3 +10,7 @@ public enum BrowserHydrationNodeRole: String, Sendable, Codable, Equatable {
     case placeholder
     case comment
 }
+
+#if !hasFeature(Embedded)
+extension BrowserHydrationNodeRole: Codable {}
+#endif

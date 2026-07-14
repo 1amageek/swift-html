@@ -1,4 +1,4 @@
-public struct BrowserHydrationEventBinding: Sendable, Codable, Equatable {
+public struct BrowserHydrationEventBinding: Sendable, Equatable {
     public let nodeID: HTMLNodeID
     public let handlerID: HandlerID
     public let eventName: String
@@ -16,3 +16,7 @@ public struct BrowserHydrationEventBinding: Sendable, Codable, Equatable {
         self.componentID = componentID
     }
 }
+
+#if !hasFeature(Embedded)
+extension BrowserHydrationEventBinding: Codable {}
+#endif

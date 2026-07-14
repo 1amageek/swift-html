@@ -1,4 +1,4 @@
-public struct BrowserHydrationComponentRecord: Sendable, Codable, Equatable {
+public struct BrowserHydrationComponentRecord: Sendable, Equatable {
     public let id: ComponentID
     public let typeName: String
     public let path: String
@@ -69,3 +69,7 @@ public struct BrowserHydrationComponentRecord: Sendable, Codable, Equatable {
     }
     #endif
 }
+
+#if !hasFeature(Embedded)
+extension BrowserHydrationComponentRecord: Codable {}
+#endif

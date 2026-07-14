@@ -13,6 +13,26 @@ public protocol EnlargedStackContextPropagator: Sendable {
     func apply<Result>(_ operation: () throws -> Result) rethrows -> Result
 }
 
+#if hasFeature(Embedded)
+/// Embedded Swift has neither @TaskLocal nor non-class existentials, and the
+/// embedded render runs on the module's main stack (sized at instantiation),
+/// so the propagator context degenerates to running operations directly.
+public enum EnlargedStackContext {
+    public static func withValue<Result>(
+        _ propagator: some EnlargedStackContextPropagator,
+        operation: () throws -> Result
+    ) rethrows -> Result {
+        try operation()
+    }
+
+    public static func withValue<Result>(
+        _ propagator: some EnlargedStackContextPropagator,
+        operation: () async throws -> Result
+    ) async rethrows -> Result {
+        try await operation()
+    }
+}
+#else
 public enum EnlargedStackContext {
     @TaskLocal public static var propagators: [any EnlargedStackContextPropagator] = []
 
@@ -50,6 +70,8 @@ public enum EnlargedStackContext {
     }
 }
 
+#endif
+
 #if os(WASI)
 
 /// Runs `work` directly. WebAssembly is single-threaded and has no `Thread` or
@@ -60,9 +82,13 @@ func withEnlargedStack<Result>(
     ofSize stackSize: Int = 64 << 20,
     _ work: @escaping () -> Result
 ) -> Result {
+    #if hasFeature(Embedded)
+    work()
+    #else
     EnlargedStackContext.apply(EnlargedStackContext.propagators) {
         work()
     }
+    #endif
 }
 
 #else

@@ -1,4 +1,4 @@
-public struct ClientComponentAsset: Sendable, Codable, Equatable {
+public struct ClientComponentAsset: Sendable, Equatable {
     public let componentID: ComponentID
     public let typeName: String
     public let bundleID: ClientBundleID
@@ -28,3 +28,7 @@ public struct ClientComponentAsset: Sendable, Codable, Equatable {
         self.environmentSchemaHash = environmentSchemaHash
     }
 }
+
+#if !hasFeature(Embedded)
+extension ClientComponentAsset: Codable {}
+#endif

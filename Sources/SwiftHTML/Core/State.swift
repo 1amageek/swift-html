@@ -6,7 +6,7 @@ import Foundation
 #endif
 #endif
 
-public struct StateSourceLocation: Sendable, Hashable, Codable {
+public struct StateSourceLocation: Sendable, Hashable {
     public let fileID: String
     public let line: UInt
     public let column: UInt
@@ -22,7 +22,7 @@ public struct StateSourceLocation: Sendable, Hashable, Codable {
     }
 }
 
-public struct StateSlotID: Sendable, Hashable, Codable {
+public struct StateSlotID: Sendable, Hashable {
     public let rawValue: String
 
     public init(_ rawValue: String) {
@@ -34,7 +34,7 @@ public struct StateSlotID: Sendable, Hashable, Codable {
     }
 }
 
-public struct StateSlotRecord: Sendable, Codable, Equatable {
+public struct StateSlotRecord: Sendable, Equatable {
     public let id: StateSlotID
     public let componentID: ComponentID
     public let valueType: String
@@ -211,12 +211,12 @@ public final class StateStore: Sendable {
     private static func reportRestoreFailure(slot id: StateSlotID, valueType: String, error: Error) {
         let message = "[SwiftHTML] @State restore failed for slot \"\(id.rawValue)\" "
             + "(\(valueType)): \(error). The value was reset to its default."
-        #if canImport(FoundationEssentials)
-        // FoundationEssentials has no FileHandle; these hosts route standard
-        // output to the platform console.
-        print(message)
-        #else
+        #if canImport(Foundation) && !canImport(FoundationEssentials)
         FileHandle.standardError.write(Data((message + "\n").utf8))
+        #else
+        // FoundationEssentials hosts have no FileHandle, and Embedded has no
+        // Foundation at all; both route standard output to the console.
+        print(message)
         #endif
     }
 
@@ -427,3 +427,9 @@ private final class LocalStateStorage<Value: Sendable>: Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension StateSourceLocation: Codable {}
+extension StateSlotID: Codable {}
+extension StateSlotRecord: Codable {}
+#endif

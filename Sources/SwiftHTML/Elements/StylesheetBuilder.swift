@@ -1,7 +1,7 @@
 @resultBuilder
 public enum StylesheetBuilder {
     public static func buildBlock(_ components: Stylesheet...) -> Stylesheet {
-        Stylesheet(items: components.flatMap(\.items))
+        Stylesheet(items: components.flatMap { $0.items })
     }
 
     public static func buildExpression(_ rule: CSSRule) -> Stylesheet {
@@ -33,7 +33,7 @@ public enum StylesheetBuilder {
     }
 
     public static func buildArray(_ components: [Stylesheet]) -> Stylesheet {
-        Stylesheet(items: components.flatMap(\.items))
+        Stylesheet(items: components.flatMap { $0.items })
     }
 
     public static func buildLimitedAvailability(_ component: Stylesheet) -> Stylesheet {

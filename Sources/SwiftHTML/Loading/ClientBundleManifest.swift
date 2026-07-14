@@ -1,4 +1,4 @@
-public struct ClientBundleManifest: Sendable, Codable, Equatable {
+public struct ClientBundleManifest: Sendable, Equatable {
     public let runtimeBundleID: ClientBundleID?
     public let bundles: [ClientBundleRecord]
     public let components: [ClientComponentAsset]
@@ -34,3 +34,7 @@ public struct ClientBundleManifest: Sendable, Codable, Equatable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension ClientBundleManifest: Codable {}
+#endif

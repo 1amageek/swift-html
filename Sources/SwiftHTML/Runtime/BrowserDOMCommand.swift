@@ -1,4 +1,4 @@
-public enum BrowserDOMCommand: Sendable, Equatable, Codable {
+public enum BrowserDOMCommand: Sendable, Equatable {
     case replaceNode(node: HTMLNodeID, replacement: HTMLNodeID)
     case replaceSubtree(node: HTMLNodeID, html: String)
     case updateText(node: HTMLNodeID, value: String)
@@ -11,3 +11,7 @@ public enum BrowserDOMCommand: Sendable, Equatable, Codable {
     case move(parent: HTMLNodeID, from: Int, to: Int, key: Key)
     case moveKeyed(parent: HTMLNodeID, key: Key, to: Int)
 }
+
+#if !hasFeature(Embedded)
+extension BrowserDOMCommand: Codable {}
+#endif

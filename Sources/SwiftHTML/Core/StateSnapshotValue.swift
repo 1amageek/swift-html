@@ -6,7 +6,7 @@ import Foundation
 #endif
 #endif
 
-public struct StateSnapshotValue: Sendable, Codable, Equatable {
+public struct StateSnapshotValue: Sendable, Equatable {
     public let valueType: String
     public let encoding: String
     public let encodedValue: String
@@ -43,3 +43,7 @@ public struct StateSnapshotValue: Sendable, Codable, Equatable {
     }
     #endif
 }
+
+#if !hasFeature(Embedded)
+extension StateSnapshotValue: Codable {}
+#endif

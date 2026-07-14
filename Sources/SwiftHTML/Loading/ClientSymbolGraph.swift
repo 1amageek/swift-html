@@ -1,4 +1,4 @@
-public struct ClientSymbolGraph: Sendable, Codable, Equatable {
+public struct ClientSymbolGraph: Sendable, Equatable {
     public let symbols: [ClientSymbolRecord]
     public let dependencies: [ClientSymbolDependency]
     public let components: [ClientComponentEntrypoint]
@@ -25,3 +25,7 @@ public struct ClientSymbolGraph: Sendable, Codable, Equatable {
         self.runtimeSymbols = runtimeSymbols.sorted()
     }
 }
+
+#if !hasFeature(Embedded)
+extension ClientSymbolGraph: Codable {}
+#endif

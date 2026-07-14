@@ -1,4 +1,4 @@
-public struct Action: ActionRepresentable, Sendable, Equatable, Codable {
+public struct Action: ActionRepresentable, Sendable, Equatable {
     public let path: String
     public let method: FormMethod
     public let fields: [ActionField]
@@ -51,3 +51,7 @@ public struct Action: ActionRepresentable, Sendable, Equatable, Codable {
         Action(path: path, method: .get, fields: fields)
     }
 }
+
+#if !hasFeature(Embedded)
+extension Action: Codable {}
+#endif

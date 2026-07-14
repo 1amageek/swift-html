@@ -57,7 +57,7 @@ public struct ClientBundleLoadResolver: Sendable {
 
     public func plan(for loadPolicy: ClientLoadPolicy) throws -> ClientBundleLoadPlan {
         let components = componentsByLoadPolicy[loadPolicy, default: []]
-        let bundleIDs = Set(components.map(\.bundleID))
+        let bundleIDs = Set(components.map { $0.bundleID })
         return ClientBundleLoadPlan(
             loadPolicy: loadPolicy,
             bundles: try resolveBundles(startingAt: bundleIDs),

@@ -1,4 +1,4 @@
-public struct DOMEvent: Sendable, Codable, Equatable {
+public struct DOMEvent: Sendable, Equatable {
     public let value: String?
     public let checked: Bool?
     public let key: String?
@@ -45,7 +45,7 @@ public final class DOMEventHandler: Sendable {
     }
 }
 
-public enum HTMLAttributeKind: Sendable, Equatable, Codable {
+public enum HTMLAttributeKind: Sendable, Equatable {
     case string
     case boolean
     case tokenList
@@ -134,7 +134,7 @@ public enum InputType: String, Sendable {
     case week
 }
 
-public enum FormMethod: String, Sendable, Codable {
+public enum FormMethod: String, Sendable {
     case get
     case post
     case dialog
@@ -594,3 +594,9 @@ public extension HTMLAttribute {
         HTMLAttribute(eventName: "scroll", handler: handler)
     }
 }
+
+#if !hasFeature(Embedded)
+extension DOMEvent: Codable {}
+extension HTMLAttributeKind: Codable {}
+extension FormMethod: Codable {}
+#endif

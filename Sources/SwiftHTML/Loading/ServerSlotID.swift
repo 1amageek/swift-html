@@ -1,4 +1,4 @@
-public struct ServerSlotID: RawRepresentable, Sendable, Hashable, Codable, Comparable {
+public struct ServerSlotID: RawRepresentable, Sendable, Hashable, Comparable {
     public let rawValue: String
 
     public init(rawValue: String) {
@@ -13,3 +13,7 @@ public struct ServerSlotID: RawRepresentable, Sendable, Hashable, Codable, Compa
         lhs.rawValue < rhs.rawValue
     }
 }
+
+#if !hasFeature(Embedded)
+extension ServerSlotID: Codable {}
+#endif

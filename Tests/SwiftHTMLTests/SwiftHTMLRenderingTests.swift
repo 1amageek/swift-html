@@ -179,7 +179,7 @@ struct SwiftHTMLRenderingTests {
 
     @Test
     func attributeTransformContextTransformsTypedStyleAcrossRenderStack() {
-        let rendered = HTMLAttributeTransformContext.withValue(TestAttributeTransformer()) {
+        let rendered = HTMLAttributeTransformContext.withTransform(TestAttributeTransformer().transform(_:)) {
             div(.class("panel"), .style(.minHeight("36px")), .id("card")) {
                 "Panel"
             }

@@ -1,4 +1,4 @@
-public enum ClientLoadPolicy: String, Sendable, Codable, Comparable, CaseIterable {
+public enum ClientLoadPolicy: String, Sendable, Comparable, CaseIterable {
     case eager
     case visible
     case interaction
@@ -26,3 +26,7 @@ public enum ClientLoadPolicy: String, Sendable, Codable, Comparable, CaseIterabl
 }
 
 public typealias LoadPolicy = ClientLoadPolicy
+
+#if !hasFeature(Embedded)
+extension ClientLoadPolicy: Codable {}
+#endif

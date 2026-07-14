@@ -1,4 +1,4 @@
-public struct ActionField: Sendable, Equatable, Codable {
+public struct ActionField: Sendable, Equatable {
     public let name: String
     public let value: String
 
@@ -15,3 +15,7 @@ public struct ActionField: Sendable, Equatable, Codable {
         self.init(name, value ? "true" : "false")
     }
 }
+
+#if !hasFeature(Embedded)
+extension ActionField: Codable {}
+#endif

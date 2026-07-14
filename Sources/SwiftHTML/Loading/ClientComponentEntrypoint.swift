@@ -1,4 +1,4 @@
-public struct ClientComponentEntrypoint: Sendable, Codable, Equatable {
+public struct ClientComponentEntrypoint: Sendable, Equatable {
     public let componentID: ComponentID
     public let typeName: String
     public let entrySymbols: [ClientSymbolID]
@@ -19,3 +19,7 @@ public struct ClientComponentEntrypoint: Sendable, Codable, Equatable {
         self.serverSlots = serverSlots.sorted()
     }
 }
+
+#if !hasFeature(Embedded)
+extension ClientComponentEntrypoint: Codable {}
+#endif

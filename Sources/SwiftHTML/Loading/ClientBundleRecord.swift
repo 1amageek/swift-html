@@ -1,4 +1,4 @@
-public struct ClientBundleRecord: Sendable, Codable, Equatable {
+public struct ClientBundleRecord: Sendable, Equatable {
     public let id: ClientBundleID
     public let kind: ClientBundleKind
     public let asset: WasmAsset?
@@ -30,3 +30,7 @@ public struct ClientBundleRecord: Sendable, Codable, Equatable {
         self.estimatedByteSize = estimatedByteSize
     }
 }
+
+#if !hasFeature(Embedded)
+extension ClientBundleRecord: Codable {}
+#endif

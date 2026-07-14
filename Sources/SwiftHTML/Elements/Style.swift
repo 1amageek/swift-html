@@ -19,7 +19,7 @@ public struct Style: Sendable, Equatable {
     }
 
     public var cssText: String {
-        declarations.map(\.cssText).joined(separator: "; ")
+        declarations.map { $0.cssText }.joined(separator: "; ")
     }
 
     public var isEmpty: Bool {

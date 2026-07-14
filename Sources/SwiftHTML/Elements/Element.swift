@@ -4,6 +4,12 @@ public protocol ElementRepresentable: HTML {
     init(_ element: Element)
 }
 
+extension ElementRepresentable {
+    public static func _buildNode(_ html: Self, in builder: inout HTMLGraphBuilder) -> HTMLNodeID {
+        html.element.buildNode(in: &builder)
+    }
+}
+
 public extension ElementRepresentable {
     func attribute(_ attribute: HTMLAttribute) -> Self {
         Self(element.adding(attribute))
@@ -108,6 +114,12 @@ public struct Element: ElementRepresentable, HTMLPrimitive {
     public let isVoid: Bool
     public let nodeKey: Key?
     let children: [HTMLContent]
+
+    // Both parent protocols provide a `_buildNode` witness; the concrete
+    // implementation resolves the ambiguity (an Element renders itself).
+    public static func _buildNode(_ html: Self, in builder: inout HTMLGraphBuilder) -> HTMLNodeID {
+        html.buildNode(in: &builder)
+    }
 
     public var element: Element {
         self

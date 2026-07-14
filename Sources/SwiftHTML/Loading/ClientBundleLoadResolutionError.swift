@@ -10,7 +10,7 @@ public enum ClientBundleLoadResolutionError: Error, Sendable, Equatable, CustomS
         case .missingComponent(let id):
             "Missing client component '\(id.rawValue)'"
         case .cyclicBundleDependency(let ids):
-            "Cyclic client bundle dependency: \(ids.map(\.rawValue).joined(separator: " -> "))"
+            "Cyclic client bundle dependency: \(ids.map { $0.rawValue }.joined(separator: " -> "))"
         }
     }
 }

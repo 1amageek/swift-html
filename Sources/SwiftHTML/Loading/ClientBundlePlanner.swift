@@ -69,7 +69,7 @@ public struct ClientBundlePlanner: Sendable {
                 id: options.eagerRouteBundleID,
                 kind: .route,
                 groups: eagerGroups,
-                components: eagerComponents.map(\.componentID),
+                components: eagerComponents.map { $0.componentID },
                 loadPolicy: .eager
             ))
         }
@@ -123,13 +123,13 @@ public struct ClientBundlePlanner: Sendable {
         hydration: HydrationManifest,
         symbolGraph graph: ClientSymbolGraph
     ) -> ClientBundleManifest {
-        let slotRecords = hydration.components.flatMap(\.serverSlots)
+        let slotRecords = hydration.components.flatMap { $0.serverSlots }
         let slotsByComponent = Dictionary(grouping: slotRecords) { slot in
             slot.ownerComponentID
         }
         let components = graph.components.map { component in
             let slotIDs = Set(component.serverSlots).union(
-                Set(slotsByComponent[component.componentID, default: []].map(\.id))
+                Set(slotsByComponent[component.componentID, default: []].map { $0.id })
             )
             return ClientComponentEntrypoint(
                 componentID: component.componentID,
@@ -256,7 +256,7 @@ public struct ClientBundlePlanner: Sendable {
         in graph: ClientSymbolGraph,
         dependencyMap: [ClientSymbolID: Set<ClientSymbolID>]
     ) -> [ClientSymbolID] {
-        var symbols = Set(graph.symbols.map(\.id))
+        var symbols = Set(graph.symbols.map { $0.id })
         symbols.formUnion(dependencyMap.keys)
         for dependencies in dependencyMap.values {
             symbols.formUnion(dependencies)

@@ -1,4 +1,4 @@
-public struct ClientSymbolDependency: Sendable, Codable, Equatable {
+public struct ClientSymbolDependency: Sendable, Equatable {
     public let from: ClientSymbolID
     public let to: ClientSymbolID
 
@@ -7,3 +7,7 @@ public struct ClientSymbolDependency: Sendable, Codable, Equatable {
         self.to = to
     }
 }
+
+#if !hasFeature(Embedded)
+extension ClientSymbolDependency: Codable {}
+#endif

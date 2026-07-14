@@ -1,4 +1,4 @@
-public struct ClientBundleLoadPlan: Sendable, Codable, Equatable {
+public struct ClientBundleLoadPlan: Sendable, Equatable {
     public let loadPolicy: ClientLoadPolicy
     public let bundles: [ClientBundleRecord]
     public let components: [ClientComponentAsset]
@@ -16,7 +16,7 @@ public struct ClientBundleLoadPlan: Sendable, Codable, Equatable {
     }
 
     public var bundleIDs: [ClientBundleID] {
-        bundles.map(\.id)
+        bundles.map { $0.id }
     }
 
     public var estimatedByteSize: Int {
@@ -25,3 +25,7 @@ public struct ClientBundleLoadPlan: Sendable, Codable, Equatable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension ClientBundleLoadPlan: Codable {}
+#endif
