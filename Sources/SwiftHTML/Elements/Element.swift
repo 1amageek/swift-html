@@ -197,6 +197,10 @@ public struct Element: ElementRepresentable, HTMLPrimitive {
             return builder.addInvalidElement(name: name)
         }
 
+        // The walk enters this element before its children, so an entry
+        // consume attaches RootAttributes to the scope's rendered root.
+        let rootAttributes = HTMLRootAttributeContext.consume()
+
         var childIDs: [HTMLNodeID] = []
         if !isVoid {
             childIDs.reserveCapacity(children.count)
@@ -208,7 +212,7 @@ public struct Element: ElementRepresentable, HTMLPrimitive {
         }
         return builder.addNode(
             kind: .element(builder.intern(name)),
-            attributes: attributes,
+            attributes: rootAttributes.isEmpty ? attributes : attributes + rootAttributes,
             children: childIDs,
             flags: isVoid ? .void : [],
             key: nodeKey
