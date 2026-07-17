@@ -56,7 +56,13 @@ let package = Package(
         .target(
             name: "SwiftHTML",
             dependencies: [
-                .target(name: "SwiftHTMLMacros", condition: .when(platforms: applePlatforms)),
+                // Unconditional: the `#Preview` declaration is visible on every
+                // platform (see HTMLPreviewMacro.swift), so the host-side plugin
+                // must be available on every platform too — a use of `#Preview`
+                // in a downstream page source must expand (to nothing) on WASI
+                // as well. A platform condition here makes such builds fail with
+                // "plugin for module 'SwiftHTMLMacros' not found".
+                .target(name: "SwiftHTMLMacros"),
             ],
             swiftSettings: swiftSettings
         ),
