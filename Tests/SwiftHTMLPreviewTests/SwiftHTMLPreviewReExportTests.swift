@@ -16,5 +16,17 @@ struct SwiftHTMLPreviewReExportTests {
 
         #expect(html.contains("<div class=\"card\">Re-export</div>"))
     }
+
+    @Test
+    func rendersCompleteDocumentPreview() {
+        let html = HTMLPreviewRenderer().render(Document {
+            title { "Preview" }
+        } body: {
+            main { "Document body" }
+        })
+
+        #expect(html.contains("<title>Preview</title>"))
+        #expect(html.contains("<main>Document body</main>"))
+    }
 }
 #endif

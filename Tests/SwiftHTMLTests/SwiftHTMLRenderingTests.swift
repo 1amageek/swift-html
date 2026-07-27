@@ -15,8 +15,8 @@ private extension EnvironmentValues {
 private struct EnvironmentReader: ClientComponent {
     @Environment(\.testValue) private var value: String
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         span(.id("environment-value")) {
             value
         }
@@ -32,8 +32,8 @@ private struct ControlFlowDocument: Component {
     let showOptionalContent: Bool
     let mode: Mode
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div {
             if showOptionalContent {
                 span(.class("optional")) {
@@ -56,6 +56,32 @@ private struct ControlFlowDocument: Component {
                 }
             }
         }
+    }
+}
+
+private struct NestedComponentBoundaryRoot: ClientComponent {
+    var content: some Component {
+        NestedComponentBoundaryChild()
+    }
+}
+
+private struct NestedComponentBoundaryChild: Component {
+    var content: some Component {
+        span { "Nested" }
+    }
+}
+
+private struct EnvironmentReadingDocument: HTMLDocument {
+    @Environment(\.testValue) private var value: String
+
+    @HTMLBuilder
+    var head: some Component {
+        title { value }
+    }
+
+    @HTMLBuilder
+    var body: some Component {
+        main { value }
     }
 }
 
@@ -88,30 +114,116 @@ private struct TestAttributeTransformer: HTMLAttributeTransformer {
     }
 }
 
+private struct TestSectionModifier: ComponentModifier {
+    func content(_ content: ModifierContent) -> some Component {
+        section(.class("modified")) {
+            content
+        }
+    }
+}
+
+private struct TestEnvironmentReadingModifier: ComponentModifier {
+    @Environment(\.testValue) private var value: String
+
+    func content(_ content: ModifierContent) -> some Component {
+        section(.data("environment", value)) {
+            content
+        }
+    }
+}
+
 @Suite
 struct SwiftHTMLRenderingTests {
     @Test
-    func rendersLowercaseDocumentAndEscapesText() {
+    func rendersDocumentSectionsAttributesAndEscapedText() {
         let artifact = HTMLRenderer().render(
-            document {
-                html {
-                    head {
-                        meta(.charset("utf-8"))
-                        title { "Hello <World>" }
-                    }
-                    body {
-                        div(.id("root"), .class("screen")) {
-                            "5 > 3 & 2 < 4"
-                        }
-                    }
+            Document(
+                htmlAttributes: [.lang("ja")],
+                bodyAttributes: [.class("screen")]
+            ) {
+                meta(.charset("utf-8"))
+                title { "Hello <World>" }
+            } body: {
+                div(.id("root")) {
+                    "5 > 3 & 2 < 4"
                 }
             }
         )
 
-        #expect(artifact.html.contains("<!doctype html><html>"))
+        #expect(artifact.html.contains("<!doctype html><html lang=\"ja\">"))
         #expect(artifact.html.contains("<meta charset=\"utf-8\">"))
         #expect(artifact.html.contains("<title>Hello &lt;World&gt;</title>"))
-        #expect(artifact.html.contains("<div id=\"root\" class=\"screen\">5 &gt; 3 &amp; 2 &lt; 4</div>"))
+        #expect(artifact.html.contains("<body class=\"screen\"><div id=\"root\">5 &gt; 3 &amp; 2 &lt; 4</div></body>"))
+    }
+
+    @Test
+    func documentReadsRootEnvironmentInHeadAndBody() {
+        var environment = EnvironmentValues()
+        environment.testValue = "configured"
+
+        let artifact = HTMLRenderer().render(
+            EnvironmentReadingDocument(),
+            environment: environment
+        )
+
+        #expect(artifact.html.contains("<title>configured</title>"))
+        #expect(artifact.html.contains("<main>configured</main>"))
+    }
+
+    @Test
+    func publicAuthoringBoundaryUsesComponentsForPrimitivesAndBuilderOutput() {
+        requirePrimitiveComponent(div.self)
+
+        let component = buildComponent {
+            h1 { "Title" }
+            p { "Body" }
+        }
+
+        #expect(component.render() == "<h1>Title</h1><p>Body</p>")
+    }
+
+    @Test
+    func nestedComponentsUseDistinctContentPathsAndComponentIDs() {
+        let components = HTMLRenderer().render(NestedComponentBoundaryRoot()).hydration.components
+
+        #expect(components.count == 2)
+        #expect(Set(components.map(\.path)).count == components.count)
+        #expect(Set(components.map(\.id)).count == components.count)
+        #expect(components.contains { component in
+            component.typeName == "SwiftHTML.Component"
+        })
+        #expect(components.contains { component in
+            component.path.split(separator: "/").contains("content")
+        })
+    }
+
+    @Test
+    func componentModifierTransformsComponentContent() {
+        let rendered = p("Modified")
+            .modifier(TestSectionModifier())
+            .render()
+
+        #expect(rendered == "<section class=\"modified\"><p>Modified</p></section>")
+    }
+
+    @Test
+    func componentModifierReadsEnvironmentAtRenderTime() {
+        let rendered = p("Modified")
+            .modifier(TestEnvironmentReadingModifier())
+            .environment(\.testValue, "configured")
+            .render()
+
+        #expect(rendered == "<section data-environment=\"configured\"><p>Modified</p></section>")
+    }
+
+    private func requirePrimitiveComponent<Primitive: Component>(
+        _ type: Primitive.Type
+    ) where Primitive.Content == Never {}
+
+    private func buildComponent<Content: Component>(
+        @HTMLBuilder _ content: () -> Content
+    ) -> Content {
+        content()
     }
 
     @Test
@@ -354,13 +466,13 @@ struct SwiftHTMLRenderingTests {
     }
 
     @Test
-    func builderUsesTupleComponentForMultipleChildren() {
+    func builderUsesComponentContentForMultipleChildren() {
         let built = makeHTML {
             span { "One" }
             strong { "Two" }
         }
 
-        #expect(String(reflecting: type(of: built)).contains("TupleComponent"))
+        #expect(String(reflecting: type(of: built)).contains("ComponentContent"))
         #expect(built.render() == "<span>One</span><strong>Two</strong>")
     }
 
@@ -396,7 +508,7 @@ struct SwiftHTMLRenderingTests {
     }
 
     @Test
-    func readsEnvironmentThroughComponentBody() {
+    func readsEnvironmentThroughComponentContent() {
         let rendered = EnvironmentReader()
             .environment(\.testValue, "configured")
             .render()
@@ -473,7 +585,7 @@ struct SwiftHTMLRenderingTests {
         #expect(elapsed < .seconds(10))
     }
 
-    private func rows(_ ids: [Int]) -> some HTML {
+    private func rows(_ ids: [Int]) -> some Component {
         ul {
             ForEach(ids.map { Row(id: $0, title: "Row \($0)") }) { row in
                 li {
@@ -483,14 +595,14 @@ struct SwiftHTMLRenderingTests {
         }
     }
 
-    private func makeHTML(@HTMLBuilder _ content: () -> some HTML) -> some HTML {
+    private func makeHTML(@HTMLBuilder _ content: () -> some Component) -> some Component {
         content()
     }
 }
 
 private struct ClientButton: ClientComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {}) {
             "Run"
         }

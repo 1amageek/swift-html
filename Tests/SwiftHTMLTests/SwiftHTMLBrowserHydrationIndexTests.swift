@@ -5,8 +5,8 @@ import Testing
 private struct IndexCounterComponent: ClientComponent, Sendable {
     @State private var count = 0
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             count += 1
         }) {
@@ -16,8 +16,8 @@ private struct IndexCounterComponent: ClientComponent, Sendable {
 }
 
 private struct IndexOuterClient: ClientComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div(.class("outer")) {
             IndexServerSlot()
         }
@@ -25,8 +25,8 @@ private struct IndexOuterClient: ClientComponent {
 }
 
 private struct IndexServerSlot: ServerComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         section(.class("server-slot")) {
             span {
                 "Server"
@@ -37,8 +37,8 @@ private struct IndexServerSlot: ServerComponent {
 }
 
 private struct IndexInnerClient: ClientComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {}) {
             "Inner"
         }
@@ -46,8 +46,8 @@ private struct IndexInnerClient: ClientComponent {
 }
 
 private struct IndexRawStyleClient: ClientComponent, Sendable {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         style {
             rawHTML("a{color:red}")
         }
@@ -56,6 +56,56 @@ private struct IndexRawStyleClient: ClientComponent, Sendable {
 
 @Suite
 struct SwiftHTMLBrowserHydrationIndexTests {
+    @Test
+    func nodeStoragePreservesSparseAndNegativePublicIDs() throws {
+        let negativeID = HTMLNodeID(-1)
+        let sparseID = HTMLNodeID(Int.max)
+        let negativeNode = HTMLDOMNode(id: negativeID, kind: .text("negative"))
+        let sparseNode = HTMLDOMNode(id: sparseID, kind: .text("sparse"))
+        let storage = HTMLDOMNodeStorage([
+            negativeID: negativeNode,
+            sparseID: sparseNode,
+        ])
+
+        #expect(storage.count == 2)
+        #expect(storage[negativeID] == negativeNode)
+        #expect(storage[sparseID] == sparseNode)
+    }
+
+    @Test
+    func commandBufferCommitsBatchAndIndexAtomically() async {
+        let buffer = BrowserDOMCommandBuffer()
+
+        await withTaskGroup(of: Void.self) { group in
+            for rawID in 0..<200 {
+                group.addTask {
+                    let id = HTMLNodeID(rawID)
+                    let batch = BrowserDOMCommandBatch(commands: [
+                        .updateText(node: id, value: "\(rawID)"),
+                    ])
+                    let index = BrowserHydrationIndex(
+                        rootID: id,
+                        nodes: [],
+                        components: [],
+                        serverSlots: [],
+                        handlers: []
+                    )
+                    buffer.apply(batch, currentIndex: index)
+                }
+            }
+        }
+
+        let pairs = Array(zip(buffer.batches(), buffer.indexes()))
+        #expect(pairs.count == 200)
+        #expect(pairs.allSatisfy { batch, index in
+            guard let command = batch.first,
+                  case .updateText(let node, _) = command else {
+                return false
+            }
+            return node == index.rootID
+        })
+    }
+
     @Test
     func rawHTMLInsideStyleIsAddressableThroughSoleChildParent() throws {
         let artifact = IndexRawStyleClient().renderArtifact()

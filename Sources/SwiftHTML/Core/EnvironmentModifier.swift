@@ -1,4 +1,4 @@
-public struct EnvironmentModifier<Content: HTML>: HTMLPrimitive {
+public struct EnvironmentModifier<Content: Component>: HTMLPrimitive {
     private let apply: @Sendable (inout EnvironmentValues) -> Void
     private let content: Content
 

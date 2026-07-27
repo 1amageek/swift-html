@@ -1,31 +1,31 @@
 public struct HTMLDOMSnapshot: Sendable, Equatable {
     public var rootID: HTMLNodeID
-    public var nodes: [HTMLNodeID: HTMLDOMNode]
+    public var nodes: HTMLDOMNodeStorage
 
     public init(rootID: HTMLNodeID, nodes: [HTMLNodeID: HTMLDOMNode]) {
         self.rootID = rootID
-        self.nodes = nodes
+        self.nodes = HTMLDOMNodeStorage(nodes)
     }
 
     init(graph: HTMLGraph, rootID: HTMLNodeID) {
-        var nodes: [HTMLNodeID: HTMLDOMNode] = [:]
+        var nodes: [HTMLDOMNode] = []
         nodes.reserveCapacity(graph.nodes.count)
 
         for index in graph.nodes.indices {
             let id = HTMLNodeID(index)
             let record = graph.nodes[index]
-            nodes[id] = HTMLDOMNode(
+            nodes.append(HTMLDOMNode(
                 id: id,
                 kind: Self.kind(record.kind, graph: graph),
                 attributes: graph.attributes(of: id),
                 children: graph.children(of: id).map(HTMLDOMChild.node),
                 flags: record.flags,
                 key: record.key
-            )
+            ))
         }
 
         self.rootID = rootID
-        self.nodes = nodes
+        self.nodes = HTMLDOMNodeStorage(nodes)
     }
 
     public var html: String {

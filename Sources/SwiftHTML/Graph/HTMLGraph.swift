@@ -46,7 +46,7 @@ public struct Key: Hashable, Sendable {
         self.identity = self.rawValue
     }
 
-    init(rawValue: String, identity: String) {
+    public init(rawValue: String, identity: String) {
         self.rawValue = rawValue
         self.identity = identity
     }
@@ -159,7 +159,7 @@ public struct HTMLAttributeRecord: Sendable, Equatable {
     }
 }
 
-public struct ClientHandlerManifest {
+public struct ClientHandlerManifest: Sendable {
     public var handlers: [ClientHandlerRecord]
 
     public init(handlers: [ClientHandlerRecord] = []) {
@@ -167,7 +167,7 @@ public struct ClientHandlerManifest {
     }
 }
 
-public struct ClientHandlerRecord {
+public struct ClientHandlerRecord: Sendable {
     public let id: HandlerID
     public let eventName: String
     public let componentID: ComponentID?
@@ -341,7 +341,7 @@ public struct HydrationComponentRecord: Sendable, Equatable {
     }
 }
 
-public struct RenderArtifact {
+public struct RenderArtifact: Sendable {
     public let html: String
     let graph: HTMLGraph
     public let rootID: HTMLNodeID
@@ -490,6 +490,7 @@ public struct HTMLGraphBuilder {
         self.options = options
     }
 
+    @usableFromInline
     mutating func append<H: HTML>(_ html: H) -> HTMLNodeID {
         H._buildNode(html, in: &self)
     }
@@ -543,12 +544,48 @@ public struct HTMLGraphBuilder {
         addNode(kind: .fragment, children: [])
     }
 
+    mutating func buildDocumentNode<Document: HTMLDocument>(
+        _ document: Document
+    ) -> HTMLNodeID {
+        let headID = withPathSegment("document:head") { builder in
+            let contentID = EnvironmentContext.withValue(builder.environment) {
+                builder.append(document.head)
+            }
+            return builder.addNode(
+                kind: .element(builder.intern("head")),
+                children: [contentID]
+            )
+        }
+        let bodyID = withPathSegment("document:body") { builder in
+            let contentID = EnvironmentContext.withValue(builder.environment) {
+                builder.append(document.body)
+            }
+            return builder.addNode(
+                kind: .element(builder.intern("body")),
+                attributes: document.bodyAttributes,
+                children: [contentID]
+            )
+        }
+        let htmlID = addNode(
+            kind: .element(intern("html")),
+            attributes: document.htmlAttributes,
+            children: [headID, bodyID]
+        )
+        return addNode(kind: .document, children: [htmlID])
+    }
+
     mutating func buildComponentNode<C: Component>(_ component: C) -> HTMLNodeID {
-        let typeName = RuntimeTypeName.reflecting(C.self)
-        let path = currentPath()
-        let componentID = makeComponentID(typeName: typeName, path: path)
         let isExplicitClientComponent = C._isClientComponent
         let isServerComponent = C._isServerComponent
+        // Standard WASM's runtime demangler cannot safely reflect arbitrarily
+        // nested generic component metadata. Use the same stable structural
+        // identity on every target so SSR and client hydration derive identical
+        // component and state-slot identifiers.
+        let typeName = isExplicitClientComponent || isServerComponent
+            ? RuntimeTypeName.reflecting(C.self)
+            : "SwiftHTML.Component"
+        let path = currentPath()
+        let componentID = makeComponentID(typeName: typeName, path: path)
         let isClientOwned = isExplicitClientComponent || (clientOwnershipDepth > 0 && !isServerComponent)
         let serverSlotOwner = isServerComponent && clientOwnershipDepth > 0 ? clientComponentStack.last : nil
         let componentLoadPolicy = component._clientLoadPolicy ?? LoadPolicy.eager
@@ -616,7 +653,7 @@ public struct HTMLGraphBuilder {
             EnvironmentReadContext.withValue(environmentRecorder) {
                 StateContext.withValue(stateContext) {
                     EnvironmentContext.withValue(componentEnvironment) {
-                        appendComponentBody(component, store: store, componentID: componentID)
+                        appendComponentContent(component, store: store, componentID: componentID)
                     }
                 }
             }
@@ -717,21 +754,25 @@ public struct HTMLGraphBuilder {
 
     }
 
-    private mutating func appendComponentBody<C: Component>(
+    private mutating func appendComponentContent<C: Component>(
         _ component: C,
         store: StateStore,
         componentID: ComponentID
     ) -> HTMLNodeID {
         #if canImport(Observation)
         withObservationTracking {
-            let body = component.body
-            return append(body)
+            let content = component.content
+            return withPathSegment("content") { builder in
+                builder.append(content)
+            }
         } onChange: {
             store.markDirty(componentID)
         }
         #else
-        let body = component.body
-        return append(body)
+        let content = component.content
+        return withPathSegment("content") { builder in
+            builder.append(content)
+        }
         #endif
     }
 

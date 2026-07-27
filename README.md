@@ -31,7 +31,9 @@ This README describes the current `main` branch. Use the README from a matching 
 
 ## Requirements
 
-SwiftHTML currently requires Swift 6.3 and Apple platform SDKs that provide `Synchronization.Mutex`.
+SwiftHTML uses the pinned Swift 6.4 development snapshot
+`swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-07-17-a`. Native, standard WASM, and
+Embedded WASM builds use toolchain and SDK artifacts from that same snapshot.
 
 | Platform | Minimum |
 |---|---:|
@@ -46,7 +48,7 @@ SwiftHTML currently requires Swift 6.3 and Apple platform SDKs that provide `Syn
 Add SwiftHTML to a Swift Package. The examples in this README use the current `main` branch API:
 
 ```swift
-// swift-tools-version: 6.3
+// swift-tools-version: 6.4
 import PackageDescription
 
 let package = Package(
@@ -73,31 +75,46 @@ remains as a compatibility re-export for existing `import SwiftHTMLPreview` code
 ```swift
 import SwiftHTML
 
-struct HomePage: Component {
-    var body: some HTML {
-        document {
-            html {
-                head {
-                    meta(.charset("utf-8"))
-                    title("SwiftHTML")
-                }
-                SwiftHTML.body {
-                    main(.class("page")) {
-                        h1("SwiftHTML")
-                        p("Typed HTML rendered from Swift values.")
-                        a(.href("/docs")) {
-                            "Read the docs"
-                        }
-                    }
-                }
+struct HomeDocument: HTMLDocument {
+    var head: some Component {
+        meta(.charset("utf-8"))
+        title("SwiftHTML")
+    }
+
+    var body: some Component {
+        main(.class("page")) {
+            h1("SwiftHTML")
+            p("Typed HTML rendered from Swift values.")
+            a(.href("/docs")) {
+                "Read the docs"
             }
         }
     }
 }
 
-let html = HomePage().render()
+let html = HomeDocument().render()
 print(html)
 ```
+
+`HTMLDocument` separates the document shell from nestable components:
+
+```text
+HTML
+├─ HTMLDocument    <!doctype html> + html + head + body
+└─ Component
+   ├─ custom components
+   └─ tags / text / builder output
+```
+
+A document conforms to `HTML`, so it uses the same renderer, but it does not
+conform to `Component`. The result builder therefore prevents accidentally
+nesting a complete document inside a component or element.
+
+Custom components expose `var content: some Component`. `ComponentBuilder`
+lowers that authored tree to stable `ComponentContent` storage before
+rendering; application code does not declare fragment protocols or store
+fragment values. Complete documents keep the familiar `head` and `body`
+sections without colliding with a component's authored property.
 
 ## Copyable Snippets
 
@@ -115,39 +132,34 @@ struct ArticleSummary: Sendable {
     let href: String
 }
 
-struct ArticleListPage: Component, Sendable {
+struct ArticleListDocument: HTMLDocument {
     let articles: [ArticleSummary]
 
-    var body: some HTML {
-        document {
-            html {
-                head {
-                    meta(.charset("utf-8"))
-                    title("Latest Articles")
-                }
-                SwiftHTML.body {
-                    main(.class("article-list")) {
-                        h1("Latest Articles")
-                        p(.class("lead"), text: "Rendered on the server with typed SwiftHTML components.")
+    var head: some Component {
+        meta(.charset("utf-8"))
+        title("Latest Articles")
+    }
 
-                        section(.aria("label", "Articles")) {
-                            ForEach(articles, id: \.id) { summary in
-                                articleCard(summary)
-                            }
-                        }
-                    }
-                    .style {
-                        .maxWidth("720px")
-                        .margin("0 auto")
-                        .padding("32px")
-                        .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
-                    }
+    var body: some Component {
+        main(.class("article-list")) {
+            h1("Latest Articles")
+            p(.class("lead"), text: "Rendered on the server with typed SwiftHTML components.")
+
+            section(.aria("label", "Articles")) {
+                ForEach(articles, id: \.id) { summary in
+                    articleCard(summary)
                 }
             }
         }
+        .style {
+            .maxWidth("720px")
+            .margin("0 auto")
+            .padding("32px")
+            .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
+        }
     }
 
-    private func articleCard(_ summary: ArticleSummary) -> some HTML {
+    private func articleCard(_ summary: ArticleSummary) -> some Component {
         article(.class("article-card")) {
             h2 {
                 a(.href(summary.href)) {
@@ -165,7 +177,7 @@ struct ArticleListPage: Component, Sendable {
 }
 
 func renderArticleListPage() -> String {
-    ArticleListPage(
+    ArticleListDocument(
         articles: [
             ArticleSummary(
                 id: "swift-html",
@@ -222,10 +234,10 @@ import SwiftHTML
 ```swift
 import SwiftHTML
 
-struct InlineCounter: ClientComponent, Sendable {
+struct InlineCounter: ClientComponent {
     @State private var count = 0
 
-    var body: some HTML {
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             count += 1
         }) {
@@ -354,7 +366,8 @@ let rendered = div(.id("root")) {
 | Concept | API | Notes |
 |---|---|---|
 | HTML primitive | `div`, `span`, `input`, `text`, `rawHTML`, `Element` | Lowercase types map to DOM tags. |
-| Component | `Component` | A value that returns `body`. |
+| Document | `HTMLDocument` | A complete document with explicit `head` and `body` sections. |
+| Component | `Component` | Nestable HTML content. Custom components return their child tree through `content`. |
 | Server-owned component | `ServerComponent` | SSR/default ownership boundary. |
 | Client-owned component | `ClientComponent` | Owns `@State`, event closures, and hydration metadata. |
 | Render result | `RenderArtifact` | Public facade for HTML, diagnostics, manifests, handlers, and snapshots. |
@@ -406,7 +419,7 @@ struct Menu: Component {
     let items: [String]
     let isSignedIn: Bool
 
-    var body: some HTML {
+    var content: some Component {
         nav {
             ul {
                 ForEach(items, id: \.self) { item in
@@ -493,10 +506,10 @@ The generated CSS property surface is based on `@mdn/browser-compat-data`. Stand
 `ClientComponent` can own `@State` and event closures:
 
 ```swift
-struct Counter: ClientComponent, Sendable {
+struct Counter: ClientComponent {
     @State private var count = 0
 
-    var body: some HTML {
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             count += 1
         }) {
@@ -565,7 +578,7 @@ extension EnvironmentValues {
 struct LocaleLabel: Component {
     @Environment(\.locale) private var locale
 
-    var body: some HTML {
+    var content: some Component {
         span {
             locale
         }
@@ -579,7 +592,7 @@ Type-based environment reads are optional:
 struct LibraryReader: Component {
     @Environment(Library.self) private var library: Library?
 
-    var body: some HTML {
+    var content: some Component {
         if let library {
             span {
                 library.title
@@ -628,7 +641,9 @@ The package includes `Examples/EmbeddedWasm`, which verifies the compiler
 profile boundary by connecting `SwiftHTMLClientRuntime` to JavaScriptKit in an
 example package. JavaScriptKit remains outside the core SwiftHTML target.
 
-Measured with Swift 6.3.1 and no `wasm-opt`:
+The following historical measurement used Swift 6.3.1 and no `wasm-opt`;
+rerun the script with the pinned Swift 6.4 snapshot before using these numbers
+for a current comparison:
 
 | Encoding | Standard WASM | Embedded WASM | Reduction |
 |---|---:|---:|---:|
@@ -640,7 +655,7 @@ Run the measurement locally:
 
 ```bash
 cd Examples/EmbeddedWasm
-export SWIFT_BIN="/Users/1amageek/Library/Developer/Toolchains/swift-6.3.1-RELEASE.xctoolchain/usr/bin/swift"
+export SWIFT_BIN="$HOME/Library/Developer/Toolchains/swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-07-17-a.xctoolchain/usr/bin/swift"
 ./measure-size.sh
 npm install
 npm run test:browser

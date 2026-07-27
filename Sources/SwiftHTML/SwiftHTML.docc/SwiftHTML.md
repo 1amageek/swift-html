@@ -20,26 +20,21 @@ Use ``HTML/render()`` when you only need an HTML string. Use ``HTML/renderArtifa
 ```swift
 import SwiftHTML
 
-struct HomePage: Component {
-    var body: some HTML {
-        document {
-            html {
-                head {
-                    meta(.charset("utf-8"))
-                    title("SwiftHTML")
-                }
-                SwiftHTML.body {
-                    main(.class("page")) {
-                        h1("SwiftHTML")
-                        p("Typed HTML rendered from Swift values.")
-                    }
-                }
-            }
+struct HomeDocument: HTMLDocument {
+    var head: some Component {
+        meta(.charset("utf-8"))
+        title("SwiftHTML")
+    }
+
+    var body: some Component {
+        main(.class("page")) {
+            h1("SwiftHTML")
+            p("Typed HTML rendered from Swift values.")
         }
     }
 }
 
-let artifact = HomePage().renderArtifact()
+let artifact = HomeDocument().renderArtifact()
 print(artifact.html)
 ```
 
@@ -54,6 +49,8 @@ print(artifact.html)
 ### Component Model
 
 - ``HTML``
+- ``HTMLDocument``
+- ``Document``
 - ``Component``
 - ``ServerComponent``
 - ``ClientComponent``

@@ -1,3 +1,5 @@
+import Synchronization
+
 /// Carrier for attributes that must land on the next element the graph walk
 /// enters. Set by `RootAttributes`, consumed by `Element.buildNode` at
 /// entry — the walk enters the subtree root before its children, so the
@@ -32,23 +34,9 @@ final class HTMLRootAttributeBox: Sendable {
 
 /// Scope storage for the pending root-attribute box. Both the binding and
 /// the consumption happen inside the render walk (a single synchronous
-/// recursion on one thread), so unlike `HTMLAttributeTransformContext` no
-/// enlarged-stack propagator is needed; Embedded, which has no `@TaskLocal`,
-/// uses the same save/restore the transform context uses there.
+/// recursion), so unlike `HTMLAttributeTransformContext` no enlarged-stack
+/// propagator is needed.
 enum HTMLRootAttributeContext {
-    #if hasFeature(Embedded)
-    nonisolated(unsafe) private static var pending: HTMLRootAttributeBox?
-
-    static func withPending<Result>(
-        _ box: HTMLRootAttributeBox,
-        operation: () throws -> Result
-    ) rethrows -> Result {
-        let previous = pending
-        pending = box
-        defer { pending = previous }
-        return try operation()
-    }
-    #else
     @TaskLocal private static var pending: HTMLRootAttributeBox?
 
     static func withPending<Result>(
@@ -57,7 +45,6 @@ enum HTMLRootAttributeContext {
     ) rethrows -> Result {
         try $pending.withValue(box, operation: operation)
     }
-    #endif
 
     static func consume() -> [HTMLAttribute] {
         pending?.take() ?? []
@@ -71,7 +58,7 @@ enum HTMLRootAttributeContext {
 ///
 /// The content must render at least one element; rendering none is a
 /// programming error and traps, so attributes are never silently dropped.
-public struct RootAttributes<Content: HTML>: HTMLPrimitive {
+public struct RootAttributes<Content: Component>: HTMLPrimitive {
     private let attributes: [HTMLAttribute]
     private let content: HTMLContent
 

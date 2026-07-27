@@ -7,10 +7,10 @@ Use `ClientComponent` and `@State` to model browser-owned interaction state.
 ``State`` stores component-scoped values in a ``StateStore`` during rendering and hydration.
 
 ```swift
-struct Counter: ClientComponent, Sendable {
+struct Counter: ClientComponent {
     @State private var count = 0
 
-    var body: some HTML {
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             count += 1
         }) {
@@ -33,10 +33,10 @@ ForEach(rows, id: { row in row.id }) { row in
 ``Binding`` connects form properties to state.
 
 ```swift
-struct NameField: ClientComponent, Sendable {
+struct NameField: ClientComponent {
     @State private var name = "Alice"
 
-    var body: some HTML {
+    var content: some Component {
         input(
             .type(.text),
             .value($name),

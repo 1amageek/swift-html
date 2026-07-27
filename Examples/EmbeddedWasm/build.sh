@@ -3,7 +3,7 @@ set -euxo pipefail
 
 package_dir="$(cd "$(dirname "$0")" && pwd)"
 swift_bin="${SWIFT_BIN:-${SWIFT:-swift}}"
-swift_sdk_base="${SWIFT_SDK_ID_wasm32_unknown_wasip1:-${SWIFT_SDK_ID:-swift-6.3.1-RELEASE_wasm}}"
+swift_sdk_base="${SWIFT_SDK_ID_wasm32_unknown_wasip1:-${SWIFT_SDK_ID:-swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-07-17-a_wasm}}"
 
 case "$swift_sdk_base" in
   *-embedded)

@@ -2,8 +2,8 @@ import SwiftHTML
 import Testing
 
 private struct LoadingE2EPage: ServerComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         main {
             LoadingHeroIsland()
             LoadingAnalyticsIsland()
@@ -13,8 +13,8 @@ private struct LoadingE2EPage: ServerComponent {
 }
 
 private struct LoadingDeferredPage: ServerComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         main {
             LoadingAnalyticsIsland()
             LoadingHelpIsland()
@@ -27,8 +27,8 @@ private struct LoadingHeroIsland: ClientComponent, ClientLoadPolicyProviding {
         .eager
     }
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div(.class("hero")) {
             h1 {
                 "Dashboard"
@@ -42,8 +42,8 @@ private struct LoadingHeroIsland: ClientComponent, ClientLoadPolicyProviding {
 }
 
 private struct LoadingProfileServerSlot: ServerComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         article(.class("profile-slot")) {
             p {
                 "Server profile"
@@ -58,8 +58,8 @@ private struct LoadingProfileActionsIsland: ClientComponent, ClientLoadPolicyPro
         .interaction
     }
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {}) {
             "Open profile"
         }
@@ -71,8 +71,8 @@ private struct LoadingAnalyticsIsland: ClientComponent, ClientLoadPolicyProvidin
         .visible
     }
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         section(.class("analytics")) {
             "Analytics"
         }
@@ -84,8 +84,8 @@ private struct LoadingHelpIsland: ClientComponent, ClientLoadPolicyProviding {
         .idle
     }
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         aside(.class("help")) {
             "Help"
         }

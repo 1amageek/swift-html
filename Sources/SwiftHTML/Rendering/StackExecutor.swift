@@ -1,3 +1,5 @@
+import Synchronization
+
 #if !os(WASI)
 // The enlarged-stack worker below requires `Thread` and `DispatchSemaphore`,
 // which FoundationEssentials does not provide — import full Foundation and
@@ -14,9 +16,10 @@ public protocol EnlargedStackContextPropagator: Sendable {
 }
 
 #if hasFeature(Embedded)
-/// Embedded Swift has neither @TaskLocal nor non-class existentials, and the
-/// embedded render runs on the module's main stack (sized at instantiation),
-/// so the propagator context degenerates to running operations directly.
+/// The Embedded profile does not use the enlarged-stack worker or its
+/// existential propagator list. Individual render contexts still use
+/// `@TaskLocal`; this wrapper runs the operation directly on the stack provided
+/// by the selected Embedded platform implementation.
 public enum EnlargedStackContext {
     public static func withValue<Result>(
         _ propagator: some EnlargedStackContextPropagator,
@@ -72,23 +75,16 @@ public enum EnlargedStackContext {
 
 #endif
 
-#if os(WASI)
+#if os(WASI) || hasFeature(Embedded)
 
-/// Runs `work` directly. WebAssembly is single-threaded and has no `Thread` or
-/// `DispatchSemaphore`, so the enlarged-stack worker is neither available nor
-/// needed: the WASM module's main stack is sized at instantiation, which is where
-/// deep type-metadata recursion is accommodated.
-func withEnlargedStack<Result>(
+/// Runs `work` directly when the selected platform implementation does not
+/// provide the Foundation thread worker used by the Native profile. The
+/// deployment controls the available stack through its platform runtime.
+func withEnlargedStack<Result: Sendable>(
     ofSize stackSize: Int = 64 << 20,
-    _ work: @escaping () -> Result
+    _ work: sending @escaping () -> Result
 ) -> Result {
-    #if hasFeature(Embedded)
     work()
-    #else
-    EnlargedStackContext.apply(EnlargedStackContext.propagators) {
-        work()
-    }
-    #endif
 }
 
 #else
@@ -104,52 +100,70 @@ func withEnlargedStack<Result>(
 /// stack gives that decoding the room it needs, so the component type
 /// architecture stays fully statically typed.
 ///
-/// The call is a synchronous baton: the calling thread blocks on the semaphore
-/// until the worker finishes, so `work` and its result are never accessed
-/// concurrently. This makes the non-`Sendable` hand-off safe by construction.
-func withEnlargedStack<Result>(
+/// The call is a synchronous ownership baton: `work` is transferred into a
+/// once-only mutex-backed box, and the caller blocks until the worker stores a
+/// `Sendable` result. User work and external callbacks run outside the locks.
+func withEnlargedStack<Result: Sendable>(
     ofSize stackSize: Int = 64 << 20,
-    _ work: @escaping () -> Result
+    _ work: sending @escaping () -> Result
 ) -> Result {
     let box = StackResultBox<Result>()
+    let workBox = StackWorkBox(work)
     let semaphore = DispatchSemaphore(value: 0)
     let propagators = EnlargedStackContext.propagators
-    let thread = StackBoundThread(stackSize: stackSize) {
+    let thread = Thread {
         // Always signal, even if `work()` exits abnormally, so the calling thread
         // can never park forever: a failure surfaces as the `box.take()`
         // precondition rather than a silent deadlock of the render path.
         defer { semaphore.signal() }
-        box.value = EnlargedStackContext.apply(propagators) {
-            work()
-        }
+        box.store(EnlargedStackContext.apply(propagators) {
+            workBox.takeAndRun()
+        })
     }
+    thread.stackSize = stackSize
+    #if canImport(Darwin)
+    thread.qualityOfService = .userInitiated
+    #endif
     thread.start()
     semaphore.wait()
     return box.take()
 }
 
-private final class StackResultBox<Result> {
-    var value: Result?
+private final class StackWorkBox<Result: Sendable>: Sendable {
+    private let work: SwiftHTMLMutex<(() -> Result)?>
 
-    func take() -> Result {
-        guard let value else {
-            preconditionFailure("Enlarged-stack worker finished without producing a result")
+    init(_ work: sending @escaping () -> Result) {
+        self.work = SwiftHTMLMutex(work)
+    }
+
+    func takeAndRun() -> Result {
+        let operation = work.withLock { work in
+            guard let operation = work else {
+                preconditionFailure("Enlarged-stack work can only run once")
+            }
+            work = nil
+            return operation
         }
-        return value
+        return operation()
     }
 }
 
-private final class StackBoundThread: Thread {
-    private let work: () -> Void
+private final class StackResultBox<Result: Sendable>: Sendable {
+    private let value = SwiftHTMLMutex<Result?>(nil)
 
-    init(stackSize: Int, work: @escaping () -> Void) {
-        self.work = work
-        super.init()
-        self.stackSize = stackSize
+    func store(_ result: Result) {
+        value.withLock { value in
+            value = result
+        }
     }
 
-    override func main() {
-        work()
+    func take() -> Result {
+        value.withLock { value in
+            guard let result = value else {
+                preconditionFailure("Enlarged-stack worker finished without producing a result")
+            }
+            return result
+        }
     }
 }
 

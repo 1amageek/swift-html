@@ -7,56 +7,38 @@ public protocol HTMLAttributeTransformer: Sendable {
 ///
 /// The transform is stored as a closure, not an `any HTMLAttributeTransformer`:
 /// Embedded Swift forbids non-class existentials, and a closure carries the
-/// same capability on every profile. Propagation uses @TaskLocal where
-/// available; Embedded has no @TaskLocal, and its render walk runs inline on
-/// the single WASI thread, so a plain save/restore is equivalent there.
+/// same capability on every profile. `@TaskLocal` provides the same scoped
+/// propagation and concurrency contract on Native, WASM, and Embedded.
 public enum HTMLAttributeTransformContext {
     public typealias Transform = @Sendable ([HTMLAttribute]) -> [HTMLAttribute]
 
-    #if hasFeature(Embedded)
-    nonisolated(unsafe) private static var current: Transform?
-
-    public static func withTransform<Result>(
-        _ transform: Transform?,
-        operation: () throws -> Result
-    ) rethrows -> Result {
-        let previous = current
-        current = transform
-        defer { current = previous }
-        return try operation()
-    }
-
-    public static func withTransform<Result>(
-        _ transform: Transform?,
-        operation: () async throws -> Result
-    ) async rethrows -> Result {
-        let previous = current
-        current = transform
-        defer { current = previous }
-        return try await operation()
-    }
-    #else
     @TaskLocal private static var current: Transform?
 
     public static func withTransform<Result>(
         _ transform: Transform?,
         operation: () throws -> Result
     ) rethrows -> Result {
+        #if hasFeature(Embedded)
+        try $current.withValue(transform, operation: operation)
+        #else
         try EnlargedStackContext.withValue(HTMLAttributeTransformPropagator(transform: transform)) {
             try $current.withValue(transform, operation: operation)
         }
+        #endif
     }
 
     public static func withTransform<Result>(
         _ transform: Transform?,
         operation: () async throws -> Result
     ) async rethrows -> Result {
+        #if hasFeature(Embedded)
+        try await $current.withValue(transform, operation: operation)
+        #else
         try await EnlargedStackContext.withValue(HTMLAttributeTransformPropagator(transform: transform)) {
             try await $current.withValue(transform, operation: operation)
         }
+        #endif
     }
-    #endif
-
 
     /// Source-compatibility overloads for the pre-0.10 transformer-object API.
     /// Generic (`some`) rather than existential so they compile on Embedded.

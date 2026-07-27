@@ -8,39 +8,36 @@ private struct DocumentationArticleSummary: Sendable {
     let href: String
 }
 
-private struct DocumentationArticleListPage: Component, Sendable {
+private struct DocumentationArticleListPage: HTMLDocument {
     let articles: [DocumentationArticleSummary]
 
-    var body: some HTML {
-        document {
-            html {
-                head {
-                    meta(.charset("utf-8"))
-                    title("Latest Articles")
-                }
-                SwiftHTML.body {
-                    main(.class("article-list")) {
-                        h1("Latest Articles")
-                        p(.class("lead"), text: "Rendered on the server with typed SwiftHTML components.")
+    @HTMLBuilder
+    var head: some Component {
+        meta(.charset("utf-8"))
+        title("Latest Articles")
+    }
 
-                        section(.aria("label", "Articles")) {
-                            ForEach(articles, id: { summary in summary.id }) { summary in
-                                articleCard(summary)
-                            }
-                        }
-                    }
-                    .style {
-                        .maxWidth("720px")
-                        .margin("0 auto")
-                        .padding("32px")
-                        .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
-                    }
+    @HTMLBuilder
+    var body: some Component {
+        main(.class("article-list")) {
+            h1("Latest Articles")
+            p(.class("lead"), text: "Rendered on the server with typed SwiftHTML components.")
+
+            section(.aria("label", "Articles")) {
+                ForEach(articles, id: { summary in summary.id }) { summary in
+                    articleCard(summary)
                 }
             }
         }
+        .style {
+            .maxWidth("720px")
+            .margin("0 auto")
+            .padding("32px")
+            .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
+        }
     }
 
-    private func articleCard(_ summary: DocumentationArticleSummary) -> some HTML {
+    private func articleCard(_ summary: DocumentationArticleSummary) -> some Component {
         article(.class("article-card")) {
             h2 {
                 a(.href(summary.href)) {
@@ -60,7 +57,7 @@ private struct DocumentationArticleListPage: Component, Sendable {
 private struct DocumentationInlineCounter: ClientComponent, Sendable {
     @State private var count = 0
 
-    var body: some HTML {
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             count += 1
         }) {

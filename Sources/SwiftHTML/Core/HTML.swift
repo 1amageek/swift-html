@@ -6,29 +6,26 @@ public protocol HTML: Sendable {
     /// being discovered with `as?` chains. The default handles values that
     /// are none of those kinds, matching the walk's historical fallback.
     static func _buildNode(_ html: Self, in builder: inout HTMLGraphBuilder) -> HTMLNodeID
+
+    /// Type-erased render dispatch used by stable builder boundaries.
+    func _buildNode(in builder: inout HTMLGraphBuilder) -> HTMLNodeID
 }
 
 extension HTML {
-    public static func _buildNode(_ html: Self, in builder: inout HTMLGraphBuilder) -> HTMLNodeID {
-        builder.buildFallbackNode()
+    public func _buildNode(in builder: inout HTMLGraphBuilder) -> HTMLNodeID {
+        Self._buildNode(self, in: &builder)
     }
 }
 
-protocol HTMLPrimitive: HTML {
-    func buildNode(in builder: inout HTMLGraphBuilder) -> HTMLNodeID
-}
-
-extension HTMLPrimitive {
-    public static func _buildNode(_ html: Self, in builder: inout HTMLGraphBuilder) -> HTMLNodeID {
-        html.buildNode(in: &builder)
-    }
-}
-
+/// HTML content that can be nested inside an element or document section.
+///
+/// A complete ``HTMLDocument`` deliberately does not conform to this protocol,
+/// which prevents documents from being embedded inside component content.
 public protocol Component: HTML {
-    associatedtype Body: HTML
+    associatedtype Content: Component
 
-    @HTMLBuilder
-    var body: Body { get }
+    @ComponentBuilder
+    var content: Content { get }
 
     // Render-walk hooks. These are requirements (not plain extension
     // members) so the ClientComponent/ServerComponent refinements override
@@ -48,6 +45,30 @@ extension Component {
 
     public static func _buildNode(_ html: Self, in builder: inout HTMLGraphBuilder) -> HTMLNodeID {
         builder.buildComponentNode(html)
+    }
+
+}
+
+extension Never: Component {
+    public typealias Content = Never
+}
+
+public extension Component where Content == Never {
+    /// Primitive components are rendered by their static lowering witness.
+    ///
+    /// The renderer must not evaluate this property.
+    var content: Never {
+        fatalError("Primitive components do not expose content.")
+    }
+}
+
+protocol HTMLPrimitive: Component where Content == Never {
+    func buildNode(in builder: inout HTMLGraphBuilder) -> HTMLNodeID
+}
+
+extension HTMLPrimitive {
+    public static func _buildNode(_ html: Self, in builder: inout HTMLGraphBuilder) -> HTMLNodeID {
+        html.buildNode(in: &builder)
     }
 }
 
@@ -85,19 +106,85 @@ public extension ClientComponent {
     }
 }
 
-struct HTMLContent: Sendable {
-    private let build: @Sendable (inout HTMLGraphBuilder) -> HTMLNodeID
+/// The stable lowering boundary produced by ``HTMLBuilder``.
+///
+/// Authoring APIs continue to return `some Component`; the builder erases the
+/// concrete nested generic type at the property boundary so renderers do not
+/// need to recover a large associated-type witness at runtime.
+public struct ComponentContent: Component {
+    public typealias Content = Never
 
-    init<Content: HTML>(_ content: Content) {
-        self.build = { builder in
-            builder.append(content)
+    @usableFromInline
+    let buildNodeClosure: @Sendable (inout HTMLGraphBuilder) -> HTMLNodeID
+
+    @usableFromInline
+    @_transparent
+    init<Content: Component>(_ component: Content) {
+        self.buildNodeClosure = { builder in
+            Content._buildNode(component, in: &builder)
         }
     }
 
+    init(tuple children: [ComponentContent]) {
+        self.buildNodeClosure = { builder in
+            var childIDs: [HTMLNodeID] = []
+            childIDs.reserveCapacity(children.count)
+            for (index, child) in children.enumerated() {
+                childIDs.append(builder.withPathSegment("tuple:\(index)") { scopedBuilder in
+                    child.buildNode(in: &scopedBuilder)
+                })
+            }
+            return builder.addNode(kind: .fragment, children: childIDs)
+        }
+    }
+
+    init(array children: [ComponentContent]) {
+        self.buildNodeClosure = { builder in
+            var childIDs: [HTMLNodeID] = []
+            childIDs.reserveCapacity(children.count)
+            for (index, child) in children.enumerated() {
+                childIDs.append(builder.withPathSegment("array:\(index)") { scopedBuilder in
+                    child.buildNode(in: &scopedBuilder)
+                })
+            }
+            return builder.addNode(kind: .fragment, children: childIDs)
+        }
+    }
+
+    init(optional child: ComponentContent?) {
+        self.buildNodeClosure = { builder in
+            guard let child else {
+                return builder.addNode(kind: .fragment, children: [])
+            }
+            let childID = builder.withPathSegment("optional:some") { scopedBuilder in
+                child.buildNode(in: &scopedBuilder)
+            }
+            return builder.addNode(kind: .fragment, children: [childID])
+        }
+    }
+
+    init(conditional child: ComponentContent, branch: String) {
+        self.buildNodeClosure = { builder in
+            let childID = builder.withPathSegment("conditional:\(branch)") { scopedBuilder in
+                child.buildNode(in: &scopedBuilder)
+            }
+            return builder.addNode(kind: .fragment, children: [childID])
+        }
+    }
+
+    public static func _buildNode(
+        _ html: ComponentContent,
+        in builder: inout HTMLGraphBuilder
+    ) -> HTMLNodeID {
+        html.buildNode(in: &builder)
+    }
+
     func buildNode(in builder: inout HTMLGraphBuilder) -> HTMLNodeID {
-        build(&builder)
+        buildNodeClosure(&builder)
     }
 }
+
+typealias HTMLContent = ComponentContent
 
 public struct EmptyHTML: HTMLPrimitive {
     public init() {}

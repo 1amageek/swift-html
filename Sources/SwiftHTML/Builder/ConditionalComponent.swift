@@ -1,4 +1,4 @@
-public enum ConditionalComponent<TrueContent: HTML, FalseContent: HTML>: HTMLPrimitive {
+public enum ConditionalComponent<TrueContent: Component, FalseContent: Component>: HTMLPrimitive {
     case first(TrueContent)
     case second(FalseContent)
 

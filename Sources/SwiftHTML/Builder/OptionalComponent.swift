@@ -1,4 +1,4 @@
-public struct OptionalComponent<Content: HTML>: HTMLPrimitive {
+public struct OptionalComponent<Content: Component>: HTMLPrimitive {
     private let content: Content?
 
     public init(_ content: Content?) {

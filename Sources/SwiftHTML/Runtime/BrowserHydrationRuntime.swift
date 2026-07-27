@@ -1,4 +1,4 @@
-public struct BrowserHydrationRuntime<Root: HTML, Host: BrowserDOMHost> {
+public struct BrowserHydrationRuntime<Root: Component, Host: BrowserDOMHost> {
     public private(set) var session: HydrationRuntimeSession<Root>
     public let host: Host
 

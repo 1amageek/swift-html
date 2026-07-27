@@ -1,4 +1,4 @@
-public struct ArrayComponent<Content: HTML>: HTMLPrimitive {
+public struct ArrayComponent<Content: Component>: HTMLPrimitive {
     private let content: [Content]
 
     public init(_ content: [Content]) {

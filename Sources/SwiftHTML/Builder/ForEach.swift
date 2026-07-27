@@ -1,7 +1,7 @@
 public struct ForEach<
     Data: RandomAccessCollection & Sendable,
     ID: Hashable & Sendable,
-    Content: HTML
+    Content: Component
 >: HTMLPrimitive where Data.Element: Sendable {
     private let data: Data
     private let keyProvider: @Sendable (Data.Element) -> Key

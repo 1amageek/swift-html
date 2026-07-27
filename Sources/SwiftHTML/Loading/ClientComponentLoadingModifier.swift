@@ -1,4 +1,4 @@
-public struct ClientComponentLoadingOverride<Content: HTML>: HTMLPrimitive {
+public struct ClientComponentLoadingOverride<Content: Component>: HTMLPrimitive {
     public let content: Content
     public let loadPolicy: LoadPolicy?
     public let bundle: BundlePolicy?
@@ -25,7 +25,7 @@ public struct ClientComponentLoadingOverride<Content: HTML>: HTMLPrimitive {
     }
 }
 
-public extension HTML {
+public extension Component {
     func loadPolicy(_ policy: LoadPolicy) -> ClientComponentLoadingOverride<Self> {
         ClientComponentLoadingOverride(content: self, loadPolicy: policy)
     }

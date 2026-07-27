@@ -26,7 +26,7 @@
 /// a `#Preview` left in a page source fails to build for WebAssembly (WASI has no
 /// WebKit) with "no macro named 'Preview'".
 @freestanding(declaration)
-public macro Preview<Content: HTML>(
+public macro Preview<Content: Component>(
     _ name: String? = nil,
     @HTMLBuilder _ content: () -> Content
 ) = #externalMacro(module: "SwiftHTMLMacros", type: "HTMLPreviewMacro")

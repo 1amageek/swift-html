@@ -98,26 +98,12 @@ public struct EnvironmentValues: Sendable {
         storage[ObjectIdentifier(type)]?.value(as: Value.self) != nil
     }
 
-    #if !hasFeature(Embedded)
     public static func withValue<Result: Sendable>(
         _ value: EnvironmentValues,
         operation: @Sendable () async throws -> Result
     ) async rethrows -> Result {
         try await EnvironmentContext.withValue(value, operation: operation)
     }
-    #else
-    /// Embedded: no @TaskLocal; the render walk runs inline on the single
-    /// WASI thread, so plain save/restore is equivalent.
-    public static func withValue<Result: Sendable>(
-        _ value: EnvironmentValues,
-        operation: @Sendable () async throws -> Result
-    ) async rethrows -> Result {
-        let previous = EnvironmentContext.current
-        EnvironmentContext.current = value
-        defer { EnvironmentContext.current = previous }
-        return try await operation()
-    }
-    #endif
 
     /// The ambient environment established by the enclosing `withValue`
     /// scope (empty outside any). This is what `@Environment` resolves from.
@@ -127,20 +113,6 @@ public struct EnvironmentValues: Sendable {
 }
 
 enum EnvironmentContext {
-    #if hasFeature(Embedded)
-    nonisolated(unsafe) static var current = EnvironmentValues()
-
-    static func withValue<Result>(
-        _ value: EnvironmentValues,
-        operation: () throws -> Result
-    ) rethrows -> Result {
-        let previous = current
-        current = value
-        defer { current = previous }
-        return try operation()
-    }
-
-    #else
     @TaskLocal static var current = EnvironmentValues()
 
     static func withValue<Result>(
@@ -156,7 +128,6 @@ enum EnvironmentContext {
     ) async rethrows -> Result {
         try await $current.withValue(value, operation: operation)
     }
-    #endif
 }
 
 @propertyWrapper
@@ -194,8 +165,8 @@ public struct Environment<Value: Sendable>: Sendable {
     }
 }
 
-public extension HTML {
-    func environment<Value: Sendable>(_ value: Value) -> some HTML {
+public extension Component {
+    func environment<Value: Sendable>(_ value: Value) -> some Component {
         EnvironmentModifier(value) {
             self
         }
@@ -205,7 +176,7 @@ public extension HTML {
     func environment<Value: Sendable>(
         _ keyPath: WritableKeyPath<EnvironmentValues, Value> & Sendable,
         _ value: Value
-    ) -> some HTML {
+    ) -> some Component {
         EnvironmentModifier(keyPath, value) {
             self
         }
@@ -219,7 +190,7 @@ public extension HTML {
     /// accessors and scope the change to the wrapped content.
     func transformEnvironment(
         _ transform: @escaping @Sendable (inout EnvironmentValues) -> Void
-    ) -> some HTML {
+    ) -> some Component {
         EnvironmentModifier(transform: transform) {
             self
         }

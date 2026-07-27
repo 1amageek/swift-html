@@ -1,3 +1,5 @@
+import Synchronization
+
 #if canImport(Foundation)
 #if canImport(FoundationEssentials)
 import FoundationEssentials
@@ -96,7 +98,11 @@ public struct ClientEnvironmentSnapshotDecoder: Sendable {
             do {
                 #if canImport(Foundation)
                 let data = Data(snapshotValue.encodedValue.utf8)
+                #if os(WASI)
+                environment[Key.self] = try SwiftHTMLJSONDecoder.decode(Key.Value.self, from: data)
+                #else
                 environment[Key.self] = try JSONDecoder().decode(Key.Value.self, from: data)
+                #endif
                 #else
                 throw ClientEnvironmentSnapshotError.unavailableDecoding(
                     key: snapshotValue.key,
@@ -228,19 +234,6 @@ final class EnvironmentReadRecorder: Sendable {
 }
 
 enum EnvironmentReadContext {
-    #if hasFeature(Embedded)
-    nonisolated(unsafe) static var current: EnvironmentReadRecorder?
-
-    static func withValue<Result>(
-        _ value: EnvironmentReadRecorder?,
-        operation: () throws -> Result
-    ) rethrows -> Result {
-        let previous = current
-        current = value
-        defer { current = previous }
-        return try operation()
-    }
-    #else
     @TaskLocal static var current: EnvironmentReadRecorder?
 
     static func withValue<Result>(
@@ -249,7 +242,6 @@ enum EnvironmentReadContext {
     ) rethrows -> Result {
         try $current.withValue(value, operation: operation)
     }
-    #endif
 }
 
 #if hasFeature(Embedded)

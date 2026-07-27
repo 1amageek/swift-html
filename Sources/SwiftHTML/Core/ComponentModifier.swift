@@ -1,6 +1,6 @@
 public protocol ComponentModifier: Sendable {
-    associatedtype Body: HTML
+    associatedtype Content: Component
 
-    @HTMLBuilder
-    func body(content: ModifierContent) -> Body
+    @ComponentBuilder
+    func content(_ content: ModifierContent) -> Content
 }

@@ -9,13 +9,11 @@ Render HTML strings for static output, or render artifacts for diagnostics, hydr
 ```swift
 let renderer = HTMLRenderer()
 let artifact = renderer.render(
-    document {
-        html {
-            SwiftHTML.body {
-                main {
-                    h1("Dashboard")
-                }
-            }
+    Document {
+        title("Dashboard")
+    } body: {
+        main {
+            h1("Dashboard")
         }
     }
 )

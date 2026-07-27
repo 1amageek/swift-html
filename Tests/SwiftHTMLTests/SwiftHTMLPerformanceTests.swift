@@ -140,7 +140,7 @@ struct SwiftHTMLPerformanceTests {
         return result
     }
 
-    private func largeTable(rowCount: Int) -> some HTML {
+    private func largeTable(rowCount: Int) -> some Component {
         table {
             tbody {
                 ForEach(Array(0..<rowCount), id: { value in value }) { value in
@@ -153,7 +153,7 @@ struct SwiftHTMLPerformanceTests {
         }
     }
 
-    private func keyedRows(_ values: [Int]) -> some HTML {
+    private func keyedRows(_ values: [Int]) -> some Component {
         ul {
             ForEach(values, id: { value in value }) { value in
                 li {
@@ -163,19 +163,19 @@ struct SwiftHTMLPerformanceTests {
         }
     }
 
-    private func handlerHeavyDOM(count: Int) -> some HTML {
+    private func handlerHeavyDOM(count: Int) -> some Component {
         HandlerHeavyDOM(values: Array(0..<count))
     }
 
-    private func environmentHeavyDOM(count: Int) -> some HTML {
+    private func environmentHeavyDOM(count: Int) -> some Component {
         EnvironmentHeavyDOM(values: Array(0..<count))
     }
 
-    private func textareaHeavyDOM(count: Int) -> some HTML {
+    private func textareaHeavyDOM(count: Int) -> some Component {
         TextareaHeavyDOM(values: Array(0..<count))
     }
 
-    private func nestedDiv(depth: Int) -> some HTML {
+    private func nestedDiv(depth: Int) -> some Component {
         NestedDiv(depth: depth)
     }
 }
@@ -209,8 +209,8 @@ private extension EnvironmentValues {
 private struct HandlerHeavyDOM: ClientComponent {
     let values: [Int]
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div {
             ForEach(values, id: { value in value }) { value in
                 button(.type(ButtonType.button), .onClick({})) {
@@ -224,8 +224,8 @@ private struct HandlerHeavyDOM: ClientComponent {
 private struct EnvironmentHeavyDOM: Component {
     let values: [Int]
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div {
             ForEach(values, id: { value in value }) { value in
                 EnvironmentHeavyRow(value: value)
@@ -238,8 +238,8 @@ private struct EnvironmentHeavyRow: ClientComponent {
     let value: Int
     @Environment(\.performanceValue) private var environmentValue: String
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         span(.data("row", String(value))) {
             "Row \(value): \(environmentValue)"
         }
@@ -249,8 +249,8 @@ private struct EnvironmentHeavyRow: ClientComponent {
 private struct TextareaHeavyDOM: Component {
     let values: [Int]
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div {
             ForEach(values, id: { value in value }) { value in
                 TextareaHeavyRow(value: value)
@@ -268,8 +268,8 @@ private struct TextareaHeavyRow: ClientComponent {
         self._note = State(wrappedValue: "Note \(value) <draft>")
     }
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         textarea(.value($note)) {}
     }
 }

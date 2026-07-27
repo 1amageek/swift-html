@@ -16,8 +16,8 @@ private extension EnvironmentValues {
 private struct PatternEnvironmentReader: ClientComponent {
     @Environment(\.patternValue) private var value: String
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         span(.class("environment-value")) {
             value
         }
@@ -25,8 +25,8 @@ private struct PatternEnvironmentReader: ClientComponent {
 }
 
 private struct NestedPatternComponent: ClientComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div(.id("nested-component")) {
             PatternEnvironmentReader()
         }
@@ -297,7 +297,7 @@ struct SwiftHTMLPatternTests {
         #expect(rendered.contains("closedby=\"closerequest\""))
     }
 
-    private func makeHTML(@HTMLBuilder _ content: () -> some HTML) -> some HTML {
+    private func makeHTML(@HTMLBuilder _ content: () -> some Component) -> some Component {
         content()
     }
 }
@@ -305,8 +305,8 @@ struct SwiftHTMLPatternTests {
 private struct EventPanel: ClientComponent {
     let counter: CounterBox
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div {
             input(
                 .onInput { event in
@@ -334,8 +334,8 @@ private struct EventPanel: ClientComponent {
 private struct PayloadEventPanel: ClientComponent {
     let payload: EventPayloadBox
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div {
             button(.onClick { event in
                 payload.append("click:\(event.clientX ?? -1):\(event.clientY ?? -1):\(event["target"] ?? "missing")")

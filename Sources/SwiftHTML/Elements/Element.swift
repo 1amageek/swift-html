@@ -1,4 +1,4 @@
-public protocol ElementRepresentable: HTML {
+public protocol ElementRepresentable: Component where Content == Never {
     var element: Element { get }
 
     init(_ element: Element)
@@ -168,14 +168,14 @@ public struct Element: ElementRepresentable, HTMLPrimitive {
         self.init(name, attributes: attributes, children: [HTMLContent(text(value))])
     }
 
-    public init<Content: HTML>(
+    public init<Content: Component>(
         _ name: String,
         @HTMLBuilder _ content: () -> Content
     ) {
         self.init(name, attributes: [], children: [HTMLContent(content())])
     }
 
-    public init<Content: HTML>(
+    public init<Content: Component>(
         _ name: String,
         _ attributes: HTMLAttribute...,
         @HTMLBuilder content: () -> Content
@@ -183,7 +183,7 @@ public struct Element: ElementRepresentable, HTMLPrimitive {
         self.init(name, attributes: attributes, children: [HTMLContent(content())])
     }
 
-    public init<Content: HTML>(
+    public init<Content: Component>(
         _ name: String,
         attributes: [HTMLAttribute],
         isVoid: Bool = false,

@@ -99,7 +99,7 @@ struct NavigationMenu: Component {
     let mode: Mode
     let items: [String]
 
-    var body: some HTML {
+    var content: some Component {
         nav {
             ul {
                 ForEach(items, id: { item in item }) { item in

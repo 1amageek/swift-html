@@ -14,7 +14,7 @@ public struct HTMLPreviewRenderer: Sendable {
         self.renderOptions = renderOptions
     }
 
-    public func render(_ content: some HTML) -> String {
+    public func render(_ content: some Component) -> String {
         HTMLPreviewDocument(
             title: "SwiftHTML Preview",
             style: stylesheet.cssText,
@@ -23,6 +23,10 @@ public struct HTMLPreviewRenderer: Sendable {
         )
         .renderArtifact(options: renderOptions)
         .html
+    }
+
+    public func render(_ document: some HTMLDocument) -> String {
+        document.renderArtifact(options: renderOptions).html
     }
 
     public static let defaultStylesheet = Stylesheet {

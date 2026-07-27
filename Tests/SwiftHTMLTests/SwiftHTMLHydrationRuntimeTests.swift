@@ -5,8 +5,8 @@ import Testing
 private struct RuntimeCounterComponent: ClientComponent, Sendable {
     @State private var count = 0
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             count += 1
         }) {
@@ -18,8 +18,8 @@ private struct RuntimeCounterComponent: ClientComponent, Sendable {
 private struct RuntimeBidirectionalCounterComponent: ClientComponent, Sendable {
     @State private var count = 0
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             count -= 1
         }) {
@@ -39,8 +39,8 @@ private struct RuntimeBidirectionalCounterComponent: ClientComponent, Sendable {
 private struct RuntimeTextInputComponent: ClientComponent, Sendable {
     @State private var name = "Alice"
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         input(
             .type(InputType.text),
             .value($name),
@@ -54,8 +54,8 @@ private struct RuntimeTextInputComponent: ClientComponent, Sendable {
 private struct RuntimeReorderingComponent: ClientComponent, Sendable {
     @State private var reversed = false
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             reversed.toggle()
         }) {
@@ -85,8 +85,8 @@ private extension EnvironmentValues {
 private struct RuntimeServerOnlyReader: Component {
     @Environment(\.runtimeServerOnlyValue) private var serverOnlyValue: String
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         span {
             serverOnlyValue
         }
@@ -96,8 +96,8 @@ private struct RuntimeServerOnlyReader: Component {
 private struct RuntimeInvalidAfterEventComponent: ClientComponent, Sendable {
     @State private var readsServerOnlyValue = false
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             readsServerOnlyValue = true
         }) {

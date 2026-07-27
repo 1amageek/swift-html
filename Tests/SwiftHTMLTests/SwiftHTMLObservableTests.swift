@@ -66,8 +66,8 @@ private struct ObservableLibraryPage: ClientComponent {
         self._library = State(wrappedValue: library)
     }
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         ObservableLibraryView()
             .environment(library)
     }
@@ -76,8 +76,8 @@ private struct ObservableLibraryPage: ClientComponent {
 private struct ObservableLibraryView: Component {
     @Environment(ObservableLibrary.self) private var library: ObservableLibrary?
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         section(.class("library")) {
             if let library {
                 ForEach(library.books) { book in
@@ -96,8 +96,8 @@ private struct ObservableLibraryView: Component {
 private struct ObservableBookRow: Component {
     let book: ObservableBook
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         span(.class("book-title")) {
             book.title
         }
@@ -107,8 +107,8 @@ private struct ObservableBookRow: Component {
 private struct ObservableBookEditor: Component {
     let book: ObservableBook
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         input(
             .type(InputType.text),
             .value(
@@ -122,8 +122,8 @@ private struct ObservableBookEditor: Component {
 }
 
 private struct MissingObservableLibraryPage: ClientComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         ObservableLibraryView()
     }
 }

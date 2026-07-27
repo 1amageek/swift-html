@@ -31,7 +31,11 @@ public struct StateSnapshotValue: Sendable, Equatable {
         }
         #if canImport(Foundation)
         let data = Data(encodedValue.utf8)
+        #if os(WASI)
+        return try SwiftHTMLJSONDecoder.decode(type, from: data)
+        #else
         return try JSONDecoder().decode(type, from: data)
+        #endif
         #else
         throw DecodingError.dataCorrupted(
             DecodingError.Context(

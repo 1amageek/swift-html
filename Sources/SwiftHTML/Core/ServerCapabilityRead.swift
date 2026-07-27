@@ -1,3 +1,5 @@
+import Synchronization
+
 public struct ServerCapabilityReadRecord: Sendable, Equatable {
     public let key: String
     public let valueType: String
@@ -31,19 +33,6 @@ public final class ServerCapabilityReadRecorder: Sendable {
 }
 
 public enum ServerCapabilityReadContext {
-    #if hasFeature(Embedded)
-    nonisolated(unsafe) public static var current: ServerCapabilityReadRecorder?
-
-    public static func withValue<Result>(
-        _ value: ServerCapabilityReadRecorder?,
-        operation: () throws -> Result
-    ) rethrows -> Result {
-        let previous = current
-        current = value
-        defer { current = previous }
-        return try operation()
-    }
-    #else
     @TaskLocal public static var current: ServerCapabilityReadRecorder?
 
     public static func withValue<Result>(
@@ -52,7 +41,6 @@ public enum ServerCapabilityReadContext {
     ) rethrows -> Result {
         try $current.withValue(value, operation: operation)
     }
-    #endif
 
     public static func record<Value>(
         _ key: String,

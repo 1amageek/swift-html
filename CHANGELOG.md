@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.12.0 - 2026-07-27
+
+| Area | Included |
+|---|---|
+| Component API | Breaking: component declarations now expose `Content` through `content` and use `@ComponentBuilder`. The builder preserves structural composition without the removed public tuple component implementation. Migrate custom components from `Body` / `body` to `Content` / `content`. |
+| Documents | Adds `HTMLDocument` as the typed document entry point, including root environment propagation into both `head` and `body`, rendering support, and Xcode preview support. |
+| Hydration | Stabilizes component identity across Native and WASM, makes restored state installation atomic, prevents duplicate state slots, and restores indexed browser hydration lookup. |
+| Runtime | Makes DOM command batches atomic, supports sparse DOM node identifiers without trapping, and expands the portable JSON decoder to inherited `Codable` payloads and Base64 `Data`. |
+| Portability | Moves the package to the pinned Swift 6.4 development snapshot and validates Native, standard WASM, and Embedded WASM builds from the same toolchain snapshot. Shared mutable state uses the same `Synchronization.Mutex` contract across profiles. |
+| Embedded WASM | Adds a measured standard-versus-Embedded client runtime example and keeps Thread/Dispatch execution outside the Embedded build path. |
+| Documentation | Updates README, DocC, and the generated reference for the component builder, documents, hydration, previews, and the Swift 6.4 WASM workflow. |
+
 ## 0.9.1
 
 | Area | Included |

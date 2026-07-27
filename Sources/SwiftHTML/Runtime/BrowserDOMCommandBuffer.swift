@@ -1,39 +1,43 @@
+import Synchronization
+
 public final class BrowserDOMCommandBuffer: BrowserDOMHost {
-    private let storage = SwiftHTMLMutex([[BrowserDOMCommand]]())
-    private let indexStorage = SwiftHTMLMutex([BrowserHydrationIndex]())
+    private struct State: Sendable {
+        var batches: [[BrowserDOMCommand]] = []
+        var indexes: [BrowserHydrationIndex] = []
+    }
+
+    private let state = SwiftHTMLMutex(State())
 
     public init() {}
 
     public func apply(_ batch: BrowserDOMCommandBatch, currentIndex: BrowserHydrationIndex) {
-        storage.withLock { batches in
-            batches.append(batch.commands)
-        }
-        indexStorage.withLock { indexes in
-            indexes.append(currentIndex)
+        state.withLock { state in
+            state.batches.append(batch.commands)
+            state.indexes.append(currentIndex)
         }
     }
 
     public func batches() -> [[BrowserDOMCommand]] {
-        storage.withLock { batches in
-            batches
+        state.withLock { state in
+            state.batches
         }
     }
 
     public func lastBatch() -> [BrowserDOMCommand]? {
-        storage.withLock { batches in
-            batches.last
+        state.withLock { state in
+            state.batches.last
         }
     }
 
     public func indexes() -> [BrowserHydrationIndex] {
-        indexStorage.withLock { indexes in
-            indexes
+        state.withLock { state in
+            state.indexes
         }
     }
 
     public func lastIndex() -> BrowserHydrationIndex? {
-        indexStorage.withLock { indexes in
-            indexes.last
+        state.withLock { state in
+            state.indexes.last
         }
     }
 }

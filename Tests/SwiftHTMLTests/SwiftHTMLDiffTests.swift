@@ -324,14 +324,14 @@ struct SwiftHTMLDiffTests {
         })
     }
 
-    private func page(title: String, rows: [Int]) -> some HTML {
+    private func page(title: String, rows: [Int]) -> some Component {
         article {
             h1 { title }
             keyedList(rows.map { DiffRow(id: $0, title: "Row \($0)") })
         }
     }
 
-    private func unkeyedList(_ values: [String]) -> some HTML {
+    private func unkeyedList(_ values: [String]) -> some Component {
         ul {
             for value in values {
                 li {
@@ -341,7 +341,7 @@ struct SwiftHTMLDiffTests {
         }
     }
 
-    private func keyedList(_ rows: [DiffRow]) -> some HTML {
+    private func keyedList(_ rows: [DiffRow]) -> some Component {
         ul {
             ForEach(rows) { row in
                 li {

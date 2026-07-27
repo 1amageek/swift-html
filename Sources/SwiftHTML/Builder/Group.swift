@@ -1,4 +1,4 @@
-public struct Group<Content: HTML>: HTMLPrimitive {
+public struct Group<Content: Component>: HTMLPrimitive {
     private let content: Content
 
     public init(@HTMLBuilder content: () -> Content) {

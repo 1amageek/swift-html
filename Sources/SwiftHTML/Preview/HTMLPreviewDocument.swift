@@ -1,5 +1,5 @@
 #if DEBUG && canImport(WebKit)
-struct HTMLPreviewDocument<Content: HTML>: Component {
+struct HTMLPreviewDocument<Content: Component>: HTMLDocument {
     let titleText: String
     let styleText: String
     let language: String
@@ -17,25 +17,25 @@ struct HTMLPreviewDocument<Content: HTML>: Component {
         self.content = content
     }
 
+    var htmlAttributes: [HTMLAttribute] {
+        [.lang(language)]
+    }
+
     @HTMLBuilder
-    var body: some HTML {
-        document {
-            html(.lang(language)) {
-                head {
-                    meta(.charset("utf-8"))
-                    meta(.name("viewport"), .content("width=device-width, initial-scale=1"))
-                    title {
-                        titleText
-                    }
-                    style {
-                        rawHTML(styleText)
-                    }
-                }
-                SwiftHTML.body {
-                    content
-                }
-            }
+    var head: some Component {
+        meta(.charset("utf-8"))
+        meta(.name("viewport"), .content("width=device-width, initial-scale=1"))
+        title {
+            titleText
         }
+        style {
+            rawHTML(styleText)
+        }
+    }
+
+    @HTMLBuilder
+    var body: some Component {
+        content
     }
 }
 #endif

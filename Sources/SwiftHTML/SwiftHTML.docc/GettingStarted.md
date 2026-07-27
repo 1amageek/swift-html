@@ -4,7 +4,8 @@ Create typed HTML from Swift values and render it as an HTML string or a render 
 
 ## Copyable Page Example
 
-This example is a complete copyable starting point. It defines input data, a ``Component``, and a render function.
+This example is a complete copyable starting point. It defines input data, an
+``HTMLDocument``, and a render function.
 
 ```swift
 import SwiftHTML
@@ -16,39 +17,34 @@ struct ProductSummary: Sendable {
     let href: String
 }
 
-struct ProductGridPage: Component, Sendable {
+struct ProductGridDocument: HTMLDocument {
     let products: [ProductSummary]
 
-    var body: some HTML {
-        document {
-            html {
-                head {
-                    meta(.charset("utf-8"))
-                    title("Products")
-                }
-                SwiftHTML.body {
-                    main(.class("product-grid")) {
-                        h1("Products")
-                        p(.class("lead"), text: "A typed SwiftHTML page rendered on the server.")
+    var head: some Component {
+        meta(.charset("utf-8"))
+        title("Products")
+    }
 
-                        section(.aria("label", "Products")) {
-                            ForEach(products, id: { product in product.id }) { product in
-                                productCard(product)
-                            }
-                        }
-                    }
-                    .style {
-                        .maxWidth("840px")
-                        .margin("0 auto")
-                        .padding("32px")
-                        .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
-                    }
+    var body: some Component {
+        main(.class("product-grid")) {
+            h1("Products")
+            p(.class("lead"), text: "A typed SwiftHTML page rendered on the server.")
+
+            section(.aria("label", "Products")) {
+                ForEach(products, id: { product in product.id }) { product in
+                    productCard(product)
                 }
             }
         }
+        .style {
+            .maxWidth("840px")
+            .margin("0 auto")
+            .padding("32px")
+            .font("16px -apple-system, BlinkMacSystemFont, sans-serif")
+        }
     }
 
-    private func productCard(_ product: ProductSummary) -> some HTML {
+    private func productCard(_ product: ProductSummary) -> some Component {
         article(.class("product-card")) {
             h2 {
                 a(.href(product.href)) {
@@ -66,7 +62,7 @@ struct ProductGridPage: Component, Sendable {
 }
 
 func renderProductGridPage() -> String {
-    ProductGridPage(
+    ProductGridDocument(
         products: [
             ProductSummary(id: "keyboard", title: "Keyboard", price: "$129", href: "/products/keyboard"),
             ProductSummary(id: "trackpad", title: "Trackpad", price: "$149", href: "/products/trackpad"),
@@ -76,7 +72,9 @@ func renderProductGridPage() -> String {
 }
 ```
 
-`body` is built with ``HTMLBuilder``. Builder content may contain tags, components, strings, control flow, and `ForEach`.
+`head` and `body` are built with ``HTMLBuilder``. Builder content must conform
+to ``Component`` and may contain tags, components, strings, control flow,
+and `ForEach`. A complete document cannot be nested in either section.
 
 ## Render HTML
 
@@ -106,7 +104,7 @@ The output contains escaped text:
 Use ``HTML/renderArtifact(environment:stateStore:options:)`` when a higher-level package needs metadata in addition to the HTML string.
 
 ```swift
-let artifact = ProductGridPage(
+let artifact = ProductGridDocument(
     products: [
         ProductSummary(id: "keyboard", title: "Keyboard", price: "$129", href: "/products/keyboard"),
     ]

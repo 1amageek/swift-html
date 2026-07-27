@@ -19,11 +19,24 @@ public typealias _HTMLPreviewValue = DeveloperToolsSupport.Preview
 /// Builds the `DeveloperToolsSupport.Preview` that the `#Preview` macro registers.
 /// Called only from the macro expansion.
 @MainActor
-public func _makeHTMLPreview<Content: HTML>(
+public func _makeHTMLPreview<Content: Component>(
     _ name: String? = nil,
     @HTMLBuilder _ content: () -> Content
 ) -> DeveloperToolsSupport.Preview {
     let webView = HTMLPreview(content: content)
+    if let name {
+        return DeveloperToolsSupport.Preview(name) { webView }
+    }
+    return DeveloperToolsSupport.Preview { webView }
+}
+
+/// Builds a preview for a complete HTML document.
+@MainActor
+public func _makeHTMLPreview<Document: HTMLDocument>(
+    _ name: String? = nil,
+    _ document: () -> Document
+) -> DeveloperToolsSupport.Preview {
+    let webView = HTMLPreview(document: document)
     if let name {
         return DeveloperToolsSupport.Preview(name) { webView }
     }
@@ -47,7 +60,7 @@ public func _makeHTMLPreview<Content: HTML>(
 /// and the surface is gated behind `#if DEBUG && canImport(WebKit)`, so it never
 /// links into a release server or a WebAssembly build.
 @MainActor
-public func HTMLPreview<Content: HTML>(
+public func HTMLPreview<Content: Component>(
     language: String = "en",
     stylesheet: Stylesheet = HTMLPreviewRenderer.defaultStylesheet,
     baseURL: URL? = nil,
@@ -63,6 +76,26 @@ public func HTMLPreview<Content: HTML>(
     configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
     let webView = WKWebView(frame: .zero, configuration: configuration)
     webView.loadHTMLString(renderer.render(content()), baseURL: baseURL)
+    return webView
+}
+
+
+/// A WebKit-backed preview surface for a complete HTML document.
+@MainActor
+public func HTMLPreview<Document: HTMLDocument>(
+    stylesheet: Stylesheet = HTMLPreviewRenderer.defaultStylesheet,
+    baseURL: URL? = nil,
+    renderOptions: HTMLRenderOptions = .development,
+    document: () -> Document
+) -> WKWebView {
+    let renderer = HTMLPreviewRenderer(
+        stylesheet: stylesheet,
+        renderOptions: renderOptions
+    )
+    let configuration = WKWebViewConfiguration()
+    configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
+    let webView = WKWebView(frame: .zero, configuration: configuration)
+    webView.loadHTMLString(renderer.render(document()), baseURL: baseURL)
     return webView
 }
 #endif

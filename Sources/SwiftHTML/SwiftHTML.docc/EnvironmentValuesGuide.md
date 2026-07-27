@@ -25,7 +25,7 @@ Read the value with ``Environment``:
 struct LocaleLabel: Component {
     @Environment(\.locale) private var locale: String
 
-    var body: some HTML {
+    var content: some Component {
         span {
             locale
         }
@@ -64,7 +64,7 @@ struct Library: Sendable {
 struct LibraryReader: Component {
     @Environment(Library.self) private var library: Library?
 
-    var body: some HTML {
+    var content: some Component {
         if let library {
             span {
                 library.title

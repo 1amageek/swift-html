@@ -1,7 +1,11 @@
 @resultBuilder
-public enum HTMLBuilder {
+public enum ComponentBuilder {
+    public static func buildFinalResult(_ component: ComponentContent) -> ComponentContent {
+        component
+    }
+
     public static func buildBlock() -> ComponentContent {
-        ComponentContent(tuple: [])
+        HTMLBuilder.buildBlock()
     }
 
     public static func buildBlock(_ component: ComponentContent) -> ComponentContent {
@@ -12,7 +16,7 @@ public enum HTMLBuilder {
         _ c0: ComponentContent,
         _ c1: ComponentContent
     ) -> ComponentContent {
-        ComponentContent(tuple: [c0, c1])
+        HTMLBuilder.buildBlock(c0, c1)
     }
 
     public static func buildBlock(
@@ -20,7 +24,7 @@ public enum HTMLBuilder {
         _ c1: ComponentContent,
         _ c2: ComponentContent
     ) -> ComponentContent {
-        ComponentContent(tuple: [c0, c1, c2])
+        HTMLBuilder.buildBlock(c0, c1, c2)
     }
 
     public static func buildBlock(
@@ -29,7 +33,7 @@ public enum HTMLBuilder {
         _ c2: ComponentContent,
         _ c3: ComponentContent
     ) -> ComponentContent {
-        ComponentContent(tuple: [c0, c1, c2, c3])
+        HTMLBuilder.buildBlock(c0, c1, c2, c3)
     }
 
     public static func buildBlock(
@@ -39,7 +43,7 @@ public enum HTMLBuilder {
         _ c3: ComponentContent,
         _ c4: ComponentContent
     ) -> ComponentContent {
-        ComponentContent(tuple: [c0, c1, c2, c3, c4])
+        HTMLBuilder.buildBlock(c0, c1, c2, c3, c4)
     }
 
     public static func buildBlock(
@@ -50,7 +54,7 @@ public enum HTMLBuilder {
         _ c4: ComponentContent,
         _ c5: ComponentContent
     ) -> ComponentContent {
-        ComponentContent(tuple: [c0, c1, c2, c3, c4, c5])
+        HTMLBuilder.buildBlock(c0, c1, c2, c3, c4, c5)
     }
 
     public static func buildBlock(
@@ -62,7 +66,7 @@ public enum HTMLBuilder {
         _ c5: ComponentContent,
         _ c6: ComponentContent
     ) -> ComponentContent {
-        ComponentContent(tuple: [c0, c1, c2, c3, c4, c5, c6])
+        HTMLBuilder.buildBlock(c0, c1, c2, c3, c4, c5, c6)
     }
 
     public static func buildBlock(
@@ -75,7 +79,7 @@ public enum HTMLBuilder {
         _ c6: ComponentContent,
         _ c7: ComponentContent
     ) -> ComponentContent {
-        ComponentContent(tuple: [c0, c1, c2, c3, c4, c5, c6, c7])
+        HTMLBuilder.buildBlock(c0, c1, c2, c3, c4, c5, c6, c7)
     }
 
     public static func buildBlock(
@@ -89,7 +93,7 @@ public enum HTMLBuilder {
         _ c7: ComponentContent,
         _ c8: ComponentContent
     ) -> ComponentContent {
-        ComponentContent(tuple: [c0, c1, c2, c3, c4, c5, c6, c7, c8])
+        HTMLBuilder.buildBlock(c0, c1, c2, c3, c4, c5, c6, c7, c8)
     }
 
     public static func buildBlock(
@@ -104,57 +108,59 @@ public enum HTMLBuilder {
         _ c8: ComponentContent,
         _ c9: ComponentContent
     ) -> ComponentContent {
-        ComponentContent(tuple: [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9])
+        HTMLBuilder.buildBlock(c0, c1, c2, c3, c4, c5, c6, c7, c8, c9)
     }
 
     @_transparent
     public static func buildExpression<Content: Component>(
         _ expression: Content
     ) -> ComponentContent {
-        ComponentContent(expression)
+        HTMLBuilder.buildExpression(expression)
     }
 
-    @_transparent
     public static func buildExpression(_ expression: String) -> ComponentContent {
-        ComponentContent(text(expression))
+        HTMLBuilder.buildExpression(expression)
     }
 
-    @_transparent
     public static func buildExpression(_ expression: Int) -> ComponentContent {
-        ComponentContent(text(String(expression)))
+        HTMLBuilder.buildExpression(expression)
     }
 
-    @_transparent
     public static func buildExpression(_ expression: Double) -> ComponentContent {
-        ComponentContent(text(String(expression)))
+        HTMLBuilder.buildExpression(expression)
     }
 
-    @_transparent
     public static func buildExpression(_ expression: Bool) -> ComponentContent {
-        ComponentContent(text(String(expression)))
+        HTMLBuilder.buildExpression(expression)
     }
 
-    public static func buildOptional(_ component: ComponentContent?) -> ComponentContent {
-        ComponentContent(optional: component)
+    public static func buildOptional(
+        _ component: ComponentContent?
+    ) -> ComponentContent {
+        HTMLBuilder.buildOptional(component)
     }
 
     public static func buildEither(
         first component: ComponentContent
     ) -> ComponentContent {
-        ComponentContent(conditional: component, branch: "first")
+        HTMLBuilder.buildEither(first: component)
     }
 
     public static func buildEither(
         second component: ComponentContent
     ) -> ComponentContent {
-        ComponentContent(conditional: component, branch: "second")
+        HTMLBuilder.buildEither(second: component)
     }
 
-    public static func buildArray(_ components: [ComponentContent]) -> ComponentContent {
-        ComponentContent(array: components)
+    public static func buildArray(
+        _ components: [ComponentContent]
+    ) -> ComponentContent {
+        HTMLBuilder.buildArray(components)
     }
 
-    public static func buildLimitedAvailability(_ component: ComponentContent) -> ComponentContent {
-        component
+    public static func buildLimitedAvailability(
+        _ component: ComponentContent
+    ) -> ComponentContent {
+        HTMLBuilder.buildLimitedAvailability(component)
     }
 }

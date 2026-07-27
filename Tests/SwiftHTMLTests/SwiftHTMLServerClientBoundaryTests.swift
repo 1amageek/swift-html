@@ -51,8 +51,8 @@ private extension EnvironmentValues {
 }
 
 private struct BoundaryServerPage: ServerComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         section {
             "server"
             BoundaryClientCounter()
@@ -63,8 +63,8 @@ private struct BoundaryServerPage: ServerComponent {
 private struct BoundaryClientCounter: ClientComponent {
     @State private var count = 0
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             count += 1
         }) {
@@ -74,8 +74,8 @@ private struct BoundaryClientCounter: ClientComponent {
 }
 
 private struct BoundaryClientShell: ClientComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div {
             BoundaryPlainLabel()
         }
@@ -83,8 +83,8 @@ private struct BoundaryClientShell: ClientComponent {
 }
 
 private struct BoundaryPlainLabel: Component {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         span {
             "plain"
         }
@@ -92,15 +92,15 @@ private struct BoundaryPlainLabel: Component {
 }
 
 private struct BoundaryOuterClient: ClientComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         BoundaryServerSlot()
     }
 }
 
 private struct BoundaryServerSlot: ServerComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         article {
             "slot"
             BoundaryInnerClient()
@@ -109,8 +109,8 @@ private struct BoundaryServerSlot: ServerComponent {
 }
 
 private struct BoundaryInnerClient: ClientComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         span {
             "inner"
         }
@@ -120,8 +120,8 @@ private struct BoundaryInnerClient: ClientComponent {
 private struct BoundaryOuterClientWithServerText: ClientComponent {
     let text: String
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         BoundaryServerTextSlot(text: text)
     }
 }
@@ -129,8 +129,8 @@ private struct BoundaryOuterClientWithServerText: ClientComponent {
 private struct BoundaryServerTextSlot: ServerComponent {
     let text: String
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         p {
             text
         }
@@ -141,8 +141,8 @@ private struct BoundaryEnvironmentReader: ClientComponent {
     @Environment(\.boundaryClientValue) private var clientValue: String
     @Environment(\.boundaryServerOnlyValue) private var serverOnlyValue: String
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div {
             span(.class("client")) {
                 clientValue
@@ -157,8 +157,8 @@ private struct BoundaryEnvironmentReader: ClientComponent {
 private struct BoundaryServerState: ServerComponent {
     @State private var count = 0
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         span {
             "Server count \(count)"
         }
@@ -166,8 +166,8 @@ private struct BoundaryServerState: ServerComponent {
 }
 
 private struct BoundaryServerEvent: ServerComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {}) {
             "Invalid"
         }
@@ -175,8 +175,8 @@ private struct BoundaryServerEvent: ServerComponent {
 }
 
 private struct BoundaryServerCapabilityReader: ClientComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         span {
             serverCapabilityText()
         }
@@ -191,8 +191,8 @@ private struct BoundaryServerCapabilityReader: ClientComponent {
 private struct BoundaryFailingClientEnvironmentReader: ClientComponent {
     @Environment(\.boundaryFailingClientValue) private var value: BoundaryFailingClientEnvironmentValue
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         span {
             value.description
         }
@@ -221,7 +221,7 @@ struct SwiftHTMLServerClientBoundaryTests {
         let componentNames = artifact.hydration.components.map(\.typeName)
 
         #expect(componentNames.contains { $0.hasSuffix(".BoundaryClientShell") })
-        #expect(componentNames.contains { $0.hasSuffix(".BoundaryPlainLabel") })
+        #expect(componentNames.contains("SwiftHTML.Component"))
         #expect(artifact.diagnostics.isEmpty)
     }
 

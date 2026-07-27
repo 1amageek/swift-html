@@ -20,7 +20,7 @@ public struct BrowserHydrationIndexExporter: Sendable {
 
             nodes.append(BrowserHydrationNodeRecord(
                 id: id,
-                parentID: parentIDs[id],
+                parentID: parentIDs[index],
                 childIDs: artifact.graph.children(of: id),
                 role: role(for: artifact.graph.node(id).kind),
                 name: name(for: artifact.graph.node(id).kind, graph: artifact.graph),
@@ -61,22 +61,24 @@ public struct BrowserHydrationIndexExporter: Sendable {
         )
     }
 
-    private func parentIDs(in graph: HTMLGraph) -> [HTMLNodeID: HTMLNodeID] {
-        var result: [HTMLNodeID: HTMLNodeID] = [:]
+    private func parentIDs(in graph: HTMLGraph) -> [HTMLNodeID?] {
+        var result = Array<HTMLNodeID?>(repeating: nil, count: graph.nodes.count)
         for index in graph.nodes.indices {
             let parentID = HTMLNodeID(index)
             for childID in graph.children(of: parentID) {
-                result[childID] = parentID
+                result[childID.rawValue] = parentID
             }
         }
         return result
     }
 
-    private func handlerComponents(in manifest: ClientHandlerManifest) -> [HandlerID: ComponentID] {
-        var result: [HandlerID: ComponentID] = [:]
+    private func handlerComponents(
+        in manifest: ClientHandlerManifest
+    ) -> [(handlerID: HandlerID, componentID: ComponentID)] {
+        var result: [(handlerID: HandlerID, componentID: ComponentID)] = []
         for handler in manifest.handlers {
             if let componentID = handler.componentID {
-                result[handler.id] = componentID
+                result.append((handler.id, componentID))
             }
         }
         return result
@@ -85,7 +87,7 @@ public struct BrowserHydrationIndexExporter: Sendable {
     private func eventBindings(
         nodeID: HTMLNodeID,
         attributes: [HTMLAttributeRecord],
-        handlerComponents: [HandlerID: ComponentID]
+        handlerComponents: [(handlerID: HandlerID, componentID: ComponentID)]
     ) -> [BrowserHydrationEventBinding] {
         attributes.compactMap { attribute in
             guard
@@ -100,7 +102,9 @@ public struct BrowserHydrationIndexExporter: Sendable {
                 nodeID: nodeID,
                 handlerID: handlerID,
                 eventName: eventName,
-                componentID: handlerComponents[handlerID]
+                componentID: handlerComponents.first {
+                    $0.handlerID == handlerID
+                }?.componentID
             )
         }
     }

@@ -15,8 +15,8 @@ private extension EnvironmentValues {
 private struct CounterComponent: ClientComponent, Sendable {
     @State private var count = 0
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             count += 1
         }) {
@@ -28,8 +28,8 @@ private struct CounterComponent: ClientComponent, Sendable {
 private struct EnvironmentConsumerComponent: ClientComponent {
     @Environment(\.hydrationValue) private var value: String
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         span(.class("hydration-value")) {
             value
         }
@@ -40,8 +40,8 @@ private struct StatefulRowComponent: ClientComponent, Sendable {
     let id: Int
     @State private var taps = 0
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             taps += 1
         }) {
@@ -53,8 +53,8 @@ private struct StatefulRowComponent: ClientComponent, Sendable {
 private struct TextInputComponent: ClientComponent, Sendable {
     @State private var name = "Alice"
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         input(
             .type(InputType.text),
             .value($name),
@@ -68,8 +68,8 @@ private struct TextInputComponent: ClientComponent, Sendable {
 private struct CheckboxComponent: ClientComponent, Sendable {
     @State private var accepted = false
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         input(
             .type(InputType.checkbox),
             .checked($accepted),
@@ -83,8 +83,8 @@ private struct CheckboxComponent: ClientComponent, Sendable {
 private struct TextareaComponent: ClientComponent, Sendable {
     @State private var notes = "Line <one>"
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         textarea(
             .value($notes),
             .onInput { event in
@@ -103,8 +103,8 @@ private struct TextareaComponent: ClientComponent, Sendable {
 private struct BindingChildComponent: Component {
     let value: Binding<Int>
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             value.wrappedValue += 1
         }) {
@@ -116,8 +116,8 @@ private struct BindingChildComponent: Component {
 private struct BindingOwnerComponent: ClientComponent, Sendable {
     @State private var count = 0
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div {
             span(.class("owner-readout")) {
                 "Owner \(count)"
@@ -134,8 +134,8 @@ private struct NonCodableStateValue: Sendable {
 private struct NonCodableStateComponent: ClientComponent, Sendable {
     @State private var value = NonCodableStateValue(count: 0)
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div {
             "\(value.count)"
         }
@@ -146,8 +146,8 @@ private struct StaticLoadingContractComponent: ClientComponent, Sendable {
     static let loadPolicy: LoadPolicy = .visible
     static let bundle: BundlePolicy = .named("Analytics")
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div {
             "Analytics"
         }
@@ -158,8 +158,8 @@ private struct NestedLoadingOuterComponent: ClientComponent, Sendable {
     static let loadPolicy: LoadPolicy = .interaction
     static let bundle: BundlePolicy = .shared("Dashboard")
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div {
             NestedLoadingInnerComponent()
                 .loadPolicy(.manual)
@@ -172,8 +172,8 @@ private struct NestedLoadingInnerComponent: ClientComponent, Sendable {
     static let loadPolicy: LoadPolicy = .idle
     static let bundle: BundlePolicy = .component
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button)) {
             "Inner"
         }
@@ -182,6 +182,37 @@ private struct NestedLoadingInnerComponent: ClientComponent, Sendable {
 
 @Suite
 struct SwiftHTMLStateHydrationTests {
+    @Test
+    func concurrentInitialReadsPreserveRestoredState() async throws {
+        let slotID = StateSlotID("concurrent-slot")
+        let store = StateStore()
+        store.restore(StateStoreSnapshot(
+            schemaHash: "schema",
+            values: [
+                slotID.rawValue: StateSnapshotValue(
+                    valueType: "Swift.Int",
+                    encodedValue: "42"
+                ),
+            ]
+        ))
+
+        let values = await withTaskGroup(of: Int.self, returning: [Int].self) { group in
+            for _ in 0..<100 {
+                group.addTask {
+                    store.value(for: slotID, default: 0)
+                }
+            }
+            var values: [Int] = []
+            for await value in group {
+                values.append(value)
+            }
+            return values
+        }
+
+        #expect(values.count == 100)
+        #expect(values.allSatisfy { $0 == 42 })
+    }
+
     @Test
     func stateSlotsAreRecordedInHydrationManifest() throws {
         let store = StateStore()
@@ -453,7 +484,7 @@ struct SwiftHTMLStateHydrationTests {
         #expect(second.html.contains("<textarea data-event-input=\"h1\">Updated &amp; saved</textarea>"))
     }
 
-    private func rows(_ ids: [Int]) -> some HTML {
+    private func rows(_ ids: [Int]) -> some Component {
         ul {
             ForEach(ids, id: { id in id }) { id in
                 StatefulRowComponent(id: id)

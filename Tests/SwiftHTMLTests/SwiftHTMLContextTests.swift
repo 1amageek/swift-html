@@ -24,8 +24,8 @@ private extension EnvironmentValues {
 private struct AuthStatus: ClientComponent, Sendable {
     @Context(AuthContext.self) private var auth: AuthSession
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         span(.class("auth-status")) {
             auth.role
         }
@@ -36,8 +36,8 @@ private struct AuthStatefulPanel: ClientComponent, Sendable {
     @Context(AuthContext.self) private var auth: AuthSession
     @State private var taps = 0
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             taps += 1
         }) {

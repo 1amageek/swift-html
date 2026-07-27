@@ -1,3 +1,5 @@
+import Synchronization
+
 #if canImport(Foundation)
 #if canImport(FoundationEssentials)
 import FoundationEssentials
@@ -54,11 +56,21 @@ public struct StateSlotRecord: Sendable, Equatable {
 }
 
 public final class StateStore: Sendable {
+    private struct ValueEntry: Sendable {
+        var id: StateSlotID
+        var value: RuntimeValueBox
+        var valueType: String
+    }
+
+    private struct RestoredValueEntry: Sendable {
+        var id: StateSlotID
+        var value: StateSnapshotValue
+    }
+
     private struct Storage: Sendable {
-        var values: [StateSlotID: RuntimeValueBox] = [:]
-        var valueTypes: [StateSlotID: String] = [:]
-        var restoredValues: [StateSlotID: StateSnapshotValue] = [:]
-        var dirtyComponents: Set<ComponentID> = []
+        var values: [ValueEntry] = []
+        var restoredValues: [RestoredValueEntry] = []
+        var dirtyComponents: [ComponentID] = []
     }
 
     private let storage = SwiftHTMLMutex(Storage())
@@ -71,15 +83,18 @@ public final class StateStore: Sendable {
     ) -> Value {
         let valueType = RuntimeTypeName.reflecting(Value.self)
         let lookup: (existing: Value?, restored: StateSnapshotValue?) = storage.withLock { storage in
-            if let existing = storage.values[id]?.value(as: Value.self) {
-                return (existing, nil)
+            for entry in storage.values {
+                if entry.id == id,
+                   let existing = entry.value.value(as: Value.self) {
+                    return (existing, nil)
+                }
             }
 
-            if let restored = storage.restoredValues[id] {
-                storage.restoredValues[id] = nil
-                if restored.valueType == valueType {
-                    return (nil, restored)
-                }
+            let restored = storage.restoredValues.first { entry in
+                entry.id == id
+            }?.value
+            if let restored {
+                return (nil, restored)
             }
 
             return (nil, nil)
@@ -89,9 +104,27 @@ public final class StateStore: Sendable {
             return existing
         }
 
-        if let restored = lookup.restored,
-           let restoredValue = Self.decodeRestoredValue(restored, as: Value.self, slot: id) {
-            return install(restoredValue, for: id, valueType: valueType)
+        if let restored = lookup.restored {
+            if restored.valueType == valueType,
+               let restoredValue = Self.decodeRestoredValue(restored, as: Value.self, slot: id) {
+                return installRestored(
+                    restoredValue,
+                    snapshot: restored,
+                    for: id,
+                    valueType: valueType
+                )
+            }
+            if restored.valueType != valueType {
+                Self.reportRestoreFailure(
+                    slot: id,
+                    valueType: valueType,
+                    error: StateRestoreFailure.valueTypeMismatch(
+                        expected: valueType,
+                        actual: restored.valueType
+                    )
+                )
+            }
+            discardRestored(restored, for: id)
         }
 
         return install(defaultValue(), for: id, valueType: valueType)
@@ -104,46 +137,58 @@ public final class StateStore: Sendable {
     ) {
         let valueType = RuntimeTypeName.reflecting(Value.self)
         storage.withLock { storage in
-            storage.values[id] = RuntimeValueBox(value)
-            storage.valueTypes[id] = valueType
-            storage.restoredValues[id] = nil
-            storage.dirtyComponents.insert(componentID)
+            var didUpdateValue = false
+            for index in storage.values.indices {
+                if storage.values[index].id == id {
+                    storage.values[index].value = RuntimeValueBox(value)
+                    storage.values[index].valueType = valueType
+                    didUpdateValue = true
+                    break
+                }
+            }
+            if !didUpdateValue {
+                storage.values.append(
+                    ValueEntry(id: id, value: RuntimeValueBox(value), valueType: valueType)
+                )
+            }
+            storage.restoredValues.removeAll { $0.id == id }
+            if !storage.dirtyComponents.contains(componentID) {
+                storage.dirtyComponents.append(componentID)
+            }
         }
     }
 
     public func markDirty(_ componentID: ComponentID) {
         storage.withLock { storage in
-            _ = storage.dirtyComponents.insert(componentID)
+            if !storage.dirtyComponents.contains(componentID) {
+                storage.dirtyComponents.append(componentID)
+            }
         }
     }
 
     public func contains(_ id: StateSlotID) -> Bool {
         storage.withLock { storage in
-            storage.values[id] != nil || storage.restoredValues[id] != nil
+            storage.values.contains { $0.id == id }
+                || storage.restoredValues.contains { $0.id == id }
         }
     }
 
     public func dirtyComponents() -> [ComponentID] {
         storage.withLock { storage in
-            Array(storage.dirtyComponents)
+            storage.dirtyComponents
         }
     }
 
     public func clearDirtyComponents(_ components: [ComponentID]) {
         storage.withLock { storage in
-            for component in components {
-                storage.dirtyComponents.remove(component)
-            }
+            storage.dirtyComponents.removeAll { components.contains($0) }
         }
     }
 
     public func snapshot(schemaHash: String) throws -> StateStoreSnapshot {
         let entries: [(id: StateSlotID, valueType: String, box: RuntimeValueBox)] = storage.withLock { storage in
-            storage.values.compactMap { id, box in
-                guard let valueType = storage.valueTypes[id] else {
-                    return nil
-                }
-                return (id, valueType, box)
+            storage.values.map { entry in
+                (entry.id, entry.valueType, entry.value)
             }
         }
 
@@ -165,12 +210,9 @@ public final class StateStore: Sendable {
     public func restore(_ snapshot: StateStoreSnapshot) {
         storage.withLock { storage in
             storage.values.removeAll()
-            storage.valueTypes.removeAll()
-            storage.restoredValues = Dictionary(
-                uniqueKeysWithValues: snapshot.values.map { key, value in
-                    (StateSlotID(key), value)
-                }
-            )
+            storage.restoredValues = snapshot.values.map { key, value in
+                RestoredValueEntry(id: StateSlotID(key), value: value)
+            }
             storage.dirtyComponents.removeAll()
         }
     }
@@ -181,20 +223,44 @@ public final class StateStore: Sendable {
         slot id: StateSlotID
     ) -> Value? {
         #if canImport(Foundation)
-        // A non-JSON snapshot or a non-Decodable value type cannot be restored by
-        // design; that is not an error, so fall through to the default silently.
-        guard snapshot.encoding == "json",
-              let decodableType = Value.self as? any Decodable.Type
-        else {
+        guard snapshot.encoding == "json" else {
+            reportRestoreFailure(
+                slot: id,
+                valueType: RuntimeTypeName.reflecting(Value.self),
+                error: StateRestoreFailure.unsupportedEncoding(snapshot.encoding)
+            )
+            return nil
+        }
+        guard let decodableType = Value.self as? any Decodable.Type else {
+            reportRestoreFailure(
+                slot: id,
+                valueType: RuntimeTypeName.reflecting(Value.self),
+                error: StateRestoreFailure.valueIsNotDecodable
+            )
             return nil
         }
 
         do {
+            #if os(WASI)
+            let decoded = try SwiftHTMLJSONDecoder.decode(
+                decodableType,
+                from: Data(snapshot.encodedValue.utf8)
+            )
+            #else
             let decoded = try JSONDecoder().decode(
                 decodableType,
                 from: Data(snapshot.encodedValue.utf8)
             )
-            return decoded as? Value
+            #endif
+            guard let value = decoded as? Value else {
+                reportRestoreFailure(
+                    slot: id,
+                    valueType: RuntimeTypeName.reflecting(Value.self),
+                    error: StateRestoreFailure.decodedTypeMismatch
+                )
+                return nil
+            }
+            return value
         } catch {
             // A JSON snapshot of a Decodable type whose slot matched but failed to
             // decode is a genuine restore failure. Surface it instead of silently
@@ -210,7 +276,8 @@ public final class StateStore: Sendable {
 
     private static func reportRestoreFailure(slot id: StateSlotID, valueType: String, error: Error) {
         let message = "[SwiftHTML] @State restore failed for slot \"\(id.rawValue)\" "
-            + "(\(valueType)): \(error). The value was reset to its default."
+            + "(\(valueType)): \(RuntimeTypeName.errorDescription(error)). "
+            + "The value was reset to its default."
         #if canImport(Foundation) && !canImport(FoundationEssentials)
         FileHandle.standardError.write(Data((message + "\n").utf8))
         #else
@@ -226,12 +293,84 @@ public final class StateStore: Sendable {
         valueType: String
     ) -> Value {
         storage.withLock { storage in
-            if let existing = storage.values[id]?.value(as: Value.self) {
-                return existing
+            for index in storage.values.indices {
+                if storage.values[index].id == id {
+                    if let existing = storage.values[index].value.value(as: Value.self) {
+                        return existing
+                    }
+                    storage.values[index] = ValueEntry(
+                        id: id,
+                        value: RuntimeValueBox(value),
+                        valueType: valueType
+                    )
+                    return value
+                }
             }
-            storage.values[id] = RuntimeValueBox(value)
-            storage.valueTypes[id] = valueType
+            storage.values.append(
+                ValueEntry(id: id, value: RuntimeValueBox(value), valueType: valueType)
+            )
             return value
+        }
+    }
+
+    private func installRestored<Value: Sendable>(
+        _ value: Value,
+        snapshot: StateSnapshotValue,
+        for id: StateSlotID,
+        valueType: String
+    ) -> Value {
+        storage.withLock { storage in
+            for index in storage.values.indices {
+                if storage.values[index].id == id {
+                    if let existing = storage.values[index].value.value(as: Value.self) {
+                        return existing
+                    }
+                    storage.values[index] = ValueEntry(
+                        id: id,
+                        value: RuntimeValueBox(value),
+                        valueType: valueType
+                    )
+                    storage.restoredValues.removeAll { entry in
+                        entry.id == id && entry.value == snapshot
+                    }
+                    return value
+                }
+            }
+            storage.values.append(
+                ValueEntry(id: id, value: RuntimeValueBox(value), valueType: valueType)
+            )
+            storage.restoredValues.removeAll { entry in
+                entry.id == id && entry.value == snapshot
+            }
+            return value
+        }
+    }
+
+    private func discardRestored(_ snapshot: StateSnapshotValue, for id: StateSlotID) {
+        storage.withLock { storage in
+            storage.restoredValues.removeAll { entry in
+                entry.id == id && entry.value == snapshot
+            }
+        }
+    }
+}
+
+private enum StateRestoreFailure: Error, CustomStringConvertible {
+    case unsupportedEncoding(String)
+    case valueIsNotDecodable
+    case valueTypeMismatch(expected: String, actual: String)
+    case decodedTypeMismatch
+
+    var description: String {
+        switch self {
+        case .unsupportedEncoding(let encoding):
+            "Unsupported state snapshot encoding: \(encoding)"
+        case .valueIsNotDecodable:
+            "The state value type does not conform to Decodable"
+        case .valueTypeMismatch(let expected, let actual):
+            "State snapshot type mismatch: expected \(expected), found \(actual)"
+        case .decodedTypeMismatch:
+            "The decoded state value did not match the requested type"
         }
     }
 }
@@ -334,13 +473,17 @@ public struct State<Value: Sendable>: Sendable {
 }
 
 final class StateRenderContext: Sendable {
+    private struct Storage: Sendable {
+        var slots: [StateSlotRecord] = []
+    }
+
     let componentID: ComponentID
     let componentType: String
     let path: String
     let store: StateStore
     let isClientOwned: Bool
 
-    private let storage = SwiftHTMLMutex([StateSlotID: StateSlotRecord]())
+    private let storage = SwiftHTMLMutex(Storage())
 
     init(
         componentID: ComponentID,
@@ -359,8 +502,10 @@ final class StateRenderContext: Sendable {
     func register(source: StateSourceLocation, valueType: String) -> StateSlotRecord {
         let id = StateSlotID(componentID: componentID, source: source)
         return storage.withLock { storage in
-            if let record = storage[id] {
-                return record
+            for record in storage.slots {
+                if record.id == id {
+                    return record
+                }
             }
 
             let record = StateSlotRecord(
@@ -369,14 +514,14 @@ final class StateRenderContext: Sendable {
                 valueType: valueType,
                 source: source
             )
-            storage[id] = record
+            storage.slots.append(record)
             return record
         }
     }
 
     func stateSlots() -> [StateSlotRecord] {
         storage.withLock { storage in
-            storage.values.sorted { left, right in
+            storage.slots.sorted { left, right in
                 left.id.rawValue < right.id.rawValue
             }
         }
@@ -384,19 +529,6 @@ final class StateRenderContext: Sendable {
 }
 
 enum StateContext {
-    #if hasFeature(Embedded)
-    nonisolated(unsafe) static var current: StateRenderContext?
-
-    static func withValue<Result>(
-        _ value: StateRenderContext?,
-        operation: () throws -> Result
-    ) rethrows -> Result {
-        let previous = current
-        current = value
-        defer { current = previous }
-        return try operation()
-    }
-    #else
     @TaskLocal static var current: StateRenderContext?
 
     static func withValue<Result>(
@@ -405,7 +537,6 @@ enum StateContext {
     ) rethrows -> Result {
         try $current.withValue(value, operation: operation)
     }
-    #endif
 }
 
 private final class LocalStateStorage<Value: Sendable>: Sendable {

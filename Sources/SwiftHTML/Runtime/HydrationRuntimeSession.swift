@@ -1,4 +1,4 @@
-public struct HydrationRuntimeSession<Root: HTML> {
+public struct HydrationRuntimeSession<Root: Component>: Sendable {
     public let root: Root
     public var environment: EnvironmentValues
     public let stateStore: StateStore

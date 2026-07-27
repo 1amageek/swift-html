@@ -4,8 +4,8 @@ import Testing
 private struct E2ECounter: ClientComponent, Sendable {
     @State private var count = 0
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             count += 1
         }) {
@@ -17,8 +17,8 @@ private struct E2ECounter: ClientComponent, Sendable {
 private struct E2ETextInput: ClientComponent, Sendable {
     @State private var value = "Alice"
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         input(
             .type(InputType.text),
             .value($value),
@@ -32,8 +32,8 @@ private struct E2ETextInput: ClientComponent, Sendable {
 private struct E2ECheckbox: ClientComponent, Sendable {
     @State private var checked = false
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         input(
             .type(InputType.checkbox),
             .checked($checked),
@@ -47,8 +47,8 @@ private struct E2ECheckbox: ClientComponent, Sendable {
 private struct E2EKeyedReorder: ClientComponent, Sendable {
     @State private var reversed = false
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             reversed.toggle()
         }) {
@@ -67,8 +67,8 @@ private struct E2EKeyedReorder: ClientComponent, Sendable {
 private struct E2EAppendList: ClientComponent, Sendable {
     @State private var values = [1, 2]
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             values.append((values.last ?? 0) + 1)
         }) {
@@ -94,8 +94,8 @@ private struct E2EProperty: Identifiable, Sendable {
 private struct E2EPropertyRow: Component, Sendable {
     let property: E2EProperty
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         article {
             h3 {
                 property.name
@@ -128,8 +128,8 @@ private struct E2EPropertySelectionOwner: ClientComponent, Sendable {
         ]
     }
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             selection = "button"
         }) {
@@ -146,8 +146,8 @@ private struct E2EPropertySelectionOwner: ClientComponent, Sendable {
 private struct E2ESelectionOwner: ClientComponent, Sendable {
     @State private var selection = "typography"
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             selection = "color"
         }) {
@@ -163,8 +163,8 @@ private struct E2ESelectionOwner: ClientComponent, Sendable {
 private struct E2ESelectionChild: Component {
     let selection: String
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         switch selection {
         case "color":
             div {
@@ -189,8 +189,8 @@ private struct E2ESelectionChild: Component {
 }
 
 private struct E2EOuterClient: ClientComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         div(.class("outer")) {
             E2EServerSlot()
         }
@@ -198,8 +198,8 @@ private struct E2EOuterClient: ClientComponent {
 }
 
 private struct E2EServerSlot: ServerComponent {
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         section(.class("server-slot")) {
             span {
                 "Server value"
@@ -212,8 +212,8 @@ private struct E2EServerSlot: ServerComponent {
 private struct E2EInnerClient: ClientComponent, Sendable {
     @State private var count = 0
 
-    @HTMLBuilder
-    var body: some HTML {
+    @ComponentBuilder
+    var content: some Component {
         button(.type(ButtonType.button), .onClick {
             count += 1
         }) {

@@ -23,11 +23,11 @@ public extension ContainerElement {
         })
     }
 
-    init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.init(Element(Self.tagName, attributes: []) { content() })
     }
 
-    init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.init(Element(Self.tagName, attributes: attributes) { content() })
     }
 }
@@ -35,25 +35,6 @@ public extension ContainerElement {
 public extension VoidElement {
     init(_ attributes: HTMLAttribute...) {
         self.init(Element(Self.tagName, attributes: attributes, isVoid: true))
-    }
-}
-
-public struct document: HTMLPrimitive {
-    let children: [HTMLContent]
-
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
-        self.children = [HTMLContent(content())]
-    }
-
-    func buildNode(in builder: inout HTMLGraphBuilder) -> HTMLNodeID {
-        var childIDs: [HTMLNodeID] = []
-        childIDs.reserveCapacity(children.count)
-        for (index, child) in children.enumerated() {
-            childIDs.append(builder.withPathSegment("document:\(index)") { scopedBuilder in
-                child.buildNode(in: &scopedBuilder)
-            })
-        }
-        return builder.addNode(kind: .document, children: childIDs)
     }
 }
 
@@ -85,11 +66,11 @@ public struct html: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -102,11 +83,11 @@ public struct head: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -119,11 +100,11 @@ public struct body: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -136,11 +117,11 @@ public struct title: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -180,11 +161,11 @@ public struct style: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -197,11 +178,11 @@ public struct script: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -214,11 +195,11 @@ public struct main: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -231,11 +212,11 @@ public struct section: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -248,11 +229,11 @@ public struct nav: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -265,11 +246,11 @@ public struct article: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -282,11 +263,11 @@ public struct aside: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -299,11 +280,11 @@ public struct header: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -316,11 +297,11 @@ public struct footer: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -333,11 +314,11 @@ public struct address: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -350,11 +331,11 @@ public struct h1: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -367,11 +348,11 @@ public struct h2: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -384,11 +365,11 @@ public struct h3: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -401,11 +382,11 @@ public struct h4: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -418,11 +399,11 @@ public struct h5: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -435,11 +416,11 @@ public struct h6: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -452,11 +433,11 @@ public struct p: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -478,11 +459,11 @@ public struct pre: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -495,11 +476,11 @@ public struct blockquote: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -512,11 +493,11 @@ public struct ol: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -529,11 +510,11 @@ public struct ul: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -546,11 +527,11 @@ public struct li: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -563,11 +544,11 @@ public struct dl: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -580,11 +561,11 @@ public struct dt: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -597,11 +578,11 @@ public struct dd: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -614,11 +595,11 @@ public struct figure: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -631,11 +612,11 @@ public struct figcaption: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -648,11 +629,11 @@ public struct div: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -665,11 +646,11 @@ public struct a: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -682,11 +663,11 @@ public struct em: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -699,11 +680,11 @@ public struct strong: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -716,11 +697,11 @@ public struct small: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -733,11 +714,11 @@ public struct s: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -750,11 +731,11 @@ public struct cite: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -767,11 +748,11 @@ public struct q: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -784,11 +765,11 @@ public struct dfn: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -801,11 +782,11 @@ public struct abbr: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -818,11 +799,11 @@ public struct code: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -835,11 +816,11 @@ public struct varElement: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -852,11 +833,11 @@ public struct samp: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -869,11 +850,11 @@ public struct kbd: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -886,11 +867,11 @@ public struct sub: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -903,11 +884,11 @@ public struct sup: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -920,11 +901,11 @@ public struct i: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -937,11 +918,11 @@ public struct b: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -954,11 +935,11 @@ public struct u: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -971,11 +952,11 @@ public struct mark: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -988,11 +969,11 @@ public struct ruby: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1005,11 +986,11 @@ public struct rt: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1022,11 +1003,11 @@ public struct rp: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1039,11 +1020,11 @@ public struct bdi: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1056,11 +1037,11 @@ public struct bdo: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1073,11 +1054,11 @@ public struct span: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1108,11 +1089,11 @@ public struct ins: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1125,11 +1106,11 @@ public struct del: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1142,11 +1123,11 @@ public struct picture: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1177,11 +1158,11 @@ public struct iframe: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1203,11 +1184,11 @@ public struct object: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1229,11 +1210,11 @@ public struct video: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1246,11 +1227,11 @@ public struct audio: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1272,11 +1253,11 @@ public struct map: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1298,11 +1279,11 @@ public struct table: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1315,11 +1296,11 @@ public struct caption: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1332,11 +1313,11 @@ public struct colgroup: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1358,11 +1339,11 @@ public struct tbody: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1375,11 +1356,11 @@ public struct thead: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1392,11 +1373,11 @@ public struct tfoot: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1409,11 +1390,11 @@ public struct tr: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1426,11 +1407,11 @@ public struct td: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1443,11 +1424,11 @@ public struct th: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1460,11 +1441,11 @@ public struct form: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1477,11 +1458,11 @@ public struct label: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1503,11 +1484,11 @@ public struct button: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1520,11 +1501,11 @@ public struct select: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1537,11 +1518,11 @@ public struct datalist: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1554,11 +1535,11 @@ public struct optgroup: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1571,11 +1552,11 @@ public struct option: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1588,11 +1569,11 @@ public struct textarea: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1605,11 +1586,11 @@ public struct output: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1622,11 +1603,11 @@ public struct progress: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1639,11 +1620,11 @@ public struct meter: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1656,11 +1637,11 @@ public struct fieldset: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1673,11 +1654,11 @@ public struct legend: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1690,11 +1671,11 @@ public struct details: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1707,11 +1688,11 @@ public struct summary: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1724,11 +1705,11 @@ public struct dialog: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1741,11 +1722,11 @@ public struct canvas: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1758,11 +1739,11 @@ public struct noscript: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
@@ -1775,11 +1756,11 @@ public struct template: ContainerElement {
         self.element = Element(Self.tagName, attributes: attributes)
     }
 
-    public init<Content: HTML>(@HTMLBuilder _ content: () -> Content) {
+    public init<Content: Component>(@HTMLBuilder _ content: () -> Content) {
         self.element = Element(Self.tagName, attributes: []) { content() }
     }
 
-    public init<Content: HTML>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
+    public init<Content: Component>(_ attributes: HTMLAttribute..., @HTMLBuilder content: () -> Content) {
         self.element = Element(Self.tagName, attributes: attributes) { content() }
     }
 }
