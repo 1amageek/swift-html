@@ -62,7 +62,7 @@ struct SwiftHTMLBrowserHydrationIndexTests {
         let sparseID = HTMLNodeID(Int.max)
         let negativeNode = HTMLDOMNode(id: negativeID, kind: .text("negative"))
         let sparseNode = HTMLDOMNode(id: sparseID, kind: .text("sparse"))
-        let storage = HTMLDOMNodeStorage([
+        var storage = HTMLDOMNodeStorage([
             negativeID: negativeNode,
             sparseID: sparseNode,
         ])
@@ -70,6 +70,16 @@ struct SwiftHTMLBrowserHydrationIndexTests {
         #expect(storage.count == 2)
         #expect(storage[negativeID] == negativeNode)
         #expect(storage[sparseID] == sparseNode)
+
+        let insertedID = HTMLNodeID(7)
+        let insertedNode = HTMLDOMNode(id: insertedID, kind: .text("inserted"))
+        storage[insertedID] = insertedNode
+        #expect(storage.count == 3)
+        #expect(storage[insertedID] == insertedNode)
+
+        storage[negativeID] = nil
+        #expect(storage.count == 2)
+        #expect(storage[negativeID] == nil)
     }
 
     @Test
@@ -142,6 +152,27 @@ struct SwiftHTMLBrowserHydrationIndexTests {
         #expect(node.role == .element)
         #expect(node.name == "button")
         #expect(node.eventBindings == [binding])
+    }
+
+    @Test
+    func indexLookupHandlesOutOfOrderRecords() throws {
+        let exported = IndexOuterClient().renderArtifact().browserHydrationIndex()
+        let index = BrowserHydrationIndex(
+            rootID: exported.rootID,
+            nodes: Array(exported.nodes.reversed()),
+            components: Array(exported.components.reversed()),
+            serverSlots: exported.serverSlots,
+            handlers: exported.handlers
+        )
+
+        for expected in exported.nodes {
+            #expect(index.node(expected.id) == expected)
+        }
+        for expected in exported.components {
+            #expect(index.component(expected.id) == expected)
+        }
+        #expect(index.node(HTMLNodeID(Int.max)) == nil)
+        #expect(index.component(ComponentID("missing")) == nil)
     }
 
     @Test

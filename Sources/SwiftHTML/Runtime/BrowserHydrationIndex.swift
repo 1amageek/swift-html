@@ -1,11 +1,23 @@
 public struct BrowserHydrationIndex: Sendable, Equatable {
+    private struct NodeIndexEntry: Sendable {
+        let id: HTMLNodeID
+        let sourceOffset: Int
+        let record: BrowserHydrationNodeRecord
+    }
+
+    private struct ComponentIndexEntry: Sendable {
+        let id: ComponentID
+        let sourceOffset: Int
+        let record: BrowserHydrationComponentRecord
+    }
+
     public let rootID: HTMLNodeID
     public let nodes: [BrowserHydrationNodeRecord]
     public let components: [BrowserHydrationComponentRecord]
     public let serverSlots: [ServerSlotRecord]
     public let handlers: [BrowserHydrationEventBinding]
-    private let nodesByID: [HTMLNodeID: BrowserHydrationNodeRecord]
-    private let componentsByID: [ComponentID: BrowserHydrationComponentRecord]
+    private let nodeIndex: [NodeIndexEntry]
+    private let componentIndex: [ComponentIndexEntry]
 
     public init(
         rootID: HTMLNodeID,
@@ -19,12 +31,8 @@ public struct BrowserHydrationIndex: Sendable, Equatable {
         self.components = components
         self.serverSlots = serverSlots
         self.handlers = handlers
-        self.nodesByID = Self.index(nodes) { node in
-            node.id
-        }
-        self.componentsByID = Self.index(components) { component in
-            component.id
-        }
+        self.nodeIndex = Self.makeNodeIndex(nodes)
+        self.componentIndex = Self.makeComponentIndex(components)
     }
 
     public static let empty = BrowserHydrationIndex(
@@ -36,24 +44,75 @@ public struct BrowserHydrationIndex: Sendable, Equatable {
     )
 
     public func node(_ id: HTMLNodeID) -> BrowserHydrationNodeRecord? {
-        nodesByID[id]
+        var lowerBound = 0
+        var upperBound = nodeIndex.count
+        while lowerBound < upperBound {
+            let midpoint = lowerBound + (upperBound - lowerBound) / 2
+            if nodeIndex[midpoint].id.rawValue < id.rawValue {
+                lowerBound = midpoint + 1
+            } else {
+                upperBound = midpoint
+            }
+        }
+        guard lowerBound < nodeIndex.count, nodeIndex[lowerBound].id == id else {
+            return nil
+        }
+        return nodeIndex[lowerBound].record
     }
 
     public func component(_ id: ComponentID) -> BrowserHydrationComponentRecord? {
-        componentsByID[id]
+        var lowerBound = 0
+        var upperBound = componentIndex.count
+        while lowerBound < upperBound {
+            let midpoint = lowerBound + (upperBound - lowerBound) / 2
+            if componentIndex[midpoint].id.rawValue < id.rawValue {
+                lowerBound = midpoint + 1
+            } else {
+                upperBound = midpoint
+            }
+        }
+        guard lowerBound < componentIndex.count, componentIndex[lowerBound].id == id else {
+            return nil
+        }
+        return componentIndex[lowerBound].record
     }
 
-    private static func index<Key: Hashable, Value>(
-        _ values: [Value],
-        by key: (Value) -> Key
-    ) -> [Key: Value] {
-        var result: [Key: Value] = [:]
-        result.reserveCapacity(values.count)
-        for value in values {
-            let valueKey = key(value)
-            if result[valueKey] == nil {
-                result[valueKey] = value
+    private static func makeNodeIndex(
+        _ nodes: [BrowserHydrationNodeRecord]
+    ) -> [NodeIndexEntry] {
+        var result: [NodeIndexEntry] = []
+        result.reserveCapacity(nodes.count)
+        for (sourceOffset, node) in nodes.enumerated() {
+            result.append(NodeIndexEntry(id: node.id, sourceOffset: sourceOffset, record: node))
+        }
+        result.sort { left, right in
+            if left.id.rawValue == right.id.rawValue {
+                return left.sourceOffset < right.sourceOffset
             }
+            return left.id.rawValue < right.id.rawValue
+        }
+        return result
+    }
+
+    private static func makeComponentIndex(
+        _ components: [BrowserHydrationComponentRecord]
+    ) -> [ComponentIndexEntry] {
+        var result: [ComponentIndexEntry] = []
+        result.reserveCapacity(components.count)
+        for (sourceOffset, component) in components.enumerated() {
+            result.append(
+                ComponentIndexEntry(
+                    id: component.id,
+                    sourceOffset: sourceOffset,
+                    record: component
+                )
+            )
+        }
+        result.sort { left, right in
+            if left.id.rawValue == right.id.rawValue {
+                return left.sourceOffset < right.sourceOffset
+            }
+            return left.id.rawValue < right.id.rawValue
         }
         return result
     }
