@@ -518,6 +518,16 @@ struct SwiftHTMLRenderingTests {
     }
 
     @Test
+    func publicEnvironmentModifierErasesBuilderContentBeforeRendering() {
+        let rendered = EnvironmentModifier(\.testValue, "configured") {
+            EnvironmentReader()
+        }
+        .render()
+
+        #expect(rendered.contains("<span id=\"environment-value\">configured</span>"))
+    }
+
+    @Test
     func supportsIfSwitchAndForInBuilder() {
         let list = ControlFlowDocument(showOptionalContent: true, mode: .list).render()
         let detail = ControlFlowDocument(showOptionalContent: false, mode: .detail).render()

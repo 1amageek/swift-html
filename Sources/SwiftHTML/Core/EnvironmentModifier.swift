@@ -1,6 +1,8 @@
 public struct EnvironmentModifier<Content: Component>: HTMLPrimitive {
     private let apply: @Sendable (inout EnvironmentValues) -> Void
-    private let content: Content
+    // Erase the builder result at storage so Standard WASM does not need to
+    // complete generic field metadata while lowering the environment scope.
+    private let content: ComponentContent
 
     public init<Value: Sendable>(
         _ value: Value,
@@ -9,7 +11,7 @@ public struct EnvironmentModifier<Content: Component>: HTMLPrimitive {
         self.apply = { values in
             values[Value.self] = value
         }
-        self.content = content()
+        self.content = ComponentContent(content())
     }
 
     #if !hasFeature(Embedded)
@@ -21,7 +23,7 @@ public struct EnvironmentModifier<Content: Component>: HTMLPrimitive {
         self.apply = { values in
             values[keyPath: keyPath] = value
         }
-        self.content = content()
+        self.content = ComponentContent(content())
     }
     #endif
 
@@ -32,7 +34,7 @@ public struct EnvironmentModifier<Content: Component>: HTMLPrimitive {
         @HTMLBuilder content: () -> Content
     ) {
         self.apply = transform
-        self.content = content()
+        self.content = ComponentContent(content())
     }
 
     func buildNode(in builder: inout HTMLGraphBuilder) -> HTMLNodeID {

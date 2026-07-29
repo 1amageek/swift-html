@@ -2,15 +2,29 @@ public struct ModifiedContent: HTMLPrimitive {
     @usableFromInline
     let buildNodeClosure: @Sendable (inout HTMLGraphBuilder) -> HTMLNodeID
 
+    @_transparent
     public init<Content: Component, Modifier: ComponentModifier>(
         content: Content,
         modifier: Modifier
     ) {
+        self.init(
+            content: ComponentContent(content),
+            modify: { modifierContent in
+                ComponentContent(modifier.content(modifierContent))
+            }
+        )
+    }
+
+    @usableFromInline
+    init(
+        content: ComponentContent,
+        modify: @escaping @Sendable (ModifierContent) -> ComponentContent
+    ) {
         self.buildNodeClosure = { builder in
             let modifiedContent = EnvironmentContext.withValue(builder.environment) {
-                modifier.content(ModifierContent(content))
+                modify(ModifierContent(content))
             }
-            return ComponentContent(modifiedContent).buildNodeClosure(&builder)
+            return modifiedContent.buildNodeClosure(&builder)
         }
     }
 

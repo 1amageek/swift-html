@@ -45,7 +45,7 @@ Embedded WASM builds use toolchain and SDK artifacts from that same snapshot.
 
 ## Installation
 
-Add SwiftHTML to a Swift Package. The examples in this README use the current `main` branch API:
+Add SwiftHTML to a Swift Package with a version-based dependency:
 
 ```swift
 // swift-tools-version: 6.4
@@ -53,7 +53,7 @@ import PackageDescription
 
 let package = Package(
     dependencies: [
-        .package(url: "https://github.com/1amageek/swift-html.git", branch: "main"),
+        .package(url: "https://github.com/1amageek/swift-html.git", from: "0.14.0"),
     ],
     targets: [
         .target(
@@ -115,6 +115,12 @@ lowers that authored tree to stable `ComponentContent` storage before
 rendering; application code does not declare fragment protocols or store
 fragment values. Complete documents keep the familiar `head` and `body`
 sections without colliding with a component's authored property.
+
+Generic builders such as `ForEach`, modifiers, and environment modifiers retain
+their typed authoring APIs while lowering their executable storage to
+`ComponentContent`. This keeps the public DSL strongly typed and prevents the
+Standard WASM runtime from having to recover cross-module generic field metadata
+during rendering.
 
 ## Copyable Snippets
 

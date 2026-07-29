@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.14.0 - 2026-07-30
+
+| Area | Included |
+|---|---|
+| Standard WASM | Lowers environment modifiers, modified content, and `ForEach` execution into fixed `ComponentContent` storage so rendering does not depend on cross-module generic field metadata recovery at runtime. |
+| Keyed content | Keeps `ForEach` key rendering, duplicate diagnostics, stable identity, and linear-time behavior while tracking duplicate identities by their rendered strings instead of generic `Set<Key>` storage. |
+| API compatibility | Preserves the public generic builder APIs and keeps `ComponentContent` as builder-produced storage rather than exposing a new public construction path. |
+| Validation | Verifies Native tests, Standard and Embedded WASM executable links, package generation, and a downstream SwiftWeb Storyboard bootstrap that reaches the browser-ready state. |
+| Documentation | Uses the tagged `0.14.0` dependency syntax and documents the fixed runtime storage boundary used by typed builders. |
+
+## 0.13.0 - 2026-07-28
+
+| Area | Included |
+|---|---|
+| Browser runtime | Replaces dictionary-backed hydration index and DOM node storage paths that trap under the pinned Standard WASM runtime while preserving indexed lookup and update behavior. |
+| Portability | Validates the client runtime storage changes against Native, Standard WASM, and Embedded WASM builds from the pinned Swift 6.4 snapshot. |
+
 ## 0.12.0 - 2026-07-27
 
 | Area | Included |
