@@ -38,9 +38,9 @@ let package = Package(
         .library(name: "SwiftHTMLPreview", targets: ["SwiftHTMLPreview"]),
     ],
     dependencies: [
-        // Pinned to 602 to stay compatible with downstream packages (Vapor pins
-        // swift-syntax to the 602 major), so swift-web can depend on swift-html.
-        .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "602.0.0"),
+        // Keep the macro toolchain on the same stable release line as database-kit
+        // and database-client so downstream package graphs resolve one SwiftSyntax.
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "603.0.2"),
     ],
     targets: [
         .macro(
