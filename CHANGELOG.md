@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.0 - 2026-08-06
+
+| Area | Included |
+|---|---|
+| Macro toolchain | Updates SwiftSyntax to `603.0.2`, keeping SwiftHTML's macro implementation on the Swift 6.4-compatible release line used by downstream packages. |
+| Validation | Verifies the Native package tests and Standard and Embedded WASM client-runtime builds with the pinned Swift 6.4 snapshot. |
+
 ## 0.14.0 - 2026-07-30
 
 | Area | Included |
