@@ -71,11 +71,26 @@ public final class StateStore: Sendable {
         var values: [ValueEntry] = []
         var restoredValues: [RestoredValueEntry] = []
         var dirtyComponents: [ComponentID] = []
+        var invalidationHandler: (@Sendable (ComponentID) -> Void)?
     }
 
     private let storage = SwiftHTMLMutex(Storage())
 
     public init() {}
+
+    /// Installs the runtime callback that schedules reconciliation after a
+    /// component first becomes dirty. The handler runs after the store lock is
+    /// released, so it may safely inspect the store or enqueue runtime work.
+    ///
+    /// A store has one reconciliation owner. Installing a new handler replaces
+    /// the previous one; passing `nil` detaches the owner during shutdown.
+    public func setInvalidationHandler(
+        _ handler: (@Sendable (ComponentID) -> Void)?
+    ) {
+        storage.withLock { storage in
+            storage.invalidationHandler = handler
+        }
+    }
 
     public func value<Value: Sendable>(
         for id: StateSlotID,
@@ -136,7 +151,7 @@ public final class StateStore: Sendable {
         componentID: ComponentID
     ) {
         let valueType = RuntimeTypeName.reflecting(Value.self)
-        storage.withLock { storage in
+        let invalidationHandler = storage.withLock { storage -> (@Sendable (ComponentID) -> Void)? in
             var didUpdateValue = false
             for index in storage.values.indices {
                 if storage.values[index].id == id {
@@ -152,18 +167,24 @@ public final class StateStore: Sendable {
                 )
             }
             storage.restoredValues.removeAll { $0.id == id }
-            if !storage.dirtyComponents.contains(componentID) {
-                storage.dirtyComponents.append(componentID)
+            guard !storage.dirtyComponents.contains(componentID) else {
+                return nil
             }
+            storage.dirtyComponents.append(componentID)
+            return storage.invalidationHandler
         }
+        invalidationHandler?(componentID)
     }
 
     public func markDirty(_ componentID: ComponentID) {
-        storage.withLock { storage in
-            if !storage.dirtyComponents.contains(componentID) {
-                storage.dirtyComponents.append(componentID)
+        let invalidationHandler = storage.withLock { storage -> (@Sendable (ComponentID) -> Void)? in
+            guard !storage.dirtyComponents.contains(componentID) else {
+                return nil
             }
+            storage.dirtyComponents.append(componentID)
+            return storage.invalidationHandler
         }
+        invalidationHandler?(componentID)
     }
 
     public func contains(_ id: StateSlotID) -> Bool {

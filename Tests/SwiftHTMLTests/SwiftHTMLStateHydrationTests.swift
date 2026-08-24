@@ -1,4 +1,5 @@
 import SwiftHTML
+import Synchronization
 import Testing
 
 private struct HydrationEnvironmentKey: ClientEnvironmentKey {
@@ -248,6 +249,34 @@ struct SwiftHTMLStateHydrationTests {
 
         #expect(secondComponent.id == component.id)
         #expect(second.html.contains("Count 1"))
+    }
+
+    @Test
+    func stateStoreNotifiesItsRuntimeOncePerDirtyCycleOutsideTheStoreLock() throws {
+        let store = StateStore()
+        let first = CounterComponent().renderArtifact(stateStore: store)
+        let component = try #require(first.hydration.components.first)
+        let handler = try #require(first.clientHandlers.handlers.first)
+        let notifications = Mutex<[ComponentID]>([])
+
+        store.setInvalidationHandler { componentID in
+            let dirtyComponents = store.dirtyComponents()
+            notifications.withLock { notifications in
+                if dirtyComponents.contains(componentID) {
+                    notifications.append(componentID)
+                }
+            }
+        }
+
+        handler.invoke()
+        handler.invoke()
+        #expect(notifications.withLock { $0 } == [component.id])
+
+        store.clearDirtyComponents([component.id])
+        handler.invoke()
+        #expect(notifications.withLock { $0 } == [component.id, component.id])
+
+        store.setInvalidationHandler(nil)
     }
 
     @Test
