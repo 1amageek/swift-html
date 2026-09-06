@@ -215,6 +215,58 @@ struct SwiftHTMLStateHydrationTests {
     }
 
     @Test
+    func optionalStatePreservesNilTransitionsAndDirtyCycleNotifications() throws {
+        let slotID = StateSlotID("optional-slot")
+        let componentID = ComponentID("optional-component")
+        let store = StateStore()
+        let notifications = Mutex<[ComponentID]>([])
+
+        store.setInvalidationHandler { notifiedComponentID in
+            notifications.withLock { notifications in
+                notifications.append(notifiedComponentID)
+            }
+        }
+
+        let initial: String? = store.value(for: slotID, default: nil)
+        #expect(initial == nil)
+        let storedNilWins: String? = store.value(for: slotID, default: "Fallback")
+        #expect(storedNilWins == nil)
+
+        let snapshot = try store.snapshot(schemaHash: "optional-schema")
+        let restoredStore = StateStore()
+        restoredStore.restore(snapshot)
+        let restoredNilWins: String? = restoredStore.value(for: slotID, default: "Fallback")
+        #expect(restoredNilWins == nil)
+
+        store.set("Alice" as String?, for: slotID, componentID: componentID)
+        let updated: String? = store.value(for: slotID, default: nil)
+        #expect(updated == "Alice")
+        #expect(store.dirtyComponents() == [componentID])
+        #expect(notifications.withLock { $0 } == [componentID])
+
+        store.set("Bob" as String?, for: slotID, componentID: componentID)
+        #expect(notifications.withLock { $0 } == [componentID])
+        let replaced: String? = store.value(for: slotID, default: nil)
+        #expect(replaced == "Bob")
+
+        store.clearDirtyComponents([componentID])
+        store.set(nil as String?, for: slotID, componentID: componentID)
+        let cleared: String? = store.value(for: slotID, default: nil)
+        #expect(cleared == nil)
+        #expect(store.dirtyComponents() == [componentID])
+        #expect(notifications.withLock { $0 } == [componentID, componentID])
+
+        store.setInvalidationHandler(nil)
+
+        let localState = State<String?>(wrappedValue: nil)
+        #expect(localState.wrappedValue == nil)
+        localState.wrappedValue = "Local"
+        #expect(localState.wrappedValue == "Local")
+        localState.wrappedValue = nil
+        #expect(localState.wrappedValue == nil)
+    }
+
+    @Test
     func stateSlotsAreRecordedInHydrationManifest() throws {
         let store = StateStore()
         let artifact = CounterComponent().renderArtifact(stateStore: store)

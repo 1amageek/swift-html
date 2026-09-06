@@ -64,6 +64,7 @@ let package = Package(
                 // "plugin for module 'SwiftHTMLMacros' not found".
                 .target(name: "SwiftHTMLMacros"),
             ],
+            exclude: ["DESIGN.md"],
             swiftSettings: swiftSettings
         ),
         .target(

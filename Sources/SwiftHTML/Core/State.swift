@@ -151,11 +151,15 @@ public final class StateStore: Sendable {
         componentID: ComponentID
     ) {
         let valueType = RuntimeTypeName.reflecting(Value.self)
+        // Materialize the generic value before entering Mutex.withLock. The
+        // Embedded Debug SIL verifier otherwise extends its borrow across the
+        // mutex's deferred unlock path for Optional values.
+        let boxedValue = RuntimeValueBox(value)
         let invalidationHandler = storage.withLock { storage -> (@Sendable (ComponentID) -> Void)? in
             var didUpdateValue = false
             for index in storage.values.indices {
                 if storage.values[index].id == id {
-                    storage.values[index].value = RuntimeValueBox(value)
+                    storage.values[index].value = boxedValue
                     storage.values[index].valueType = valueType
                     didUpdateValue = true
                     break
@@ -163,7 +167,7 @@ public final class StateStore: Sendable {
             }
             if !didUpdateValue {
                 storage.values.append(
-                    ValueEntry(id: id, value: RuntimeValueBox(value), valueType: valueType)
+                    ValueEntry(id: id, value: boxedValue, valueType: valueType)
                 )
             }
             storage.restoredValues.removeAll { $0.id == id }
@@ -313,25 +317,31 @@ public final class StateStore: Sendable {
         for id: StateSlotID,
         valueType: String
     ) -> Value {
+        // Keep the generic input out of the lock closure. The pre-materialized
+        // box preserves the lock's concurrent winner check without carrying a
+        // borrowed Optional through Mutex.withLock's deferred unlock.
+        let boxedValue = RuntimeValueBox(value)
+        var existingValue: Value?
         storage.withLock { storage in
             for index in storage.values.indices {
                 if storage.values[index].id == id {
                     if let existing = storage.values[index].value.value(as: Value.self) {
-                        return existing
+                        existingValue = existing
+                        return
                     }
                     storage.values[index] = ValueEntry(
                         id: id,
-                        value: RuntimeValueBox(value),
+                        value: boxedValue,
                         valueType: valueType
                     )
-                    return value
+                    return
                 }
             }
             storage.values.append(
-                ValueEntry(id: id, value: RuntimeValueBox(value), valueType: valueType)
+                ValueEntry(id: id, value: boxedValue, valueType: valueType)
             )
-            return value
         }
+        return existingValue ?? value
     }
 
     private func installRestored<Value: Sendable>(
@@ -340,31 +350,36 @@ public final class StateStore: Sendable {
         for id: StateSlotID,
         valueType: String
     ) -> Value {
+        // Keep the generic input out of the lock closure for the same Embedded
+        // Debug borrow-scope constraint as install(_:for:valueType:).
+        let boxedValue = RuntimeValueBox(value)
+        var existingValue: Value?
         storage.withLock { storage in
             for index in storage.values.indices {
                 if storage.values[index].id == id {
                     if let existing = storage.values[index].value.value(as: Value.self) {
-                        return existing
+                        existingValue = existing
+                        return
                     }
                     storage.values[index] = ValueEntry(
                         id: id,
-                        value: RuntimeValueBox(value),
+                        value: boxedValue,
                         valueType: valueType
                     )
                     storage.restoredValues.removeAll { entry in
                         entry.id == id && entry.value == snapshot
                     }
-                    return value
+                    return
                 }
             }
             storage.values.append(
-                ValueEntry(id: id, value: RuntimeValueBox(value), valueType: valueType)
+                ValueEntry(id: id, value: boxedValue, valueType: valueType)
             )
             storage.restoredValues.removeAll { entry in
                 entry.id == id && entry.value == snapshot
             }
-            return value
         }
+        return existingValue ?? value
     }
 
     private func discardRestored(_ snapshot: StateSnapshotValue, for id: StateSlotID) {
@@ -561,6 +576,10 @@ enum StateContext {
 }
 
 private final class LocalStateStorage<Value: Sendable>: Sendable {
+    private struct ValueHolder: Sendable {
+        let value: Value
+    }
+
     private let storage: SwiftHTMLMutex<Value>
 
     init(_ value: Value) {
@@ -574,8 +593,12 @@ private final class LocalStateStorage<Value: Sendable>: Sendable {
     }
 
     func set(_ value: Value) {
+        // Capture a concrete Sendable holder instead of the generic parameter;
+        // Embedded Debug rejects the latter when Mutex.withLock is specialized
+        // with Optional values.
+        let valueHolder = ValueHolder(value: value)
         storage.withLock { storage in
-            storage = value
+            storage = valueHolder.value
         }
     }
 }
