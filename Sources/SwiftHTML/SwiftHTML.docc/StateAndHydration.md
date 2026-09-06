@@ -81,6 +81,25 @@ The schema hash is derived from state slot identity, value type, and source loca
 
 Only values that the runtime can encode are included in the snapshot. A state value that cannot be encoded falls back to the component initializer when restored.
 
+## Invalidation Notifications
+
+Use ``StateStore/setInvalidationHandler(_:)`` when a runtime owner needs to
+schedule reconciliation after a state mutation.
+
+The store captures the handler while its mutex is held and invokes it
+synchronously after the mutex is released. A component is notified once when
+it first becomes dirty; further mutations are coalesced until
+``StateStore/clearDirtyComponents(_:)`` starts the next dirty cycle. Pass `nil`
+to detach the handler during shutdown.
+
+```mermaid
+flowchart LR
+    A["State mutation"] --> B["StateStore mutex"]
+    B --> C["First dirty transition"]
+    C --> D["Handler after unlock"]
+    D --> E["Runtime reconciliation"]
+```
+
 ## Runtime Dispatch
 
 ``BrowserHydrationRuntime`` provides a browser-neutral runtime wrapper. The host applies encoded command batches.

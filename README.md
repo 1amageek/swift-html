@@ -32,7 +32,7 @@ This README describes the current `main` branch. Use the README from a matching 
 ## Requirements
 
 SwiftHTML uses the pinned Swift 6.4 development snapshot
-`swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-07-17-a`. Native, standard WASM, and
+`swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-14-a`. Native, standard WASM, and
 Embedded WASM builds use toolchain and SDK artifacts from that same snapshot.
 
 | Platform | Minimum |
@@ -53,7 +53,7 @@ import PackageDescription
 
 let package = Package(
     dependencies: [
-        .package(url: "https://github.com/1amageek/swift-html.git", from: "0.15.0"),
+        .package(url: "https://github.com/1amageek/swift-html.git", from: "0.16.0"),
     ],
     targets: [
         .target(
@@ -547,6 +547,23 @@ nextStore.restore(snapshot)
 
 Only values that can be encoded by the runtime are included in the snapshot. Non-encodable state falls back to the component initializer on restore.
 
+Runtime owners can install `StateStore.setInvalidationHandler(_:)` to receive a
+notification when a component first becomes dirty. The handler is captured
+under the store mutex and invoked synchronously after that mutex is released,
+so the runtime can safely enqueue reconciliation or inspect the store. Further
+mutations for the same component are coalesced until
+`clearDirtyComponents(_:)` starts the next dirty cycle. Pass `nil` while
+detaching the runtime during shutdown.
+
+```mermaid
+flowchart LR
+    Event["State mutation"] --> Store["StateStore mutex"]
+    Store --> Dirty["First dirty transition"]
+    Dirty --> Unlock["Release mutex"]
+    Unlock --> Handler["Invalidation handler"]
+    Handler --> Reconcile["Runtime reconciliation"]
+```
+
 The in-package hydration runtime can be used by tests or host adapters:
 
 ```swift
@@ -661,7 +678,7 @@ Run the measurement locally:
 
 ```bash
 cd Examples/EmbeddedWasm
-export SWIFT_BIN="$HOME/Library/Developer/Toolchains/swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-07-17-a.xctoolchain/usr/bin/swift"
+export SWIFT_BIN="$HOME/Library/Developer/Toolchains/swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-14-a.xctoolchain/usr/bin/swift"
 ./measure-size.sh
 npm install
 npm run test:browser

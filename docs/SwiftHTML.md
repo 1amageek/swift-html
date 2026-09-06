@@ -677,6 +677,13 @@ let second = Counter().renderArtifact(stateStore: store)
 
 State mutation marks the owning `ComponentID` dirty. The WASM runtime will use that dirty component set to rebuild and patch the smallest component boundary.
 
+Runtime owners may install `StateStore.setInvalidationHandler(_:)` to schedule
+post-dispatch reconciliation. The handler is captured while the store mutex is
+held and invoked synchronously only after the lock is released. Each component
+produces one notification per dirty cycle; subsequent mutations are coalesced
+until the runtime clears that component with `clearDirtyComponents(_:)`.
+Passing `nil` detaches the runtime owner during shutdown.
+
 ### Observable Models
 
 SwiftHTML follows SwiftUI Observation style from [Apple's migration guidance](https://developer.apple.com/documentation/SwiftUI/Migrating-from-the-observable-object-protocol-to-the-observable-macro): use `@Observable` for reference models read by component bodies. Values stored in `@State` and `EnvironmentValues` are `Sendable`, so use a `Sendable` root owner when the observable model itself is a mutable reference type.
@@ -1493,7 +1500,7 @@ The `/counter` E2E path must exercise the real WASM runtime loaded from the gene
 
 | Step | Check |
 |---|---|
-| Build WASM | `SWIFTWEB_WASM_BUILD=1 swift build --package-path Examples/CounterApp --product counter-wasm-runtime --swift-sdk swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-07-17-a_wasm -c release` |
+| Build WASM | `SWIFTWEB_WASM_BUILD=1 swift build --package-path Examples/CounterApp --product counter-wasm-runtime --swift-sdk swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-14-a_wasm -c release` |
 | Run app | From `Examples/CounterApp`, run `swift-web dev` or the Xcode `CounterApp` scheme |
 | Load server state | Open `http://127.0.0.1:3000/counter`; the server value is actor state, not URL query state |
 | Client Counter | Click Increment and Decrement; the client value changes without a page reload |

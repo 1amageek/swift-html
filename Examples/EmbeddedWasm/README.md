@@ -5,15 +5,15 @@ WASM and Embedded Swift WASM, then compares the produced binary sizes.
 
 Requirements:
 
-- Swift `swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-07-17-a` toolchain
-- `swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-07-17-a_wasm` Swift SDK
-- `swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-07-17-a_wasm-embedded` Swift SDK
+- Swift `swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-14-a` toolchain
+- `swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-14-a_wasm` Swift SDK
+- `swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-14-a_wasm-embedded` Swift SDK
 - A sibling `JavaScriptKit` checkout at `../../../JavaScriptKit`
 
 Build the Embedded Swift compiler-profile version:
 
 ```sh
-export SWIFT_BIN="$HOME/Library/Developer/Toolchains/swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-07-17-a.xctoolchain/usr/bin/swift"
+export SWIFT_BIN="$HOME/Library/Developer/Toolchains/swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-14-a.xctoolchain/usr/bin/swift"
 ./build.sh
 ```
 

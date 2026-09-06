@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.0 - 2026-09-06
+
+| Area | Included |
+|---|---|
+| State invalidation | Adds `StateStore.setInvalidationHandler(_:)` so runtime owners can schedule reconciliation after a component becomes dirty. Notifications are coalesced per dirty cycle and invoked after the store mutex is released. |
+| Validation | Keeps the state mutation path and its host regression coverage, including the one-notification-per-cycle and post-lock callback contract. |
+| Toolchain | Pins the release documentation and WASM example commands to the `swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-14-a` toolchain and matching Swift SDKs. |
+
 ## 0.15.0 - 2026-08-06
 
 | Area | Included |
