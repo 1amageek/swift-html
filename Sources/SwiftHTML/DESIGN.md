@@ -6,8 +6,8 @@ This module owns the HTML graph/rendering state boundary, including `State`,
 `Binding`, `StateRenderContext`, `StateStore`, and `RuntimeValueBox`.
 
 Parent: [`../../DESIGN.md`](../../DESIGN.md). Children: none for this scoped
-change. The module design covers the StateStore path only; graph and renderer
-contracts outside that path remain unchanged.
+change. This module also owns mutation transaction capture and ordered hydration
+updates; presentation policy remains downstream.
 
 ## Responsibilities and Boundaries
 
@@ -51,6 +51,38 @@ borrows a generic caller value across the lock's deferred unlock path.
 
 ## Contracts and Invariants
 
+- StateStore captures resolved timing at each mutation, not event completion.
+  A session renders consecutive equal-timing mutations together, retaining
+  ordered groups with different timing, including no animation.
+- Intermediate renders read immutable projections through the actual store.
+  Bindings retain that store, never a temporary copy; shared storage is never
+  rewound. Values and pending mutations are captured atomically, so later writes
+  to existing slots cannot leak into a captured batch. Failed rendering retains
+  pending mutations for retry. Projection storage is proportional to state slots.
+- A reconciliation-scoped render-write overlay retains bookkeeping changes made
+  while rendering between timing groups. Its Mutex-protected values are visible
+  to subsequent reads and merged into the next projection, without admitting
+  concurrent application writes. This prevents duplicate change observations.
+- HydrationRuntimeUpdate.steps owns ordered batches and previous/next indexes.
+  commandBatch remains the direct final-state diff for non-transaction consumers.
+  A consumer applies steps or the final batch, never both.
+- HTMLGraphBuilder.valueRevision compares Equatable and Sendable values by
+  structural render identity. First render is revision zero; equal values keep
+  it. This comparison memory is not hydrated app state, requires no Codable
+  conformance, and is pruned when its scope disappears.
+- The session owner serializes rendering. Work is one render per consecutive
+  timing group, not per animation frame. Pending memory grows with unflushed
+  mutations and is released after successful reconciliation.
+- Event attributes retain the StateRenderContext that owns their captured
+  handler. Hydration event ownership uses that declaration owner, not an
+  incidental child-walk context. Attributes created outside a render context
+  use the rendering-boundary owner. The mounted record establishes that validated
+  owner during invocation, including attributes constructed before rendering.
+- State context entry remains opaque to the fixed Embedded Release optimizer,
+  preserving lexical ownership for property reads and captured Binding owners.
+  The release fixture exercises property-wrapper reads/writes and ordered text
+  patches, not only raw store writes.
+
 - A slot is identified by its `StateSlotID`; storage replacement never changes
   that identity.
 - `Optional.none` is a stored `Optional<String>` value, not an absent slot.
@@ -71,6 +103,8 @@ borrows a generic caller value across the lock's deferred unlock path.
 ```text
 read:  lock/find -> unlock -> decode/default -> lock/install winner -> unlock
 write: box value -> lock/replace + coalesce dirty -> unlock -> notify
+flush: snapshot mutations -> projected renders -> validate -> commit artifact
+       -> consume captured prefix -> DOM owner applies ordered steps
 ```
 
 ## State, Ownership, and Lifecycle
@@ -79,6 +113,15 @@ write: box value -> lock/replace + coalesce dirty -> unlock -> notify
 type-erased value in each entry. The callback is supplied by the reconciliation
 owner and detached with `setInvalidationHandler(nil)` during shutdown. No
 pointer or borrowed view escapes a mutex closure.
+
+| Logical state | Native storage/isolation | Standard WASM | Embedded WASM | Read / mutation / release |
+|---|---|---|---|---|
+| Slots, restoration, dirty membership | StateStore Mutex Storage | Same | Same | value/snapshot; set/restore/consume; store ARC lifetime |
+| Pending transaction journal | Same Mutex Storage | Same | Same | pendingUpdate; set/consume; committed prefix released |
+| Comparison memory | Same Mutex Storage | Same | Same | valueRevision; retain/restore comparisons; removed scopes pruned |
+| Transaction timing | Transaction Mutex | Same | Same | animation getter/setter; scoped TaskLocal binding; lexical release |
+| Render projection | Immutable TaskLocal snapshot | Same | Same | projected reads; no shared mutation; render scope release |
+| Render bookkeeping overlay | RenderWrites Mutex dictionary | Same | Same | scoped read/record/consume; flush lifetime |
 
 ## Failure, Concurrency, and Constraints
 
@@ -99,3 +142,9 @@ introduce an unlocked state branch, or use `nonisolated(unsafe)` or
 
 Changes to `StateStore`, `RuntimeValueBox`, or `SwiftHTMLMutex` require the
 affected Native state suite and pinned standard/Embedded target gates.
+
+Transaction tests own mixed animated/plain mutations, nested timing and nil,
+throw restoration, projection ownership and comparison lifetime. The same Mutex
+storage owns values, pending mutations and comparison entries on every target.
+Comparisons, callbacks and rendering run outside its lock. There is no
+target-specific Sendable or isolation exception.

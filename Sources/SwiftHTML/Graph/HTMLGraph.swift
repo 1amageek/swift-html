@@ -471,6 +471,15 @@ public struct HTMLGraphBuilder {
     let options: HTMLRenderOptions
 
     private var handlerCounter = 0
+    private(set) var comparisonPaths: Set<String> = []
+
+    /// Returns a revision only when the value changes at this render identity.
+    /// Comparison memory is not application state and is not serialized.
+    public mutating func valueRevision<Value: Equatable & Sendable>(_ value: Value) -> Int {
+        let path = currentPath()
+        comparisonPaths.insert(path)
+        return stateStore.valueRevision(value, at: path)
+    }
     private var stringIDs: [String: HTMLStringID] = [:]
     private var pathSegments: [String] = []
     private var clientOwnershipDepth = 0
@@ -893,14 +902,15 @@ public struct HTMLGraphBuilder {
 
     private mutating func makeRecord(for attribute: HTMLAttribute, element elementName: String?) -> HTMLAttributeRecord? {
         if attribute.kind == .eventBinding, let eventName = attribute.eventName {
+            let eventOwner = attribute.eventOwner ?? StateContext.current
             guard Self.isValidEventName(eventName) else {
                 report(RenderDiagnostic(
                     code: .invalidAttributeName,
                     severity: .error,
                     message: "Invalid event name '\(eventName)'",
-                    componentID: StateContext.current?.componentID,
-                    componentType: StateContext.current?.componentType,
-                    path: StateContext.current?.path ?? currentPath(),
+                    componentID: eventOwner?.componentID,
+                    componentType: eventOwner?.componentType,
+                    path: eventOwner?.path ?? currentPath(),
                     hint: "Event names must be valid HTML data attribute suffixes."
                 ))
                 return nil
@@ -908,22 +918,30 @@ public struct HTMLGraphBuilder {
 
             handlerCounter += 1
             let id = HandlerID("h\(handlerCounter)")
-            if StateContext.current?.isClientOwned != true {
+            if eventOwner?.isClientOwned != true {
                 report(RenderDiagnostic(
                     code: .eventHandlerOutsideClientComponent,
                     severity: .error,
                     message: "Event handler '\(eventName)' is used outside a ClientComponent boundary",
-                    componentID: StateContext.current?.componentID,
-                    componentType: StateContext.current?.componentType,
-                    path: StateContext.current?.path,
+                    componentID: eventOwner?.componentID,
+                    componentType: eventOwner?.componentType,
+                    path: eventOwner?.path,
                     hint: "Conform the component that owns this event closure to ClientComponent."
                 ))
+            }
+            let scopedHandler: DOMEventHandler?
+            if options.capturesClientHandlerClosures, let handler = attribute.eventHandler {
+                scopedHandler = DOMEventHandler { event in
+                    StateContext.withValue(eventOwner) { handler.invoke(with: event) }
+                }
+            } else {
+                scopedHandler = nil
             }
             clientHandlers.handlers.append(ClientHandlerRecord(
                 id: id,
                 eventName: eventName,
-                componentID: StateContext.current?.componentID,
-                handler: options.capturesClientHandlerClosures ? attribute.eventHandler : nil
+                componentID: eventOwner?.componentID,
+                handler: scopedHandler
             ))
             return HTMLAttributeRecord(
                 name: HTMLRuntimeMarkers.eventAttribute(eventName),

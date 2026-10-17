@@ -63,6 +63,7 @@ public struct HTMLAttribute: Sendable {
     public let style: Style?
     let eventName: String?
     let eventHandler: DOMEventHandler?
+    let eventOwner: StateRenderContext?
 
     public init(_ name: String, _ value: String? = nil) {
         self.name = name
@@ -71,6 +72,7 @@ public struct HTMLAttribute: Sendable {
         self.style = nil
         self.eventName = nil
         self.eventHandler = nil
+        self.eventOwner = nil
     }
 
     public init(name: String, value: String?, kind: HTMLAttributeKind) {
@@ -80,6 +82,7 @@ public struct HTMLAttribute: Sendable {
         self.style = nil
         self.eventName = nil
         self.eventHandler = nil
+        self.eventOwner = nil
     }
 
     public init(name: String, style: Style) {
@@ -89,6 +92,7 @@ public struct HTMLAttribute: Sendable {
         self.style = style
         self.eventName = nil
         self.eventHandler = nil
+        self.eventOwner = nil
     }
 
     init(eventName: String, handler: @escaping @Sendable (DOMEvent) -> Void) {
@@ -97,15 +101,8 @@ public struct HTMLAttribute: Sendable {
         self.kind = .eventBinding
         self.style = nil
         self.eventName = eventName
-        if let context = StateContext.current {
-            self.eventHandler = DOMEventHandler { event in
-                StateContext.withValue(context) {
-                    handler(event)
-                }
-            }
-        } else {
-            self.eventHandler = DOMEventHandler(handler)
-        }
+        self.eventOwner = StateContext.current
+        self.eventHandler = DOMEventHandler(handler)
     }
 }
 

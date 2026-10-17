@@ -67,11 +67,52 @@ public final class StateStore: Sendable {
         var value: StateSnapshotValue
     }
 
+    struct Mutation: Sendable {
+        let id: StateSlotID
+        let componentID: ComponentID
+        let previous: RuntimeValueBox?
+        let value: RuntimeValueBox
+        let animation: TransactionAnimation?
+    }
+
+    struct ReadProjection: Sendable {
+        let owner: StateStore
+        var values: [StateSlotID: RuntimeValueBox]
+        var absent: Set<StateSlotID>
+    }
+
+    struct Comparison: Sendable {
+        let value: RuntimeValueBox
+        let revision: Int
+    }
+
+    final class RenderWrites: Sendable {
+        let owner: StateStore
+        private let values = SwiftHTMLMutex<[StateSlotID: RuntimeValueBox]>([:])
+        init(owner: StateStore) { self.owner = owner }
+        func value(for id: StateSlotID) -> RuntimeValueBox? { values.withLock { $0[id] } }
+        func record(_ value: RuntimeValueBox, for id: StateSlotID) { values.withLock { $0[id] = value } }
+        func consume() -> [StateSlotID: RuntimeValueBox] {
+            values.withLock { values in
+                let result = values
+                values.removeAll(keepingCapacity: true)
+                return result
+            }
+        }
+    }
+
+    @TaskLocal static var readProjection: ReadProjection?
+    @TaskLocal static var renderingStore: StateStore?
+    @TaskLocal static var renderWrites: RenderWrites?
+
     private struct Storage: Sendable {
         var values: [ValueEntry] = []
         var restoredValues: [RestoredValueEntry] = []
         var dirtyComponents: [ComponentID] = []
         var invalidationHandler: (@Sendable (ComponentID) -> Void)?
+        var recordsMutations = false
+        var mutations: [Mutation] = []
+        var comparisons: [String: Comparison] = [:]
     }
 
     private let storage = SwiftHTMLMutex(Storage())
@@ -96,6 +137,14 @@ public final class StateStore: Sendable {
         for id: StateSlotID,
         default defaultValue: @autoclosure () -> Value
     ) -> Value {
+        if let writes = Self.renderWrites, writes.owner === self,
+           let value = writes.value(for: id)?.value(as: Value.self) { return value }
+        if let projection = Self.currentReadProjection(), projection.owner === self {
+            if let box = projection.values[id], let value = box.value(as: Value.self) {
+                return value
+            }
+            if projection.absent.contains(id) { return defaultValue() }
+        }
         let valueType = RuntimeTypeName.reflecting(Value.self)
         let lookup: (existing: Value?, restored: StateSnapshotValue?) = storage.withLock { storage in
             for entry in storage.values {
@@ -155,7 +204,22 @@ public final class StateStore: Sendable {
         // Embedded Debug SIL verifier otherwise extends its borrow across the
         // mutex's deferred unlock path for Optional values.
         let boxedValue = RuntimeValueBox(value)
+        let context = Self.mutationContext()
+        let animation = context.animation
+        let isRendering = context.renderingStore === self
+        if isRendering, let writes = Self.renderWrites, writes.owner === self {
+            writes.record(boxedValue, for: id)
+        }
         let invalidationHandler = storage.withLock { storage -> (@Sendable (ComponentID) -> Void)? in
+            if storage.recordsMutations && !isRendering {
+                storage.mutations.append(Mutation(
+                    id: id,
+                    componentID: componentID,
+                    previous: storage.values.first { $0.id == id }?.value,
+                    value: boxedValue,
+                    animation: animation
+                ))
+            }
             var didUpdateValue = false
             for index in storage.values.indices {
                 if storage.values[index].id == id {
@@ -239,6 +303,58 @@ public final class StateStore: Sendable {
                 RestoredValueEntry(id: StateSlotID(key), value: value)
             }
             storage.dirtyComponents.removeAll()
+            storage.mutations.removeAll()
+            storage.comparisons.removeAll()
+        }
+    }
+
+    func recordMutations() {
+        storage.withLock { $0.recordsMutations = true }
+    }
+
+    @inline(never)
+    static func currentReadProjection() -> ReadProjection? { readProjection }
+
+    @inline(never)
+    private static func mutationContext() -> (renderingStore: StateStore?, animation: TransactionAnimation?) {
+        (renderingStore, Transaction.current?.animation)
+    }
+
+    func pendingUpdate() -> (mutations: [Mutation], values: [StateSlotID: RuntimeValueBox]) {
+        storage.withLock { storage in
+            (storage.mutations, Dictionary(uniqueKeysWithValues: storage.values.map { ($0.id, $0.value) }))
+        }
+    }
+
+    func consumeMutations(_ count: Int, clearing components: [ComponentID]) {
+        storage.withLock { storage in
+            storage.mutations.removeFirst(count)
+            let pending = Set(storage.mutations.map { $0.componentID })
+            storage.dirtyComponents.removeAll { components.contains($0) && !pending.contains($0) }
+        }
+    }
+
+    func comparisonSnapshot() -> [String: Comparison] {
+        storage.withLock { $0.comparisons }
+    }
+
+    func restoreComparisons(_ comparisons: [String: Comparison]) {
+        storage.withLock { $0.comparisons = comparisons }
+    }
+
+    func valueRevision<Value: Equatable & Sendable>(_ value: Value, at path: String) -> Int {
+        let previous = storage.withLock { $0.comparisons[path] }
+        if let previous, let old = previous.value.value(as: Value.self), old == value {
+            return previous.revision
+        }
+        let comparison = Comparison(value: RuntimeValueBox(value), revision: (previous?.revision ?? -1) + 1)
+        storage.withLock { $0.comparisons[path] = comparison }
+        return comparison.revision
+    }
+
+    func retainComparisons(at paths: Set<String>) {
+        storage.withLock { storage in
+            storage.comparisons = storage.comparisons.filter { paths.contains($0.key) }
         }
     }
 
@@ -456,19 +572,12 @@ public struct State<Value: Sendable>: Sendable {
 
     public var wrappedValue: Value {
         get {
-            guard let context = StateContext.current else {
-                return local.value()
-            }
-
+            guard let context = StateContext.current else { return local.value() }
             let slot = context.register(source: source, valueType: RuntimeTypeName.reflecting(Value.self))
             return context.store.value(for: slot.id, default: initialValue)
         }
         nonmutating set {
-            guard let context = StateContext.current else {
-                local.set(newValue)
-                return
-            }
-
+            guard let context = StateContext.current else { local.set(newValue); return }
             let slot = context.register(source: source, valueType: RuntimeTypeName.reflecting(Value.self))
             context.store.set(newValue, for: slot.id, componentID: context.componentID)
         }
@@ -490,17 +599,12 @@ public struct State<Value: Sendable>: Sendable {
         let ownerContext = StateContext.current
         return Binding(
             get: {
-                guard let context = ownerContext else {
-                    return local.value()
-                }
+                guard let context = ownerContext else { return local.value() }
                 let slot = context.register(source: source, valueType: valueType)
                 return context.store.value(for: slot.id, default: initialValue)
             },
             set: { newValue in
-                guard let context = ownerContext else {
-                    local.set(newValue)
-                    return
-                }
+                guard let context = ownerContext else { local.set(newValue); return }
                 let slot = context.register(source: source, valueType: valueType)
                 context.store.set(newValue, for: slot.id, componentID: context.componentID)
             }
@@ -567,6 +671,11 @@ final class StateRenderContext: Sendable {
 enum StateContext {
     @TaskLocal static var current: StateRenderContext?
 
+    // Keep dynamic scope entry opaque to Embedded Release specialization.
+    // Inlining this boundary can hoist @State reads before the owning context;
+    // the release fixture verifies slot registration and subsequent rendering.
+    @inline(never)
+    @_optimize(none)
     static func withValue<Result>(
         _ value: StateRenderContext?,
         operation: () throws -> Result

@@ -5,6 +5,7 @@ public struct HydrationRuntimeUpdate: Sendable, Equatable {
     public let previousHydrationIndex: BrowserHydrationIndex
     public let hydrationIndex: BrowserHydrationIndex
     public let html: String
+    public let steps: [HydrationRuntimeStep]
 
     public init(
         dirtyComponents: [ComponentID],
@@ -12,7 +13,8 @@ public struct HydrationRuntimeUpdate: Sendable, Equatable {
         commandBatch: BrowserDOMCommandBatch = BrowserDOMCommandBatch(commands: []),
         previousHydrationIndex: BrowserHydrationIndex = .empty,
         hydrationIndex: BrowserHydrationIndex = .empty,
-        html: String
+        html: String,
+        steps: [HydrationRuntimeStep] = []
     ) {
         self.dirtyComponents = dirtyComponents
         self.patches = patches
@@ -20,6 +22,7 @@ public struct HydrationRuntimeUpdate: Sendable, Equatable {
         self.previousHydrationIndex = previousHydrationIndex
         self.hydrationIndex = hydrationIndex
         self.html = html
+        self.steps = steps
     }
 
     public var commands: [BrowserDOMCommand] {

@@ -11,19 +11,28 @@ public struct HTMLRenderer: Sendable {
         // through the component tree's concrete generic type; a deeply composed
         // tree can drive the runtime's type-metadata decoder past the default
         // stack limit. The enlarged stack keeps the type architecture intact.
-        withEnlargedStack {
-            var builder = HTMLGraphBuilder(environment: environment, stateStore: stateStore, options: options)
-            let root = builder.append(html)
-            var writer = HTMLWriter(minimumCapacity: estimatedOutputLength(for: builder.graph))
-            write(root, graph: builder.graph, options: options, into: &writer)
-            return RenderArtifact(
-                html: writer.output,
-                graph: builder.graph,
-                rootID: root,
-                hydration: builder.hydration,
-                clientHandlers: builder.clientHandlers,
-                diagnostics: builder.diagnostics
-            )
+        let projection = StateStore.currentReadProjection()
+        let renderWrites = StateStore.renderWrites
+        return withEnlargedStack {
+            StateStore.$renderWrites.withValue(renderWrites) {
+                StateStore.$readProjection.withValue(projection) {
+                    StateStore.$renderingStore.withValue(stateStore) {
+                        var builder = HTMLGraphBuilder(environment: environment, stateStore: stateStore, options: options)
+                        let root = builder.append(html)
+                        var writer = HTMLWriter(minimumCapacity: estimatedOutputLength(for: builder.graph))
+                        write(root, graph: builder.graph, options: options, into: &writer)
+                        stateStore.retainComparisons(at: builder.comparisonPaths)
+                        return RenderArtifact(
+                            html: writer.output,
+                            graph: builder.graph,
+                            rootID: root,
+                            hydration: builder.hydration,
+                            clientHandlers: builder.clientHandlers,
+                            diagnostics: builder.diagnostics
+                        )
+                    }
+                }
+            }
         }
     }
 

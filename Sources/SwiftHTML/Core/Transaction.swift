@@ -18,14 +18,10 @@ public struct TransactionAnimation: Sendable, Equatable {
     }
 }
 
-/// A per-update context that travels from a state mutation to the update it
-/// produces, mirroring SwiftUI's `Transaction`. `withAnimation`-style entry points
-/// set its `animation`; the runtime reads it when it applies that update's DOM
-/// changes. It belongs to the reactivity layer but stays presentation-agnostic by
-/// carrying only the already-lowered `TransactionAnimation`.
-///
-/// A fresh instance is bound per update (see `Transaction.$current`), so an
-/// animation never leaks into a later, unrelated update.
+/// A synchronous mutation context. StateStore captures a value snapshot of its
+/// animation at each mutation. Scoped entry points bind a fresh instance and
+/// restore the caller's context on return or throw; render/DOM timing is not
+/// inferred from whichever transaction happens to be current at event completion.
 public final class Transaction: Sendable {
     private let storage = SwiftHTMLMutex<TransactionAnimation?>(nil)
 
