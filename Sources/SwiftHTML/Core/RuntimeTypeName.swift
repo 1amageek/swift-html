@@ -25,11 +25,7 @@ enum RuntimeTypeName {
     }
 
     static func sourceFileID(_ fileID: StaticString) -> String {
-        #if hasFeature(Embedded)
-        "embedded"
-        #else
-        String(describing: fileID)
-        #endif
+        fileID.withUTF8Buffer { String(decoding: $0, as: UTF8.self) }
     }
 
     static func errorDescription(_ error: any Error) -> String {

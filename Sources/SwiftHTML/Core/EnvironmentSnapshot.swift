@@ -245,10 +245,9 @@ enum EnvironmentReadContext {
 }
 
 #if hasFeature(Embedded)
-// Codable is unavailable in Embedded Swift; the client environment snapshot
-// feeds hydration, which the embedded SSR profile does not serve, so the key
-// protocol keeps its shape without the serialization requirement and
-// snapshotting reports itself unavailable.
+// Codable is unavailable in Embedded Swift. A key can supply an explicit typed
+// snapshot factory, such as ClientEnvironmentSnapshotValue.text; unsupported
+// generic values remain an explicit failure.
 public protocol ClientEnvironmentKey: EnvironmentKey where Value: Sendable {}
 
 public extension ClientEnvironmentKey {

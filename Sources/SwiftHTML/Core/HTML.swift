@@ -33,6 +33,8 @@ public protocol Component: HTML {
     // downcasting, which Embedded Swift does not support.
     static var _isClientComponent: Bool { get }
     static var _isServerComponent: Bool { get }
+    /// An explicit hydration boundary name for builds without runtime reflection.
+    static var componentIdentity: String? { get }
     var _clientLoadPolicy: LoadPolicy? { get }
     var _clientBundlePolicy: BundlePolicy? { get }
 }
@@ -40,6 +42,7 @@ public protocol Component: HTML {
 extension Component {
     public static var _isClientComponent: Bool { false }
     public static var _isServerComponent: Bool { false }
+    public static var componentIdentity: String? { nil }
     public var _clientLoadPolicy: LoadPolicy? { nil }
     public var _clientBundlePolicy: BundlePolicy? { nil }
 

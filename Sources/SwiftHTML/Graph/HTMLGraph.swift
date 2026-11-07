@@ -171,6 +171,7 @@ public struct ClientHandlerRecord: Sendable {
     public let id: HandlerID
     public let eventName: String
     public let componentID: ComponentID?
+    public let lifecycleIdentity: String?
     private let eventHandler: DOMEventHandler?
 
     public var handler: (@Sendable (DOMEvent) -> Void)? {
@@ -187,11 +188,13 @@ public struct ClientHandlerRecord: Sendable {
         id: HandlerID,
         eventName: String,
         componentID: ComponentID? = nil,
+        lifecycleIdentity: String? = nil,
         handler: DOMEventHandler? = nil
     ) {
         self.id = id
         self.eventName = eventName
         self.componentID = componentID
+        self.lifecycleIdentity = lifecycleIdentity
         self.eventHandler = handler
     }
 
@@ -591,7 +594,7 @@ public struct HTMLGraphBuilder {
         // identity on every target so SSR and client hydration derive identical
         // component and state-slot identifiers.
         let typeName = isExplicitClientComponent || isServerComponent
-            ? RuntimeTypeName.reflecting(C.self)
+            ? (C.componentIdentity ?? RuntimeTypeName.reflecting(C.self))
             : "SwiftHTML.Component"
         let path = currentPath()
         let componentID = makeComponentID(typeName: typeName, path: path)
@@ -931,8 +934,11 @@ public struct HTMLGraphBuilder {
             }
             let scopedHandler: DOMEventHandler?
             if options.capturesClientHandlerClosures, let handler = attribute.eventHandler {
+                let eventEnvironment = EnvironmentContext.current
                 scopedHandler = DOMEventHandler { event in
-                    StateContext.withValue(eventOwner) { handler.invoke(with: event) }
+                    EnvironmentContext.withValue(eventEnvironment) {
+                        StateContext.withValue(eventOwner) { handler.invoke(with: event) }
+                    }
                 }
             } else {
                 scopedHandler = nil
@@ -941,6 +947,8 @@ public struct HTMLGraphBuilder {
                 id: id,
                 eventName: eventName,
                 componentID: eventOwner?.componentID,
+                lifecycleIdentity: eventName == "appear" || eventName == "disappear"
+                    ? (eventOwner?.componentID.rawValue ?? "root") + ":" + currentPath() : nil,
                 handler: scopedHandler
             ))
             return HTMLAttributeRecord(

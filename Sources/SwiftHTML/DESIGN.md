@@ -51,6 +51,19 @@ borrows a generic caller value across the lock's deferred unlock path.
 
 ## Contracts and Invariants
 
+- A component may supply `componentIdentity` for a stable client boundary across
+  reflection-free SSR and browser builds. Native defaults retain the existing
+  reflected identity. State declarations may supply `identity` for the slot's
+  schema label; the actual typed value remains owned by the same StateStore.
+- State source locations decode the authored StaticString on every target;
+  Embedded does not collapse different source files into one placeholder.
+- `ClientEnvironmentSnapshotValue.text` encodes one explicit public String as
+  standard JSON without Foundation. Keys own stable names and opt into this
+  factory; an unsupported generic Embedded value still throws. This supports
+  Embedded SSR -> standard-WASM browser hydration, not generic Embedded
+  Decodable restoration. Unsupported client-boundary metadata must prevent
+  a runtime from being declared hydrated.
+
 - StateStore captures resolved timing at each mutation, not event completion.
   A session renders consecutive equal-timing mutations together, retaining
   ordered groups with different timing, including no animation.
@@ -148,3 +161,26 @@ throw restoration, projection ownership and comparison lifetime. The same Mutex
 storage owns values, pending mutations and comparison entries on every target.
 Comparisons, callbacks and rendering run outside its lock. There is no
 target-specific Sendable or isolation exception.
+
+### Projected state and event environments
+An explicitly identified state declaration uses its component owner plus authored
+identity as the storage key. Source file/line/column remain diagnostic metadata,
+not its key; declaration expansion must preserve state across source projection.
+Declarations without an identity retain the existing source-location contract.
+The author owns unique, stable identity/schema names within each component and
+changes the schema identity when its value meaning/type changes.
+Captured client handlers retain the immutable environment active at creation,
+and restore that environment and their state owner while invoking the callback.
+A Task created by the callback inherits the same TaskLocal context. No callback
+runs while a state-store mutex is held. Server-only environment values are not
+serialized; client hydration still uses the explicit ClientEnvironmentRegistry.
+
+### Client lifetime callbacks
+HydrationRuntimeSession explicitly starts/ends its client lifetime. Appear and
+disappear callbacks are keyed by their owner and structural render path, not
+reused handler numbers or allocation-dependent node IDs. Starting/ending twice
+is idempotent. A committed render compares old/new identities, invokes removed
+callbacks in reverse order and added callbacks in render order after consuming
+the prior mutation batch. Callback mutations remain pending for the next flush.
+Rendering an SSR artifact alone never starts a client lifetime. The browser owner
+starts it after actor startup and ends it before retiring the component.

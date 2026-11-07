@@ -37,6 +37,11 @@ SwiftHTML package
 
 ## Contracts and Invariants
 
+The SwiftHTML child owns explicit client-boundary and state schema identities
+and the portable public text snapshot. These preserve one rendering contract
+across Native and Embedded SSR without weakening state isolation or introducing
+runtime reflection into Embedded.
+
 Package composition must preserve each child module's public contract and
 must not move state ownership into the renderer or browser adapter.
 

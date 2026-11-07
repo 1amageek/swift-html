@@ -554,14 +554,17 @@ public struct State<Value: Sendable>: Sendable {
     private let initialValue: Value
     private let source: StateSourceLocation
     private let local: LocalStateStorage<Value>
+    private let identity: String?
 
     public init(
         wrappedValue: Value,
+        identity: StaticString? = nil,
         fileID: StaticString = #fileID,
         line: UInt = #line,
         column: UInt = #column
     ) {
         self.initialValue = wrappedValue
+        self.identity = identity.map { RuntimeTypeName.sourceFileID($0) }
         self.source = StateSourceLocation(
             fileID: RuntimeTypeName.sourceFileID(fileID),
             line: line,
@@ -573,12 +576,12 @@ public struct State<Value: Sendable>: Sendable {
     public var wrappedValue: Value {
         get {
             guard let context = StateContext.current else { return local.value() }
-            let slot = context.register(source: source, valueType: RuntimeTypeName.reflecting(Value.self))
+            let slot = context.register(source: source, valueType: identity ?? RuntimeTypeName.reflecting(Value.self), identity: identity)
             return context.store.value(for: slot.id, default: initialValue)
         }
         nonmutating set {
             guard let context = StateContext.current else { local.set(newValue); return }
-            let slot = context.register(source: source, valueType: RuntimeTypeName.reflecting(Value.self))
+            let slot = context.register(source: source, valueType: identity ?? RuntimeTypeName.reflecting(Value.self), identity: identity)
             context.store.set(newValue, for: slot.id, componentID: context.componentID)
         }
     }
@@ -595,17 +598,18 @@ public struct State<Value: Sendable>: Sendable {
         let source = self.source
         let initialValue = self.initialValue
         let local = self.local
-        let valueType = RuntimeTypeName.reflecting(Value.self)
+        let valueType = identity ?? RuntimeTypeName.reflecting(Value.self)
+        let identity = self.identity
         let ownerContext = StateContext.current
         return Binding(
             get: {
                 guard let context = ownerContext else { return local.value() }
-                let slot = context.register(source: source, valueType: valueType)
+                let slot = context.register(source: source, valueType: valueType, identity: identity)
                 return context.store.value(for: slot.id, default: initialValue)
             },
             set: { newValue in
                 guard let context = ownerContext else { local.set(newValue); return }
-                let slot = context.register(source: source, valueType: valueType)
+                let slot = context.register(source: source, valueType: valueType, identity: identity)
                 context.store.set(newValue, for: slot.id, componentID: context.componentID)
             }
         )
@@ -639,8 +643,9 @@ final class StateRenderContext: Sendable {
         self.isClientOwned = isClientOwned
     }
 
-    func register(source: StateSourceLocation, valueType: String) -> StateSlotRecord {
-        let id = StateSlotID(componentID: componentID, source: source)
+    func register(source: StateSourceLocation, valueType: String, identity: String? = nil) -> StateSlotRecord {
+        let id = identity.map { StateSlotID("\(componentID.rawValue):state:identity:\($0.utf8.count):\($0)") }
+            ?? StateSlotID(componentID: componentID, source: source)
         return storage.withLock { storage in
             for record in storage.slots {
                 if record.id == id {

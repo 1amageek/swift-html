@@ -11,6 +11,7 @@ public struct HydrationRuntimeSession<Root: Component>: Sendable {
     // Caching it (refreshed only when `artifact` changes) collapses the two full
     // O(N) index exports per flush down to one.
     private var cachedHydrationIndex: BrowserHydrationIndex
+    private var isLifetimeActive = false
 
     private let renderer = HTMLRenderer()
     private let applicator = HTMLDOMPatchApplicator()
@@ -37,6 +38,18 @@ public struct HydrationRuntimeSession<Root: Component>: Sendable {
         self.dom = HTMLDOMSnapshot(graph: artifact.graph, rootID: artifact.rootID)
         self.cachedHydrationIndex = artifact.browserHydrationIndex()
         stateStore.recordMutations()
+    }
+
+    public mutating func startLifetime() {
+        guard !isLifetimeActive else { return }
+        isLifetimeActive = true
+        for handler in artifact.clientHandlers.handlers where handler.eventName == "appear" && handler.lifecycleIdentity != nil { handler.invoke() }
+    }
+
+    public mutating func endLifetime() {
+        guard isLifetimeActive else { return }
+        isLifetimeActive = false
+        for handler in artifact.clientHandlers.handlers.reversed() where handler.eventName == "disappear" && handler.lifecycleIdentity != nil { handler.invoke() }
     }
 
     public mutating func invoke(
@@ -119,11 +132,23 @@ public struct HydrationRuntimeSession<Root: Component>: Sendable {
         let commandBatch = commandEncoder.encode(patches)
         _ = try applicator.apply(patches, to: dom)
         dom = HTMLDOMSnapshot(graph: nextArtifact.graph, rootID: nextArtifact.rootID)
+        let previousHandlers = artifact.clientHandlers.handlers
         artifact = nextArtifact
         let nextHydrationIndex = nextArtifact.browserHydrationIndex()
         cachedHydrationIndex = nextHydrationIndex
         stateStore.consumeMutations(mutations.count, clearing: dirtyComponents)
         didCommit = true
+        if isLifetimeActive {
+            let nextHandlers = artifact.clientHandlers.handlers
+            let oldIdentities = Set(previousHandlers.compactMap { $0.lifecycleIdentity })
+            let newIdentities = Set(nextHandlers.compactMap { $0.lifecycleIdentity })
+            for handler in previousHandlers.reversed() where handler.eventName == "disappear" {
+                if let identity = handler.lifecycleIdentity, !newIdentities.contains(identity) { handler.invoke() }
+            }
+            for handler in nextHandlers where handler.eventName == "appear" {
+                if let identity = handler.lifecycleIdentity, !oldIdentities.contains(identity) { handler.invoke() }
+            }
+        }
 
         return HydrationRuntimeUpdate(
             dirtyComponents: dirtyComponents,
